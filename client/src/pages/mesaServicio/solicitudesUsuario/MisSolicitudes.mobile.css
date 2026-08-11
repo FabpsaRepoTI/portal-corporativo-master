@@ -1,0 +1,782 @@
+/* ═══════════════════════════════════════════════════════════════
+   MisSolicitudes — Mobile & Tablet Responsive
+   Breakpoints: ≤1100px tablet, ≤768px mobile, ≤480px small
+   Solo añade / sobreescribe. No toca desktop.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ────────────────────────────────────────────────────────────────
+   TABLET  ≤ 1100px
+──────────────────────────────────────────────────────────────── */
+@media (max-width: 1100px) {
+  /* Panel expandido: de 4 a 2 columnas */
+  .msp-tab-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  .msp-sla-bloques {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* Tabla incidencias — ocultar columnas menos críticas */
+  .msp-table thead th:nth-child(4),
+  .msp-table thead th:nth-child(7),
+  .msp-table tbody td:nth-child(4),
+  .msp-table tbody td:nth-child(7) {
+    display: none;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   MOBILE  ≤ 768px
+──────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* ── Root ── */
+  .msp-page {
+    font-size: 14px;
+  }
+  .msp-inner {
+    padding: 0.75rem 0.85rem 4rem;
+  }
+
+  /* ── Hero ── */
+  .msp-hero {
+    padding: 1rem;
+    border-radius: 10px;
+  }
+  .mds-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+  .mds-back {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: inherit;
+  }
+  .mds-hero {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .mds-hero-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(124, 140, 248, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: #7c8cf8;
+    flex-shrink: 0;
+  }
+  .mds-hero-title {
+    font-size: 1.1rem;
+    margin: 0;
+    font-weight: 700;
+    color: var(--text-h);
+  }
+  .mds-hero-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 2px 0 0;
+  }
+
+  /* ── KPI strip: 2 cols ── */
+  .msp-kpi-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    overflow-x: visible;
+    padding-bottom: 0;
+    margin-bottom: 0.85rem;
+  }
+  .msp-kpi-card {
+    flex: unset;
+    min-width: unset;
+    padding: 0.7rem 0.75rem;
+    border-radius: 10px;
+  }
+  .msp-kpi-num {
+    font-size: 1.25rem;
+  }
+  .msp-kpi-label {
+    font-size: 11px;
+  }
+
+  /* ── Tabla card ── */
+  .msp-table-card {
+    border-radius: 10px;
+  }
+
+  /* ── Tabs principales ── */
+  .msp-main-tabs {
+    padding: 0.5rem 0.65rem 0;
+    gap: 0.15rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .msp-main-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .msp-main-tab {
+    padding: 0.45rem 0.7rem 0.6rem;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .msp-main-tab-icon-wrap {
+    width: 20px;
+    height: 20px;
+    font-size: 0.8rem;
+  }
+
+  /* ── Toolbar ── */
+  .msp-toolbar {
+    padding: 0.6rem 0.75rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .msp-search-wrap {
+    flex: 1 1 100%;
+    max-width: 100%;
+    min-width: unset;
+    order: 0;
+  }
+  .msp-filter-select {
+    flex: 1;
+    font-size: 12px;
+    min-width: 0;
+    order: 1;
+  }
+  .msp-btn-nueva-hw {
+    order: 1;
+    font-size: 12px;
+    padding: 0.38rem 0.75rem;
+    white-space: nowrap;
+  }
+  .msp-toolbar-spacer {
+    display: none;
+  }
+  .msp-result-count {
+    flex: 1 1 100%;
+    order: 2;
+    text-align: right;
+    font-size: 11px;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     TABLA INCIDENCIAS → CARDS
+  ══════════════════════════════════════════════════════════════ */
+
+  /* Quitar overflow oculto — necesario para que el panel se vea completo */
+  .msp-table-wrap {
+    overflow-x: visible;
+    overflow-y: visible;
+  }
+
+  /* Convertir tabla en bloque */
+  .msp-table,
+  .msp-table tbody {
+    display: block;
+    width: 100%;
+  }
+  .msp-table thead {
+    display: none;
+  }
+  .msp-table colgroup {
+    display: none;
+  }
+
+  /* Cada TR = card */
+  .msp-tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    position: relative;
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+    gap: 0.4rem 0.5rem;
+    cursor: pointer;
+    transition: background 0.13s;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .msp-tr:hover {
+    background: rgba(124, 140, 248, 0.04);
+  }
+  .msp-tr--exp {
+    background: rgba(124, 140, 248, 0.04);
+    border-bottom: none;
+  }
+
+  /* Ocultar TODAS las celdas por defecto */
+  .msp-tr td {
+    display: none !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    white-space: normal !important;
+  }
+
+  /* ── Celda 1: botón expand → absolute arriba-derecha ── */
+  .msp-tr td:nth-child(1) {
+    display: flex !important;
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+  }
+
+  /* ── Celda 2: folio → línea 1 completa ── */
+  .msp-tr td:nth-child(2) {
+    display: block !important;
+    flex: 1 1 100%;
+    order: 0;
+    padding-right: 2.5rem !important; /* espacio para el expand btn */
+  }
+
+  /* ── Celda 3: servicio → línea 2 completa ── */
+  .msp-tr td:nth-child(3) {
+    display: block !important;
+    flex: 1 1 100%;
+    order: 1;
+  }
+
+  /* ── Celda 9: fecha → línea 3, muted ── */
+  .msp-tr td:nth-child(9) {
+    display: block !important;
+    flex: 1 1 100%;
+    order: 2;
+    font-size: 11px !important;
+    color: var(--text-faint) !important;
+  }
+
+  /* ── Chips: prioridad (5) + estado (6) + SLA (8) → línea 4 ── */
+  .msp-tr td:nth-child(5) {
+    display: inline-flex !important;
+    align-items: center;
+    order: 3;
+    flex: 0 0 auto;
+  }
+  .msp-tr td:nth-child(6) {
+    display: inline-flex !important;
+    align-items: center;
+    order: 3;
+    flex: 0 0 auto;
+  }
+  .msp-tr td:nth-child(8) {
+    display: inline-flex !important;
+    align-items: center;
+    order: 3;
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  /* Servicio cell no desborde */
+  .msp-servicio-cell {
+    max-width: 100%;
+  }
+  .msp-svc-name {
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  /* Expand btn más grande */
+  .msp-expand-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 15px;
+  }
+
+  /* ── Fila expandida: el td debe ser bloque y ancho completo ── */
+  .msp-expand-row {
+    display: block !important;
+    width: 100%;
+  }
+  .msp-expand-row td {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  /* ── Panel expandido ── */
+  .msp-detail {
+    border-left: none !important;
+    border-top: 3px solid #7c8cf8;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: visible;
+  }
+
+  /* Tabs internas del panel */
+  .msp-tabs {
+    padding: 0 0.75rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .msp-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .msp-tab {
+    flex-shrink: 0;
+    padding: 0.55rem 0.75rem;
+    font-size: 12px;
+  }
+
+  /* ── Tab content: FORZAR 1 columna con !important ── */
+  .msp-tab-content {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    padding: 1rem 0.85rem !important;
+    gap: 0.85rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+  }
+
+  /* Secciones dentro del grid: ocupan toda la columna */
+  .msp-detail-section {
+    grid-column: 1 !important;
+  }
+  .msp-sla-content {
+    grid-column: 1 !important;
+    width: 100% !important;
+  }
+  .msp-conv-content {
+    grid-column: 1 !important;
+    width: 100% !important;
+  }
+  .msp-upload-zone {
+    grid-column: 1 !important;
+  }
+  .msp-evidencias-grid {
+    grid-column: 1 !important;
+  }
+
+  /* SLA: 1 columna */
+  .msp-sla-bloques {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem !important;
+    width: 100% !important;
+  }
+
+  /* Descripción y cajas */
+  .msp-descripcion-box {
+    font-size: 13px;
+  }
+  .msp-asignacion-card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .msp-tiempos-card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Mensajes */
+  .msp-mensaje {
+    max-width: 90%;
+  }
+  .msp-mensajes {
+    max-height: 260px;
+  }
+
+  /* Acciones del panel */
+  .msp-detail-actions {
+    padding: 0.6rem 0.75rem;
+    gap: 0.4rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .msp-detail-actions::-webkit-scrollbar {
+    display: none;
+  }
+  .msp-btn-action {
+    flex-shrink: 0;
+    font-size: 12px;
+    padding: 0.42rem 0.75rem;
+    min-height: 36px;
+  }
+
+  /* Conversación */
+  .msp-conv-input-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .msp-conv-btns {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  .msp-btn-action.primary {
+    width: auto;
+  }
+
+  /* Eval popover: centrado fixed */
+  .msp-eval-popover {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 32px);
+    max-width: 360px;
+    margin-left: 0;
+  }
+
+  /* Modal */
+  .msp-modal {
+    padding: 1.5rem 1.25rem;
+    border-radius: 16px;
+  }
+  .msp-modal-actions {
+    flex-direction: column;
+  }
+  .msp-modal-btn {
+    padding: 0.7rem 1rem;
+    font-size: 14px;
+    min-height: 46px;
+  }
+
+  /* Empty state */
+  .msp-empty-state {
+    padding: 2.5rem 1rem 3rem;
+  }
+  .msp-empty-svg {
+    width: 160px;
+    height: 112px;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   SMALL MOBILE  ≤ 480px
+──────────────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .msp-inner {
+    padding: 0.65rem 0.7rem 4rem;
+  }
+
+  /* KPI compactos */
+  .msp-kpi-card {
+    padding: 0.6rem 0.65rem;
+    gap: 0.5rem;
+  }
+  .msp-kpi-num {
+    font-size: 1.15rem;
+  }
+
+  /* Toolbar: selects al 50% */
+  .msp-filter-select {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
+  }
+
+  /* Tabs más compactos */
+  .msp-main-tab {
+    padding: 0.4rem 0.55rem 0.55rem;
+    font-size: 11.5px;
+  }
+  .msp-main-tab-icon-wrap {
+    display: none;
+  }
+
+  /* Cards de tickets */
+  .msp-tr {
+    padding: 0.65rem 0.75rem;
+  }
+
+  /* Panel tabs */
+  .msp-tab {
+    padding: 0.5rem 0.6rem;
+    font-size: 11.5px;
+  }
+  .msp-tab-content {
+    padding: 0.85rem 0.75rem !important;
+  }
+}
+
+/* ────────────────────────────────────────────────────────────────
+   HARDWARE MIS SOLICITUDES  ≤ 768px
+──────────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Thead oculto */
+  .hw-msp-thead {
+    display: none;
+  }
+
+  /* Tbody → bloque */
+  .hw-msp-tbody {
+    display: flex;
+    flex-direction: column;
+  }
+  .hw-msp-row-wrap {
+    border-bottom: 1px solid var(--border);
+  }
+  .hw-msp-row-wrap:last-child {
+    border-bottom: none;
+  }
+
+  /* Cada fila → card flex de 1 columna */
+  .hw-msp-row {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 0.75rem 0.85rem 0.75rem !important;
+    gap: 0.35rem !important;
+    grid-template-columns: unset !important;
+    min-height: unset !important;
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+  }
+
+  /* Ocultar TODAS las celdas */
+  .hw-msp-td {
+    display: none !important;
+  }
+
+  /* ── Celda 1: toggle → absolute arriba-derecha ── */
+  .hw-msp-td:nth-child(1) {
+    display: flex !important;
+    position: absolute !important;
+    top: 0.8rem !important;
+    right: 0.8rem !important;
+    order: unset !important;
+  }
+
+  /* ── Celda 2: folio + depto ── */
+  .hw-msp-td:nth-child(2) {
+    display: flex !important;
+    flex-direction: column !important;
+    width: calc(100% - 2.5rem) !important;
+    order: 0 !important;
+    overflow: visible !important;
+    white-space: normal !important;
+  }
+  /* El folio tiene su propio elemento; forzar inline */
+  .hw-msp-td:nth-child(2) .hw-msp-folio {
+    white-space: nowrap;
+    font-size: 11.5px;
+  }
+  .hw-msp-td:nth-child(2) .hw-msp-fecha-sub {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  /* ── Celda 3: artículos preview ── */
+  .hw-msp-td:nth-child(3) {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    order: 1 !important;
+    overflow: visible !important;
+  }
+  .hw-msp-td:nth-child(3) .hw-msp-arts-preview {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    max-width: 100% !important;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-body);
+    line-height: 1.35;
+  }
+  .hw-msp-td:nth-child(3) .hw-msp-fecha-sub {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 1px;
+    white-space: nowrap;
+  }
+
+  /* ── Celda 5: estatus + celda 7: mensajes → fila horizontal ── */
+  .hw-msp-td:nth-child(5),
+  .hw-msp-td:nth-child(7) {
+    display: inline-flex !important;
+    align-items: center !important;
+    order: 2 !important;
+    flex: 0 0 auto !important;
+  }
+  /* Contenedor inline para estatus y mensajes */
+  .hw-msp-row {
+    flex-wrap: wrap !important;
+  }
+
+  /* ── Celda 6: fecha completa → línea final discreta ── */
+  .hw-msp-td:nth-child(6) {
+    display: block !important;
+    width: 100% !important;
+    order: 3 !important;
+    font-size: 11px !important;
+    color: var(--text-faint) !important;
+    /* La fecha tiene comas — hacer que fluya en una sola línea */
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  /* El texto de la fecha es .hw-msp-fecha — forzar inline */
+  .hw-msp-td:nth-child(6) .hw-msp-fecha {
+    font-size: 11px !important;
+    color: var(--text-faint) !important;
+    white-space: nowrap !important;
+  }
+
+  /* Mensajes empujar a la derecha */
+  .hw-msp-td:nth-child(7) {
+    margin-left: auto !important;
+  }
+
+  /* Ocultar flecha duplicada (col 8) */
+  .hw-msp-td:nth-child(8) {
+    display: none !important;
+  }
+
+  /* Hover */
+  .hw-msp-row:hover,
+  .hw-msp-row.expanded {
+    background: rgba(16, 185, 129, 0.035);
+  }
+
+  /* Toggle grande */
+  .hw-msp-toggle {
+    font-size: 1rem;
+  }
+
+  /* Panel expandido */
+  .hw-msp-detail {
+    border-left: none !important;
+    border-top: 3px solid #10b981;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Progreso */
+  .hw-msp-progreso-wrap {
+    padding: 0.75rem 0.75rem 0;
+  }
+
+  /* Tabs: scroll horizontal */
+  .hw-msp-tabs {
+    padding: 0 0.75rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .hw-msp-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .hw-msp-tab {
+    flex-shrink: 0;
+    padding: 0.55rem 0.75rem;
+    font-size: 12px;
+  }
+
+  /* Tab content */
+  .hw-msp-tab-content {
+    padding: 0.85rem;
+  }
+  .hw-msp-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Artículos */
+  .hw-msp-art-row {
+    gap: 0.65rem;
+    padding: 0.75rem 0.85rem;
+  }
+  .hw-msp-art-right {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Hilo comentarios */
+  .hw-msp-mensaje {
+    max-width: 90%;
+  }
+  .hw-msp-hilo {
+    max-height: 260px;
+  }
+  .hw-msp-conv-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .hw-msp-btn.primary {
+    align-self: flex-end;
+  }
+
+  /* Barra acciones */
+  .hw-msp-actions-bar {
+    padding: 0.6rem 0.75rem;
+    gap: 0.4rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .hw-msp-actions-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .hw-msp-btn {
+    flex-shrink: 0;
+    min-height: 36px;
+  }
+
+  /* Eval popover: fixed centrado */
+  .hw-msp-eval-popover {
+    position: fixed;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100vw - 32px);
+    max-width: 340px;
+  }
+
+  /* Empty */
+  .hw-msp-empty {
+    padding: 2.5rem 1rem 3rem;
+  }
+  .hw-msp-empty-svg {
+    width: 160px;
+    height: 115px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hw-msp-row {
+    padding: 0.65rem 0.75rem;
+  }
+  .hw-msp-tab {
+    padding: 0.5rem 0.6rem;
+    font-size: 11.5px;
+  }
+  .hw-msp-tab-content {
+    padding: 0.75rem;
+  }
+  .hw-msp-art-row {
+    padding: 0.65rem 0.75rem;
+  }
+  .hw-msp-progreso-wrap {
+    padding: 0.65rem 0.75rem 0;
+  }
+  .hw-msp-progreso-chips {
+    gap: 0.35rem;
+  }
+  .hw-msp-prog-chip {
+    font-size: 10.5px;
+  }
+}

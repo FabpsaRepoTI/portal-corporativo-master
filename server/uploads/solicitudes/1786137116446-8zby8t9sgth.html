@@ -1,0 +1,112 @@
+
+<h2 class="sr-only">Vista previa mejorada del correo de solicitud de permiso FABPSA</h2>
+
+<div style="background:var(--color-background-secondary);padding:2rem;border-radius:var(--border-radius-lg)">
+<div style="max-width:600px;margin:0 auto;font-family:var(--font-sans)">
+<div style="background:var(--color-background-primary);border-radius:16px;overflow:hidden;border:0.5px solid var(--color-border-tertiary)">
+
+  <!-- TOP BAR -->
+  <div style="height:3px;background:linear-gradient(90deg,#1a3f6f,#2563eb,#0ea5e9,#06b6d4)"></div>
+
+  <!-- HEADER -->
+  <div style="padding:30px 36px 22px;border-bottom:0.5px solid var(--color-border-tertiary)">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+      <div>
+        <div style="font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--color-text-secondary);margin-bottom:7px">Plataforma de Gestión Integral · FABPSA</div>
+        <div style="font-size:21px;font-weight:500;color:var(--color-text-primary);letter-spacing:-0.3px;line-height:1.2">Nueva solicitud<br>de permiso</div>
+      </div>
+      <div style="flex-shrink:0;text-align:right">
+        <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--color-text-secondary);margin-bottom:6px">Folio</div>
+        <div style="font-size:15px;font-weight:500;color:var(--color-text-primary);font-family:var(--font-mono);background:var(--color-background-secondary);padding:6px 12px;border-radius:8px;border:0.5px solid var(--color-border-tertiary)">{folio}</div>
+      </div>
+    </div>
+
+    <!-- META PILLS -->
+    <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap">
+      <span style="font-size:11px;padding:4px 10px;border-radius:20px;background:var(--color-background-warning);color:var(--color-text-warning);font-weight:500">Pendiente de revisión</span>
+      <span style="font-size:11px;padding:4px 10px;border-radius:20px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)">Generado automáticamente</span>
+      <span style="font-size:11px;padding:4px 10px;border-radius:20px;background:var(--color-background-secondary);color:var(--color-text-secondary);border:0.5px solid var(--color-border-tertiary)">Uso interno</span>
+    </div>
+  </div>
+
+  <!-- SOLICITANTE -->
+  <div style="padding:24px 36px;border-bottom:0.5px solid var(--color-border-tertiary)">
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--color-text-secondary);margin-bottom:12px">Solicitante</div>
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="width:46px;height:46px;border-radius:12px;background:var(--color-background-info);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <i class="ti ti-user" style="font-size:20px;color:var(--color-text-info)" aria-hidden="true"></i>
+      </div>
+      <div>
+        <div style="font-size:17px;font-weight:500;color:var(--color-text-primary)">{definible2}</div>
+        <div style="font-size:12px;color:var(--color-text-secondary);margin-top:2px">{departamento}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DETALLE: 3 TARJETAS -->
+  <div style="padding:24px 36px;border-bottom:0.5px solid var(--color-border-tertiary)">
+    <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--color-text-secondary);margin-bottom:14px">Detalle de la solicitud</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+      <div style="padding:14px;border-radius:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary)">
+        <div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:5px">
+          <i class="ti ti-tag" style="font-size:12px" aria-hidden="true"></i> Tipo de permiso
+        </div>
+        <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)">{tipo_permiso}</div>
+      </div>
+      <div style="padding:14px;border-radius:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary)">
+        <div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:6px;display:flex;align-items:center;gap:5px">
+          <i class="ti ti-calendar" style="font-size:12px" aria-hidden="true"></i> Fecha de registro
+        </div>
+        <div style="font-size:14px;font-weight:500;color:var(--color-text-primary)">{fecha}</div>
+      </div>
+    </div>
+
+    <!-- MOTIVO: tarjeta prominente con borde izquierdo de color -->
+    <div style="padding:16px;border-radius:10px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-left:3px solid #2563eb">
+      <div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:7px;display:flex;align-items:center;gap:5px">
+        <i class="ti ti-message-dots" style="font-size:12px" aria-hidden="true"></i> Motivo
+      </div>
+      <div style="font-size:14px;color:var(--color-text-primary);line-height:1.65">{motivo}</div>
+    </div>
+  </div>
+
+  <!-- ACCIÓN REQUERIDA: aviso + botón -->
+  <div style="padding:24px 36px;border-bottom:0.5px solid var(--color-border-tertiary)">
+
+    <!-- Aviso de acción requerida -->
+    <div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:10px;background:var(--color-background-warning);border:0.5px solid var(--color-border-warning);margin-bottom:18px">
+      <i class="ti ti-alert-triangle" style="font-size:18px;color:var(--color-text-warning);flex-shrink:0;margin-top:1px" aria-hidden="true"></i>
+      <div>
+        <div style="font-size:13px;font-weight:500;color:var(--color-text-warning);margin-bottom:2px">Tu revisión es requerida</div>
+        <div style="font-size:12px;color:var(--color-text-warning);opacity:.85;line-height:1.5">Esta solicitud está en espera de autorización. Ingresa al sistema para aprobar, rechazar o solicitar información adicional.</div>
+      </div>
+    </div>
+
+    <a href="http://192.168.16.198:3550/PGI_Corporativo/app_Login/"
+       style="display:block;padding:13px 20px;border-radius:10px;background:#1a3f6f;text-align:center;text-decoration:none;">
+      <span style="font-size:14px;font-weight:500;color:#ffffff;display:flex;align-items:center;justify-content:center;gap:8px">
+        <i class="ti ti-login" style="font-size:16px" aria-hidden="true"></i>
+        Revisar solicitud en el sistema
+        <i class="ti ti-arrow-right" style="font-size:14px" aria-hidden="true"></i>
+      </span>
+    </a>
+  </div>
+
+  <!-- FOOTER -->
+  <div style="padding:18px 36px;display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div style="font-size:12px;font-weight:500;color:var(--color-text-primary);letter-spacing:0.5px">FABPSA</div>
+      <div style="font-size:11px;color:var(--color-text-secondary)">Centro de Innovación y Desarrollo Tecnológico</div>
+    </div>
+    <div style="font-size:11px;color:var(--color-text-tertiary);text-align:right;line-height:1.6">
+      Mensaje automático<br>No requiere respuesta
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div style="height:2px;background:linear-gradient(90deg,#06b6d4,#2563eb,#1a3f6f)"></div>
+
+</div>
+</div>
+</div>

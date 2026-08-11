@@ -1,0 +1,333 @@
+/* FirstAccessModal.css — FABPSA Portal Corporativo v4 — Light always */
+
+.fam-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(240, 238, 248, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  animation: fam-fade-in 0.3s ease both;
+}
+
+@keyframes fam-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fam-card {
+  width: min(460px, calc(100vw - 32px));
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  padding: 36px 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 32px 64px rgba(80, 60, 140, 0.1);
+  animation: fam-slide-up 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes fam-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header */
+.fam-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+
+.fam-logo-ring {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    rgba(76, 201, 166, 0.12),
+    rgba(124, 140, 248, 0.12)
+  );
+  border: 1.5px solid rgba(76, 201, 166, 0.25);
+  display: grid;
+  place-items: center;
+  position: relative;
+}
+
+.fam-logo-ring::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  border: 1px solid rgba(76, 201, 166, 0.15);
+  animation: fam-ring-pulse 2s ease-in-out infinite;
+}
+
+@keyframes fam-ring-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0;
+    transform: scale(1.18);
+  }
+}
+
+.fam-logo-icon {
+  font-size: 24px;
+  color: #4cc9a6;
+  transition: color 0.4s;
+}
+
+.fam-logo-icon--done {
+  color: #4cc9a6;
+}
+
+.fam-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.fam-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Pasos */
+.fam-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  padding-left: 4px;
+}
+
+.fam-steps::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 16px;
+  bottom: 16px;
+  width: 1px;
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.fam-step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 0;
+  position: relative;
+}
+
+.fam-step-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  position: relative;
+  z-index: 1;
+  transition:
+    background 0.3s,
+    border-color 0.3s;
+}
+
+.fam-step--done .fam-step-dot {
+  background: rgba(76, 201, 166, 0.15);
+  border: 1.5px solid #4cc9a6;
+  color: #4cc9a6;
+}
+
+.fam-step--active .fam-step-dot {
+  background: rgba(124, 140, 248, 0.12);
+  border: 1.5px solid #7c8cf8;
+}
+
+.fam-step--pending .fam-step-dot {
+  background: #f3f4f6;
+  border: 1.5px solid #e5e7eb;
+}
+
+.fam-step-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7c8cf8;
+  animation: fam-step-blink 1s ease-in-out infinite;
+}
+
+@keyframes fam-step-blink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
+}
+
+.fam-step-label {
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.fam-step--done .fam-step-label {
+  color: #4cc9a6;
+}
+.fam-step--active .fam-step-label {
+  color: #111827;
+}
+.fam-step--pending .fam-step-label {
+  color: #d1d5db;
+}
+
+/* Barra */
+.fam-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fam-bar-track {
+  flex: 1;
+  height: 6px;
+  background: #f3f4f6;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.fam-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #4cc9a6, #7c8cf8);
+  position: relative;
+  transition: width 0.12s linear;
+}
+
+.fam-bar-shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: fam-shine 1.6s linear infinite;
+}
+
+@keyframes fam-shine {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.fam-bar-pct {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  min-width: 34px;
+  text-align: right;
+}
+
+/* Dato curioso */
+.fam-fact {
+  background: #f9fafb;
+  border: 1px solid #f3f4f6;
+  border-left: 3px solid #4cc9a6;
+  border-radius: 10px;
+  padding: 13px 15px;
+  transition:
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+
+.fam-fact--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.fam-fact--hidden {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.fam-fact-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #4cc9a6;
+  margin-bottom: 6px;
+}
+
+.fam-fact-text {
+  font-size: 12.5px;
+  color: #6b7280;
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* Éxito */
+.fam-success {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #4cc9a6;
+  padding: 4px 0;
+  animation: fam-fade-in 0.4s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fam-overlay,
+  .fam-card,
+  .fam-logo-ring::before,
+  .fam-step-pulse,
+  .fam-bar-shine,
+  .fam-fact,
+  .fam-success {
+    animation: none;
+    transition: none;
+  }
+}

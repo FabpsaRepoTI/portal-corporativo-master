@@ -1,0 +1,995 @@
+/* ═══════════════════════════════════════════════════════════════
+   Loggin.css — FABPSA Portal Corporativo v4 · 2026
+   Drop-in: reemplaza src/style/Loggin.css por completo.
+   Organizado en secciones. Sin repetición. Sin código muerto.
+═══════════════════════════════════════════════════════════════ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+
+/* ── 0. Reset mínimo ─────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  margin: 0;
+}
+
+/* ── 1. Tokens de diseño ─────────────────────────────────── */
+:root {
+  /* Identidad */
+  --mint: #4cc9a6;
+  --mint-d: #38b592;
+  --violet: #7c8cf8;
+  --ink: #0d0e12;
+  --ink-2: #374151;
+  --ink-3: #6b7280;
+  --ink-4: #9ca3af;
+
+  /* Superficies */
+  --surface-page: #f0eef8; /* lavanda muy suave — fondo general */
+  --card-bg: #ffffff;
+  --input-bg: #f9f9fb;
+
+  /* Bordes */
+  --border-input: rgba(0, 0, 0, 0.1);
+  --border-focus: var(--mint);
+
+  /* Sombras */
+  --card-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.04),
+    0 16px 40px rgba(0, 0, 0, 0.1), 0 40px 80px rgba(80, 60, 140, 0.08);
+
+  /* Dimensiones de formulario */
+  --r-card: 22px;
+  --r-input: 12px;
+  --r-btn: 14px;
+  --h-input: 52px;
+  --h-btn: 54px;
+
+  /* Panel izquierdo */
+  --lp-1: #040b18;
+  --lp-2: #071424;
+  --lp-3: #061020;
+
+  /* Animaciones */
+  --ease-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ── 2. Raíz — fondo de página ───────────────────────────── */
+.lg-root {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  background-color: var(--surface-page);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Capa de gradiente abstracto detrás de la card */
+.lg-bg-layer {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 70% 60% at 15% 10%,
+      rgba(124, 140, 248, 0.18) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 85% 90%,
+      rgba(76, 201, 166, 0.14) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 50% 70% at 80% 10%,
+      rgba(124, 140, 248, 0.1) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 40% 40% at 20% 85%,
+      rgba(76, 201, 166, 0.08) 0%,
+      transparent 55%
+    );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── 3. Card flotante ────────────────────────────────────── */
+.lg-card {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  max-width: 980px;
+  min-height: 600px;
+  border-radius: var(--r-card);
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+  animation: lgCardIn 0.5s var(--ease-out) both;
+}
+
+@keyframes lgCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   4. PANEL IZQUIERDO
+═══════════════════════════════════════════════════════════════ */
+.lg-left {
+  width: 46%;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 4a. Gradiente base */
+.lg-left-base {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(
+      ellipse 70% 55% at 20% 15%,
+      rgba(76, 201, 166, 0.2) 0%,
+      transparent 65%
+    ),
+    radial-gradient(
+      ellipse 60% 70% at 85% 90%,
+      rgba(76, 201, 166, 0.25) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 50% 40% at 70% 40%,
+      rgba(20, 80, 160, 0.15) 0%,
+      transparent 55%
+    ),
+    linear-gradient(145deg, var(--lp-1) 0%, var(--lp-2) 50%, var(--lp-3) 100%);
+  pointer-events: none;
+}
+
+/* 4b. Glows animados */
+.lg-glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(88px);
+}
+.lg-glow--tl {
+  width: 380px;
+  height: 380px;
+  top: -120px;
+  left: -80px;
+  background: rgba(76, 201, 166, 0.2);
+  animation: glowDrift 13s ease-in-out infinite;
+}
+.lg-glow--br {
+  width: 340px;
+  height: 340px;
+  bottom: -80px;
+  right: -60px;
+  background: rgba(0, 140, 210, 0.18);
+  animation: glowDrift 16s ease-in-out infinite reverse;
+  animation-delay: -5s;
+}
+.lg-glow--center {
+  width: 220px;
+  height: 220px;
+  top: 42%;
+  left: 38%;
+  transform: translate(-50%, -50%);
+  background: rgba(76, 201, 166, 0.09);
+  animation: glowDrift 10s ease-in-out infinite;
+  animation-delay: -3s;
+}
+@keyframes glowDrift {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.65;
+  }
+  33% {
+    transform: translate(14px, -10px) scale(1.07);
+    opacity: 1;
+  }
+  66% {
+    transform: translate(-9px, 15px) scale(0.94);
+    opacity: 0.75;
+  }
+}
+
+/* 4c. Esfera decorativa inferior derecha */
+.lg-sphere {
+  position: absolute;
+  bottom: -80px;
+  right: -80px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgba(0, 200, 180, 0.3) 0%,
+    rgba(0, 140, 200, 0.2) 40%,
+    rgba(0, 60, 120, 0.05) 80%,
+    transparent 100%
+  );
+  filter: blur(2px);
+  pointer-events: none;
+  animation: spherePulse 8s ease-in-out infinite;
+}
+@keyframes spherePulse {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+}
+
+/* 4d. Cuadrícula puntos, network, partículas */
+.lg-dotgrid,
+.lg-network,
+.lg-particles {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Partículas flotantes */
+.lp-a {
+  animation: pf 7s ease-in-out infinite;
+}
+.lp-b {
+  animation: pf 9s ease-in-out infinite;
+  animation-delay: -2s;
+}
+.lp-c {
+  animation: pf 6.5s ease-in-out infinite;
+  animation-delay: -4s;
+}
+.lp-d {
+  animation: pf 11s ease-in-out infinite;
+  animation-delay: -1s;
+}
+.lp-e {
+  animation: pf 8.5s ease-in-out infinite;
+  animation-delay: -3s;
+}
+@keyframes pf {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateY(-20px);
+    opacity: 1;
+  }
+}
+
+/* 4e. Contenido del panel */
+.lg-left-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 40px 48px;
+}
+
+.lg-left-logo {
+  animation: lgFi 0.6s 0.1s both;
+}
+.lg-left-logo-img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+  opacity: 0.88;
+}
+
+/* 4f. Hero tipográfico */
+.lg-hero {
+  margin: auto 0 32px;
+  animation: lgFi 0.6s 0.2s both;
+}
+.lg-eyebrow {
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--mint);
+  margin-bottom: 12px;
+  opacity: 0.85;
+}
+.lg-htitle {
+  font-size: clamp(34px, 4vw, 52px);
+  font-weight: 800;
+  line-height: 1.06;
+  letter-spacing: -0.05em;
+  color: #ffffff;
+  margin-bottom: 12px;
+}
+.lg-htitle-accent {
+  /* Gradiente mint → azul, como en la imagen */
+  background: linear-gradient(110deg, var(--mint) 0%, #38d9c0 30%, #4a9ef0 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+/* Línea accent horizontal debajo del título */
+.lg-title-line {
+  width: 48px;
+  height: 2.5px;
+  background: linear-gradient(90deg, var(--mint), #4a9ef0);
+  border-radius: 2px;
+  margin-bottom: 18px;
+}
+.lg-hero-sub {
+  font-size: 14px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.48);
+  line-height: 1.7;
+}
+
+/* 4g. Beneficios — cards oscuras */
+.lg-benefits {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 36px;
+  animation: lgFi 0.6s 0.35s both;
+}
+.lg-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.lg-benefit-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  /* Box oscura con tinte de color según la imagen */
+  background: rgba(255, 255, 255, 0.07);
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mint);
+  font-size: 19px;
+  flex-shrink: 0;
+  backdrop-filter: blur(6px);
+  transition: background 0.2s;
+}
+.lg-benefit:hover .lg-benefit-icon {
+  background: rgba(76, 201, 166, 0.16);
+}
+.lg-benefit-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 3px;
+}
+.lg-benefit-desc {
+  font-size: 12px;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.42);
+  line-height: 1.5;
+}
+
+.lg-left-footer {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.22);
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  animation: lgFi 0.6s 0.5s both;
+}
+
+@keyframes lgFi {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   5. PANEL DERECHO
+═══════════════════════════════════════════════════════════════ */
+.lg-right {
+  flex: 1;
+  background: var(--card-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 3rem;
+  position: relative;
+}
+
+.lg-form-inner {
+  width: 100%;
+  max-width: 370px;
+  animation: lgRightIn 0.5s var(--ease-out) 0.08s both;
+}
+@keyframes lgRightIn {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 5a. Logo grande */
+.lg-form-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+.lg-form-logo {
+  height: 52px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.93;
+}
+
+/* 5b. Heading */
+.lg-form-heading {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.lg-form-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.05em;
+  line-height: 1.2;
+  margin-bottom: 7px;
+}
+.lg-form-sub {
+  font-size: 14px;
+  color: var(--ink-3);
+  margin-bottom: 14px;
+}
+.lg-accent-line {
+  width: 40px;
+  height: 2.5px;
+  background: linear-gradient(90deg, var(--mint), var(--violet));
+  border-radius: 2px;
+  margin: 0 auto;
+}
+
+/* 5c. Formulario */
+.lg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.lg-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lg-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+.lg-forgot {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #4a9ef0; /* azul — como en la imagen */
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  transition: color 0.15s;
+}
+.lg-forgot:hover {
+  color: var(--mint);
+}
+
+/* Inputs */
+.lg-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.lg-iico {
+  position: absolute;
+  left: 15px;
+  font-size: 17px;
+  color: var(--ink-4);
+  pointer-events: none;
+  transition: color 0.18s;
+}
+.lg-input-wrap:focus-within .lg-iico {
+  color: #4a9ef0;
+}
+
+.lg-input {
+  width: 100%;
+  height: var(--h-input);
+  background: var(--input-bg);
+  border: 1.5px solid var(--border-input);
+  border-radius: var(--r-input);
+  padding: 0 14px 0 46px;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--ink);
+  font-family: "Inter", sans-serif;
+  outline: none;
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s,
+    background 0.15s;
+  -webkit-appearance: none;
+}
+.lg-input::placeholder {
+  color: var(--ink-4);
+  font-weight: 400;
+}
+.lg-input:focus {
+  border-color: #4a9ef0;
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(74, 158, 240, 0.12);
+}
+.lg-input--pass {
+  padding-right: 48px;
+}
+
+.lg-eye {
+  position: absolute;
+  right: 14px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-4);
+  font-size: 18px;
+  padding: 4px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+  line-height: 1;
+}
+.lg-eye:hover {
+  color: var(--ink-2);
+}
+
+/* Recordarme */
+.lg-remember {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+}
+.lg-chk-native {
+  display: none;
+}
+.lg-chk-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid rgba(0, 0, 0, 0.18);
+  background: var(--input-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  color: #fff;
+  flex-shrink: 0;
+  transition:
+    background 0.18s,
+    border-color 0.18s;
+}
+.lg-remember:has(.lg-chk-native:checked) .lg-chk-box {
+  background: var(--mint);
+  border-color: var(--mint);
+}
+.lg-chk-label {
+  font-size: 13.5px;
+  color: var(--ink-3);
+}
+
+/* Error */
+.lg-error {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: #fff1f1;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13px;
+  color: #b91c1c;
+  animation: lgShake 0.35s ease;
+}
+.lg-error i {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* 5d. Botón principal */
+.lg-btn {
+  position: relative;
+  width: 100%;
+  height: var(--h-btn);
+  margin-top: 4px;
+  /* Gradiente verde→azul exacto como en la imagen de referencia */
+  background: linear-gradient(90deg, #22c792 0%, #3a9ef5 55%, #5b6ff0 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-btn);
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  font-family: "Inter", sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  overflow: hidden;
+  transition:
+    transform 0.15s var(--ease-out),
+    box-shadow 0.2s,
+    opacity 0.15s;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1),
+    0 4px 16px rgba(34, 199, 146, 0.3),
+    0 12px 36px rgba(59, 158, 245, 0.2);
+}
+/* Brillo superior */
+.lg-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 55%
+  );
+  pointer-events: none;
+}
+/* Shine hover */
+.lg-btn-shine {
+  position: absolute;
+  top: 0;
+  left: -120%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.25),
+    transparent
+  );
+  transform: skewX(-20deg);
+  pointer-events: none;
+  transition: none;
+}
+.lg-btn:hover:not(:disabled) .lg-btn-shine {
+  left: 150%;
+  transition: left 0.55s ease;
+}
+.lg-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.12),
+    0 8px 24px rgba(34, 199, 146, 0.38),
+    0 16px 48px rgba(59, 158, 245, 0.25);
+}
+.lg-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(34, 199, 146, 0.2);
+}
+.lg-btn i {
+  font-size: 18px;
+  transition: transform 0.2s;
+}
+.lg-btn:hover:not(:disabled) i {
+  transform: translateX(4px);
+}
+.lg-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Spinner */
+.lg-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: lgSpin 0.65s linear infinite;
+  flex-shrink: 0;
+}
+
+/* 5e. Bloque de ayuda */
+.lg-help-block {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 20px;
+  padding: 14px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  transition:
+    border-color 0.18s,
+    background 0.18s;
+}
+.lg-help-block:hover {
+  border-color: rgba(76, 201, 166, 0.35);
+  background: rgba(76, 201, 166, 0.04);
+}
+.lg-help-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(76, 201, 166, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--mint-d);
+  flex-shrink: 0;
+}
+.lg-help-text {
+  flex: 1;
+}
+.lg-help-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 2px;
+}
+.lg-help-desc {
+  font-size: 11.5px;
+  color: var(--mint-d);
+  font-weight: 500;
+  line-height: 1.4;
+}
+.lg-help-arrow {
+  font-size: 18px;
+  color: var(--ink-4);
+  flex-shrink: 0;
+  transition:
+    transform 0.18s,
+    color 0.18s;
+}
+.lg-help-block:hover .lg-help-arrow {
+  transform: translateX(3px);
+  color: var(--mint-d);
+}
+
+/* 5f. Badge de seguridad */
+.lg-secure-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 16px;
+  font-size: 11.5px;
+  color: var(--ink-4);
+}
+.lg-secure-badge i {
+  font-size: 14px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   6. Animaciones globales
+═══════════════════════════════════════════════════════════════ */
+@keyframes lgSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes lgShake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-5px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   7. Responsive
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 880px) {
+  .lg-left {
+    display: none;
+  }
+  .lg-card {
+    min-height: auto;
+    border-radius: var(--r-card);
+  }
+  .lg-right {
+    padding: 2.5rem 2rem;
+  }
+}
+@media (max-width: 480px) {
+  .lg-root {
+    padding: 1rem;
+  }
+  .lg-right {
+    padding: 2rem 1.5rem;
+  }
+  .lg-form-logo {
+    height: 40px;
+  }
+  .lg-form-title {
+    font-size: 24px;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   8. Dark mode — LOGIN SIEMPRE LIGHT
+   Sobreescribe cualquier herencia del ThemeContext.
+   Reemplaza la sección 8 de tu Loggin.css por esto.
+═══════════════════════════════════════════════════════════════ */
+
+/* Forzar light sin importar el tema global */
+.lg-root,
+.lg-root *,
+[data-theme="dark"] .lg-root,
+[data-theme="dark"] .lg-root *,
+.dark .lg-root,
+.dark .lg-root * {
+  color-scheme: light;
+}
+
+[data-theme="dark"] .lg-right,
+.dark .lg-right {
+  background: #ffffff;
+}
+
+[data-theme="dark"] .lg-input,
+.dark .lg-input {
+  background: #f9f9fb;
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #0d0e12;
+}
+
+[data-theme="dark"] .lg-form-title,
+.dark .lg-form-title {
+  color: #0d0e12;
+}
+
+[data-theme="dark"] .lg-label,
+.dark .lg-label {
+  color: #374151;
+}
+
+[data-theme="dark"] .lg-help-block,
+.dark .lg-help-block {
+  border-color: rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+}
+
+[data-theme="dark"] .lg-form-sub,
+.dark .lg-form-sub {
+  color: #6b7280;
+}
+
+[data-theme="dark"] .lg-chk-label,
+.dark .lg-chk-label {
+  color: #6b7280;
+}
+
+[data-theme="dark"] .lg-secure-badge,
+.dark .lg-secure-badge {
+  color: #9ca3af;
+}
+/* ═══════════════════════════════════════════════════════════
+   Loggin.css — adiciones para el flujo de primer acceso
+   Agrega estas reglas al final de tu Loggin.css existente.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Error variante informativa (usuario no encontrado) ─── */
+.lg-error--info {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  background: rgba(124, 140, 248, 0.06);
+  border-color: rgba(124, 140, 248, 0.2);
+  padding: 14px 16px;
+}
+
+.lg-error-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #7c8cf8;
+}
+
+.lg-error-header .ti {
+  font-size: 16px;
+}
+
+.lg-error-body {
+  font-size: 12.5px;
+  color: rgba(240, 240, 248, 0.55);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.lg-error-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  padding: 7px 14px;
+  background: rgba(124, 140, 248, 0.12);
+  border: 1px solid rgba(124, 140, 248, 0.25);
+  border-radius: 8px;
+  color: #7c8cf8;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  cursor: pointer;
+}
+
+.lg-error-cta:hover {
+  background: rgba(124, 140, 248, 0.2);
+  border-color: rgba(124, 140, 248, 0.4);
+}
+
+.lg-error-cta .ti {
+  font-size: 14px;
+}

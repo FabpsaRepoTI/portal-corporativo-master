@@ -1,0 +1,1024 @@
+/* ═══════════════════════════════════════════════════════════════
+   MESA DE SERVICIO v4
+   Diseño SaaS moderno — estructura limpia, mobile-first
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── ROOT ────────────────────────────────────────────────────── */
+.mds3-root {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px 32px 56px;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* ── HERO COMPACTO ───────────────────────────────────────────── */
+.mds3-page-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mds3-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  border-radius: 7px;
+  padding: 5px 0;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.13s;
+  width: fit-content;
+}
+.mds3-back-btn:hover {
+  color: var(--text-h);
+}
+.mds3-back-btn i {
+  font-size: 13px;
+}
+
+.mds3-page-hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mds3-page-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--primary, #4cc9a6);
+}
+.mds3-page-eyebrow-line {
+  display: inline-block;
+  width: 24px;
+  height: 1.5px;
+  background: var(--primary, #4cc9a6);
+  border-radius: 1px;
+  opacity: 0.6;
+}
+
+.mds3-page-title {
+  font-size: 34px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0;
+  letter-spacing: -0.7px;
+  line-height: 1.15;
+}
+.mds3-page-title span {
+  font-style: normal;
+}
+
+/* Nombre resaltado en mint, itálica para energía */
+.mds3-page-title-name {
+  font-style: italic;
+  color: var(--primary, #4cc9a6);
+}
+
+/* Subtítulo — ahora es "¿Cómo podemos ayudarte hoy?" */
+.mds3-page-sub {
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin: 0;
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* ── DOS TARJETAS PROTAGONISTAS ──────────────────────────────── */
+.mds3-cards-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: stretch;
+}
+
+/* ── TARJETA IZQUIERDA: Reportar incidente ─────────────────── */
+.mds3-incident-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 36px 36px 36px 40px;
+  background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 45%, #8b5cf6 100%);
+  border-radius: 20px;
+  overflow: hidden;
+  min-height: 220px;
+}
+
+/* Acento izquierdo mint sobre el morado */
+.mds3-incident-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(255, 255, 255, 0.15)
+  );
+  border-radius: 20px 0 0 20px;
+}
+
+/* SVG decorativo de fondo */
+.mds3-incident-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.mds3-incident-deco svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Icono con anillos concéntricos */
+.mds3-incident-icon-wrap {
+  position: relative;
+  width: 68px;
+  height: 68px;
+  flex-shrink: 0;
+  z-index: 1;
+}
+.mds3-incident-icon-ring {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+}
+.mds3-incident-ring-outer {
+  inset: -10px;
+}
+.mds3-incident-ring-inner {
+  inset: -4px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.mds3-incident-icon-circle {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+.mds3-incident-icon-circle i {
+  line-height: 1;
+}
+
+.mds3-incident-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  z-index: 1;
+}
+
+.mds3-incident-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.3px;
+  line-height: 1.25;
+}
+
+.mds3-incident-sub {
+  font-size: 13.5px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  line-height: 1.6;
+  max-width: 400px;
+}
+
+.mds3-incident-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  border-radius: 10px;
+  padding: 11px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 4px;
+  width: fit-content;
+  transition:
+    background 0.16s,
+    border-color 0.16s,
+    transform 0.12s;
+  backdrop-filter: blur(6px);
+}
+.mds3-incident-btn:hover {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.55);
+  transform: translateY(-1px);
+}
+.mds3-incident-btn i {
+  font-size: 16px;
+}
+.mds3-incident-btn-chev {
+  font-size: 13px;
+  margin-left: 2px;
+}
+
+/* ── TARJETA DERECHA: Mis solicitudes ──────────────────────── */
+.mds3-missol-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 28px 28px 28px 32px;
+  overflow: hidden;
+  min-height: 220px;
+}
+
+/* Acento lateral mint */
+.mds3-missol-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, #4cc9a6, #34d399);
+  border-radius: 20px 0 0 20px;
+}
+
+/* Glow sutil en la esquina superior derecha */
+.mds3-missol-deco {
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(76, 201, 166, 0.1) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+.mds3-missol-top {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.mds3-missol-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: rgba(76, 201, 166, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #4cc9a6;
+  flex-shrink: 0;
+}
+
+.mds3-missol-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.mds3-missol-eyebrow {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #4cc9a6;
+}
+
+.mds3-missol-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0;
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+}
+
+.mds3-missol-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 320px;
+}
+
+/* Ilustración decorativa clipboard — esquina inferior derecha */
+.mds3-missol-ilu {
+  position: absolute;
+  right: 20px;
+  bottom: 52px;
+  width: 80px;
+  height: 88px;
+  opacity: 0.55;
+  pointer-events: none;
+}
+.mds3-missol-ilu svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mds3-missol-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #4cc9a6;
+  cursor: pointer;
+  font-family: inherit;
+  margin-top: 20px;
+  transition:
+    gap 0.15s,
+    opacity 0.13s;
+}
+.mds3-missol-btn:hover {
+  gap: 11px;
+  opacity: 0.8;
+}
+.mds3-missol-btn i {
+  font-size: 15px;
+}
+
+/* ── TARJETA DERECHA: Accesos rápidos (SISTEMAS) ───────────── */
+.mds3-quick-card {
+  position: relative;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Acento lateral mismo estilo que mds3-missol-card pero en violet */
+.mds3-quick-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  background: linear-gradient(180deg, #7c8cf8, #a78bfa);
+  border-radius: 20px 0 0 20px;
+}
+
+/* Glow decorativo esquina superior derecha en violet */
+.mds3-quick-card-glow {
+  position: absolute;
+  top: -28px;
+  right: -28px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(124, 140, 248, 0.09) 0%,
+    transparent 70%
+  );
+  pointer-events: none;
+}
+
+/* Header eyebrow igual que mds3-missol-eyebrow */
+.mds3-quick-card-header {
+  padding: 24px 24px 0 28px;
+  position: relative;
+  z-index: 1;
+}
+
+.mds3-quick-card-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #7c8cf8;
+}
+.mds3-quick-card-eyebrow-line {
+  display: inline-block;
+  width: 20px;
+  height: 1.5px;
+  background: #7c8cf8;
+  border-radius: 1px;
+  opacity: 0.5;
+}
+
+/* Lista de items */
+.mds3-quick-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 12px 8px 16px;
+  gap: 2px;
+  position: relative;
+  z-index: 1;
+}
+
+.mds3-quick-item {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 11px 16px;
+  min-height: 54px;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: background 0.13s;
+}
+.mds3-quick-item:hover {
+  background: rgba(124, 140, 248, 0.06);
+}
+
+.mds3-quick-ico {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  flex-shrink: 0;
+}
+.mds3-quick-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.mds3-quick-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-h);
+  line-height: 1.3;
+}
+.mds3-quick-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+.mds3-quick-arrow {
+  font-size: 13px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+  transition:
+    transform 0.13s,
+    color 0.13s;
+}
+.mds3-quick-item:hover .mds3-quick-arrow {
+  transform: translateX(3px);
+  color: #7c8cf8;
+}
+
+/* ── ACCORDION ───────────────────────────────────────────────── */
+.mds3-accordion {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px 20px;
+  animation: mds3-in 0.18s ease;
+}
+@keyframes mds3-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.mds3-accordion-hdr {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.mds3-accordion-ico {
+  font-size: 18px;
+  color: #7c8cf8;
+  flex-shrink: 0;
+}
+.mds3-accordion-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.mds3-accordion-sub {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.mds3-acc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
+}
+.mds3-acc-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--bg-elevated, var(--bg-base));
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  min-height: 46px;
+  font-family: inherit;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.mds3-acc-chip:hover {
+  background: rgba(124, 140, 248, 0.06);
+  border-color: rgba(124, 140, 248, 0.3);
+}
+.mds3-acc-ico {
+  font-size: 15px;
+  color: #7c8cf8;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+.mds3-acc-label {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-h);
+  flex: 1;
+  line-height: 1.3;
+}
+.mds3-acc-arrow {
+  font-size: 12px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+  transition: transform 0.13s;
+}
+.mds3-acc-chip:hover .mds3-acc-arrow {
+  transform: translateX(2px);
+  color: #7c8cf8;
+}
+
+/* ── SERVICIOS DISPONIBLES ───────────────────────────────────── */
+.mds3-section-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-h);
+  letter-spacing: -0.1px;
+}
+
+.mds3-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+.mds3-svc {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 16px 20px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  font-family: inherit;
+  transition:
+    box-shadow 0.16s,
+    transform 0.13s,
+    border-color 0.16s;
+}
+.mds3-svc:hover {
+  box-shadow:
+    0 6px 24px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-2px);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.mds3-svc-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.mds3-svc-ico {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+  flex-shrink: 0;
+}
+
+.mds3-svc-arrow {
+  font-size: 13px;
+  color: var(--text-faint);
+  margin-top: 2px;
+  transition: transform 0.13s;
+}
+.mds3-svc:hover .mds3-svc-arrow {
+  transform: translateX(3px);
+}
+
+.mds3-svc-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+  line-height: 1.35;
+  margin-bottom: 7px;
+  letter-spacing: -0.1px;
+}
+
+.mds3-svc-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  width: fit-content;
+}
+
+.mds3-svc-desc {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  flex: 1;
+}
+
+/* Línea de color en hover */
+.mds3-svc-line {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 0 0 14px 14px;
+  opacity: 0;
+  transition: opacity 0.16s;
+}
+.mds3-svc:hover .mds3-svc-line {
+  opacity: 1;
+}
+
+/* ── META STRIP ──────────────────────────────────────────────── */
+.mds3-meta-strip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+}
+
+.mds3-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 0 18px;
+}
+.mds3-meta-item:first-child {
+  padding-left: 2px;
+}
+.mds3-meta-item i {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.mds3-meta-sep {
+  width: 1px;
+  height: 14px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MESA DE SERVICIO ADMIN — Shell con Tab Navigation
+   Prefijo: .mds-*
+   ═══════════════════════════════════════════════════════════════ */
+.mds-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.mds-tabbar {
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.mds-tabbar-inner {
+  display: flex;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.mds-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 20px 13px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  transition:
+    color 0.18s,
+    border-color 0.18s,
+    background 0.18s;
+  white-space: nowrap;
+}
+.mds-tab:hover:not(.mds-tab--active) {
+  color: var(--text-body);
+  background: var(--bg-hover);
+}
+.mds-tab--active {
+  color: var(--tab-color, var(--primary));
+  border-bottom-color: var(--tab-color, var(--primary));
+  font-weight: 600;
+}
+.mds-tab-icon {
+  font-size: 16px;
+  line-height: 1;
+  opacity: 0.85;
+}
+.mds-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: color-mix(
+    in srgb,
+    var(--tab-color, var(--primary)) 14%,
+    transparent
+  );
+  color: var(--tab-color, var(--primary));
+  line-height: 1;
+}
+.mds-content {
+  flex: 1;
+  animation: mdsSlideIn 0.2s ease both;
+}
+@keyframes mdsSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE FIRST
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tablet: 1200px ─────────────────────────────────────────── */
+@media (max-width: 1200px) {
+  .mds3-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Tablet media: cards en columna ────────────────────────── */
+@media (max-width: 860px) {
+  .mds3-cards-row {
+    grid-template-columns: 1fr;
+  }
+
+  .mds3-incident-card {
+    flex-direction: row;
+    align-items: center;
+    padding: 28px 32px;
+    gap: 24px;
+    min-height: auto;
+  }
+  .mds3-incident-icon-wrap {
+    flex-shrink: 0;
+  }
+  .mds3-incident-body {
+    gap: 8px;
+  }
+  .mds3-incident-title {
+    font-size: 20px;
+  }
+
+  .mds3-missol-card {
+    min-height: auto;
+    padding: 24px 28px;
+  }
+  .mds3-missol-ilu {
+    display: none;
+  }
+  .mds3-missol-desc {
+    max-width: 100%;
+  }
+}
+
+/* ── Móvil: 640px ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .mds3-root {
+    padding: 16px 16px 40px;
+    gap: 14px;
+  }
+
+  /* Hero */
+  .mds3-page-title {
+    font-size: 24px;
+    letter-spacing: -0.4px;
+  }
+  .mds3-page-sub {
+    font-size: 13px;
+  }
+
+  /* Tarjeta incidente — vuelve a columna en móvil */
+  .mds3-incident-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 22px 28px;
+    gap: 16px;
+    border-radius: 16px;
+  }
+  .mds3-incident-title {
+    font-size: 19px;
+  }
+  .mds3-incident-sub {
+    font-size: 13px;
+  }
+  .mds3-incident-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 13px 18px;
+    font-size: 14px;
+    border-radius: 11px;
+  }
+
+  /* Tarjeta mis solicitudes */
+  .mds3-missol-card {
+    border-radius: 16px;
+    padding: 22px 22px 24px;
+  }
+  .mds3-missol-title {
+    font-size: 20px;
+  }
+  .mds3-missol-btn {
+    margin-top: 16px;
+    font-size: 14px;
+  }
+  .mds3-missol-btn i {
+    font-size: 16px;
+  }
+
+  /* Accordion */
+  .mds3-acc-grid {
+    grid-template-columns: 1fr;
+  }
+  .mds3-acc-chip {
+    min-height: 50px;
+    padding: 12px 14px;
+  }
+
+  /* Grid servicios */
+  .mds3-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .mds3-svc {
+    padding: 16px 14px 18px;
+    border-radius: 12px;
+  }
+  .mds3-svc-ico {
+    width: 36px;
+    height: 36px;
+    font-size: 17px;
+    border-radius: 9px;
+  }
+  .mds3-svc-label {
+    font-size: 12.5px;
+  }
+  .mds3-svc-desc {
+    font-size: 11px;
+  }
+
+  /* Meta strip */
+  .mds3-meta-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .mds3-meta-item {
+    padding: 0;
+    font-size: 11.5px;
+  }
+  .mds3-meta-sep {
+    display: none;
+  }
+
+  /* Quick card (sistemas) en tablet-horizontal */
+  .mds3-quick-card {
+    border-radius: 16px;
+  }
+}
+
+/* ── Móvil estrecho: 380px ──────────────────────────────────── */
+@media (max-width: 380px) {
+  .mds3-root {
+    padding: 12px 12px 36px;
+  }
+  .mds3-grid {
+    grid-template-columns: 1fr;
+  }
+  .mds3-page-title {
+    font-size: 21px;
+  }
+}
+
+/* ── Admin tab bar en móvil ─────────────────────────────────── */
+@media (max-width: 768px) {
+  .mds-tabbar {
+    padding: 0 12px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .mds-tabbar::-webkit-scrollbar {
+    display: none;
+  }
+  .mds-tab {
+    padding: 12px 14px 11px;
+    font-size: 12.5px;
+  }
+}
+
+/* Solicitud page */
+/* src/pages/mesa-de-servicio/SolicitudPage.css */

@@ -1,0 +1,404 @@
+
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&display=swap');
+
+  .portfolio {
+    font-family: 'Inter', var(--font-sans), sans-serif;
+    background: #0a0a0f;
+    color: #fff;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 2rem;
+    border-bottom: 0.5px solid rgba(255,255,255,0.08);
+    background: rgba(10,10,15,0.9);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .logo {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: #fff;
+  }
+  .logo span { color: #7f77dd; }
+
+  .nav-links {
+    display: flex;
+    gap: 1.8rem;
+    list-style: none;
+  }
+  .nav-links a {
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    text-decoration: none;
+    letter-spacing: 0.3px;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: #fff; }
+
+  .cta-btn {
+    background: #7f77dd;
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .cta-btn:hover { background: #534ab7; transform: scale(1.03); }
+
+  .hero {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    padding: 3.5rem 2rem 2rem;
+    min-height: 480px;
+    position: relative;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; left: -60px;
+    width: 380px; height: 380px;
+    background: radial-gradient(circle, rgba(127,119,221,0.18) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-text { position: relative; z-index: 2; }
+
+  .greeting {
+    font-size: 13px;
+    color: #7f77dd;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .greeting::before {
+    content: '';
+    display: inline-block;
+    width: 20px;
+    height: 1.5px;
+    background: #7f77dd;
+  }
+
+  h1 {
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -2px;
+    color: #fff;
+    margin-bottom: 0.6rem;
+  }
+  h1 .accent { color: #7f77dd; }
+
+  .subtitle {
+    font-size: 16px;
+    color: rgba(255,255,255,0.45);
+    font-weight: 400;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+    max-width: 380px;
+  }
+
+  .hero-btns {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .btn-primary {
+    background: #7f77dd;
+    color: #fff;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+  }
+  .btn-primary:hover { background: #534ab7; transform: translateY(-1px); }
+
+  .btn-outline {
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    border: 0.5px solid rgba(255,255,255,0.2);
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-outline:hover { border-color: rgba(255,255,255,0.45); color: #fff; }
+
+  .hero-visual {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  .code-card {
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 1.4rem;
+    width: 280px;
+    font-family: var(--font-mono), monospace;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+  .code-card .card-bar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1rem;
+  }
+  .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-r { background: rgba(224,75,74,0.6); }
+  .dot-y { background: rgba(239,159,39,0.6); }
+  .dot-g { background: rgba(99,153,34,0.6); }
+
+  .code-line { display: flex; align-items: center; gap: 6px; }
+  .kw { color: #7f77dd; }
+  .fn { color: #5dcaa5; }
+  .str { color: #ef9f27; }
+  .cm { color: rgba(255,255,255,0.25); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(255,255,255,0.06);
+    border-top: 0.5px solid rgba(255,255,255,0.06);
+    margin-top: 2.5rem;
+  }
+
+  .stat {
+    background: #0a0a0f;
+    padding: 1.4rem 1rem;
+    text-align: center;
+  }
+  .stat-num {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: #7f77dd;
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  .skills-section {
+    padding: 2rem;
+    border-top: 0.5px solid rgba(255,255,255,0.06);
+  }
+  .section-tag {
+    font-size: 11px;
+    color: #7f77dd;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+    margin-bottom: 1rem;
+  }
+  .skills-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .skill-pill {
+    background: rgba(127,119,221,0.1);
+    border: 0.5px solid rgba(127,119,221,0.25);
+    color: rgba(255,255,255,0.75);
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0.2px;
+  }
+
+  .work-section {
+    padding: 2rem;
+    border-top: 0.5px solid rgba(255,255,255,0.06);
+  }
+  .work-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-top: 1rem;
+  }
+  .work-card {
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 1rem;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .work-card:hover {
+    border-color: rgba(127,119,221,0.4);
+    background: rgba(127,119,221,0.06);
+  }
+  .work-thumb {
+    width: 100%;
+    height: 64px;
+    border-radius: 8px;
+    margin-bottom: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .work-title { font-size: 13px; font-weight: 500; color: #fff; }
+  .work-type { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; }
+
+  .contact-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 2rem;
+    background: rgba(127,119,221,0.08);
+    border-top: 0.5px solid rgba(127,119,221,0.2);
+  }
+  .contact-txt { font-size: 14px; color: rgba(255,255,255,0.6); }
+  .contact-txt strong { color: #fff; font-weight: 500; }
+  .social-links { display: flex; gap: 12px; }
+  .social-link {
+    width: 34px; height: 34px;
+    border: 0.5px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.5);
+    font-size: 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    text-decoration: none;
+  }
+  .social-link:hover { border-color: #7f77dd; color: #7f77dd; }
+</style>
+
+<h2 class="sr-only">Portafolio personal de JuanMa Ramirez, Diseñador Web Profesional</h2>
+
+<div class="portfolio">
+  <nav>
+    <div class="logo">JM<span>.</span>Ramirez</div>
+    <ul class="nav-links">
+      <li><a href="#">Inicio</a></li>
+      <li><a href="#">Acerca</a></li>
+      <li><a href="#">Servicios</a></li>
+      <li><a href="#">Mi Trabajo</a></li>
+      <li><a href="#">Contacto</a></li>
+    </ul>
+    <button class="cta-btn" onclick="sendPrompt('Quiero personalizar el botón de contacto del portafolio')">Contrátame ↗</button>
+  </nav>
+
+  <div class="hero">
+    <div class="hero-text">
+      <div class="greeting">Hola, bienvenido</div>
+      <h1>Soy <span class="accent">JuanMa</span><br>Ramirez</h1>
+      <p class="subtitle">Diseñador Web Profesional que transforma ideas en experiencias digitales que impactan.</p>
+      <div class="hero-btns">
+        <button class="btn-primary" onclick="sendPrompt('Añade una sección de contacto al portafolio')">Ver mi trabajo</button>
+        <button class="btn-outline" onclick="sendPrompt('Añade un formulario de contacto al portafolio')">
+          <i class="ti ti-mail" aria-hidden="true"></i> Contactame
+        </button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="code-card">
+        <div class="card-bar">
+          <div class="dot dot-r"></div>
+          <div class="dot dot-y"></div>
+          <div class="dot dot-g"></div>
+        </div>
+        <div class="code-line"><span class="kw">const</span> <span style="color:#fff">dev</span> <span style="color:rgba(255,255,255,0.4)">=</span> <span class="fn">{</span></div>
+        <div class="code-line" style="padding-left:16px"><span class="str">"nombre"</span><span style="color:rgba(255,255,255,0.4)">:</span> <span class="str">"JuanMa"</span><span style="color:rgba(255,255,255,0.4)">,</span></div>
+        <div class="code-line" style="padding-left:16px"><span class="str">"rol"</span><span style="color:rgba(255,255,255,0.4)">:</span> <span class="str">"Web Designer"</span><span style="color:rgba(255,255,255,0.4)">,</span></div>
+        <div class="code-line" style="padding-left:16px"><span class="str">"pasión"</span><span style="color:rgba(255,255,255,0.4)">:</span> <span class="str">"UI/UX"</span><span style="color:rgba(255,255,255,0.4)">,</span></div>
+        <div class="code-line" style="padding-left:16px"><span class="fn">disponible</span><span style="color:rgba(255,255,255,0.4)">:</span> <span class="kw">true</span></div>
+        <div class="code-line"><span class="fn">}</span></div>
+        <div class="code-line" style="margin-top:6px"><span class="cm">// listo para tu proyecto</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-num">50+</div><div class="stat-label">Proyectos</div></div>
+    <div class="stat"><div class="stat-num">3+</div><div class="stat-label">Años exp.</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Satisfacción</div></div>
+  </div>
+
+  <div class="skills-section">
+    <div class="section-tag">Stack tecnológico</div>
+    <div class="skills-grid">
+      <span class="skill-pill">HTML / CSS</span>
+      <span class="skill-pill">JavaScript</span>
+      <span class="skill-pill">React</span>
+      <span class="skill-pill">Figma</span>
+      <span class="skill-pill">WordPress</span>
+      <span class="skill-pill">UI / UX</span>
+      <span class="skill-pill">Responsive Design</span>
+      <span class="skill-pill">Adobe XD</span>
+    </div>
+  </div>
+
+  <div class="work-section">
+    <div class="section-tag">Trabajos recientes</div>
+    <div class="work-grid">
+      <div class="work-card">
+        <div class="work-thumb" style="background: rgba(127,119,221,0.12);">
+          <i class="ti ti-layout-dashboard" style="font-size:28px; color:#7f77dd;" aria-hidden="true"></i>
+        </div>
+        <div class="work-title">Dashboard Analytics</div>
+        <div class="work-type">UI Design · Web App</div>
+      </div>
+      <div class="work-card">
+        <div class="work-thumb" style="background: rgba(29,158,117,0.1);">
+          <i class="ti ti-device-mobile" style="font-size:28px; color:#1d9e75;" aria-hidden="true"></i>
+        </div>
+        <div class="work-title">App E-commerce</div>
+        <div class="work-type">UX Design · Mobile</div>
+      </div>
+      <div class="work-card">
+        <div class="work-thumb" style="background: rgba(239,159,39,0.1);">
+          <i class="ti ti-world" style="font-size:28px; color:#ef9f27;" aria-hidden="true"></i>
+        </div>
+        <div class="work-title">Landing Corporativa</div>
+        <div class="work-type">Web Design · Branding</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="contact-bar">
+    <div class="contact-txt">¿Listo para trabajar juntos? <strong>juanmaramirez@email.com</strong></div>
+    <div class="social-links">
+      <a class="social-link" title="LinkedIn"><i class="ti ti-brand-linkedin" aria-hidden="true"></i></a>
+      <a class="social-link" title="GitHub"><i class="ti ti-brand-github" aria-hidden="true"></i></a>
+      <a class="social-link" title="Behance"><i class="ti ti-brand-behance" aria-hidden="true"></i></a>
+      <a class="social-link" title="Instagram"><i class="ti ti-brand-instagram" aria-hidden="true"></i></a>
+    </div>
+  </div>
+</div>

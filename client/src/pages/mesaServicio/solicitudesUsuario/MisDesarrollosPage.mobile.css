@@ -1,0 +1,267 @@
+/* ============================================================
+   MisDesarrollosPage.mobile.css
+   Breakpoint ≤ 640px
+   ============================================================ */
+
+@media (max-width: 640px) {
+  /* ── Root ──────────────────────────────────────────────── */
+  .md-root {
+    padding: 16px 14px 32px;
+    gap: 0;
+  }
+
+  /* ── Header ────────────────────────────────────────────── */
+  .md-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .md-header__left {
+    gap: 10px;
+  }
+  .md-header__icon-wrap {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 9px;
+  }
+  .md-header__title {
+    font-size: 18px;
+  }
+  .md-header__sub {
+    font-size: 12px;
+  }
+  .md-btn-nueva {
+    width: 100%;
+    justify-content: center;
+    padding: 11px;
+    font-size: 14px;
+  }
+
+  /* ── KPI strip ─────────────────────────────────────────── */
+  .md-kpi-strip {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .md-kpi-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .md-kpi {
+    flex: 0 0 auto;
+    min-width: 110px;
+    padding: 12px 14px;
+    gap: 8px;
+  }
+  .md-kpi__num {
+    font-size: 18px;
+  }
+  .md-kpi__lbl {
+    font-size: 11px;
+  }
+  .md-kpi__icon {
+    font-size: 18px;
+  }
+
+  /* ── Toolbar ───────────────────────────────────────────── */
+  .md-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .md-toolbar__tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding: 4px;
+    gap: 3px;
+  }
+  .md-toolbar__tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .md-tab {
+    flex: 0 0 auto;
+    font-size: 13px;
+    padding: 6px 12px;
+  }
+
+  .md-toolbar__controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .md-search {
+    min-width: unset;
+    width: 100%;
+  }
+  .md-orden {
+    justify-content: flex-start;
+  }
+  .md-orden select {
+    flex: 1;
+  }
+
+  /* ── Cards → layout vertical ───────────────────────────── */
+  .md-card {
+    grid-template-columns: 44px 1fr;
+    grid-template-rows: auto auto auto;
+    padding: 16px 14px 14px;
+    gap: 0 12px;
+  }
+
+  /* Icono solo en primera fila, primera col */
+  .md-card__icon-col {
+    grid-row: 1;
+    grid-column: 1;
+    align-self: start;
+    padding-top: 2px;
+  }
+
+  /* Cuerpo ocupa toda la segunda columna */
+  .md-card__body {
+    grid-row: 1;
+    grid-column: 2;
+    min-width: 0;
+  }
+
+  /* Aside baja debajo del cuerpo, ocupa columnas 1-2 */
+  .md-card__aside {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, #f0f0f5);
+    justify-content: flex-start;
+  }
+
+  /* Stepper ocupa columnas 1-2 */
+  .md-card__body .md-stepper {
+    margin-top: 10px;
+  }
+
+  /* Título no truncar en mobile */
+  .md-card__titulo {
+    white-space: normal;
+    font-size: 14.5px;
+  }
+
+  .md-card__meta {
+    gap: 6px;
+  }
+  .md-card__folio {
+    font-size: 11px;
+  }
+
+  /* Estatus pill */
+  .md-estatus-pill {
+    font-size: 11.5px;
+  }
+
+  /* Entrega: horizontal en aside */
+  .md-entrega {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+  }
+  .md-entrega__label {
+    display: none;
+  }
+  .md-entrega__fecha {
+    font-size: 13px;
+  }
+  .md-entrega__dias {
+    font-size: 11.5px;
+  }
+
+  /* Responsable */
+  .md-card__responsable {
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+  }
+  .md-card__responsable-label {
+    display: none;
+  }
+  .md-card__responsable-name {
+    font-size: 12px;
+  }
+
+  /* Botón ver ocupa todo en mobile */
+  .md-btn-ver {
+    margin-left: auto;
+    font-size: 12px;
+    padding: 7px 12px;
+  }
+
+  /* Stepper en mobile: etiquetas solo para paso activo */
+  .md-stepper__label {
+    display: none;
+  }
+  .md-stepper__label--active {
+    display: block;
+  }
+  .md-stepper__dot {
+    width: 18px;
+    height: 18px;
+    font-size: 10px;
+  }
+  .md-stepper__dot--active {
+    box-shadow: 0 0 0 2px #ede9fe;
+  }
+
+  /* Type icon */
+  .md-type-icon {
+    width: 38px;
+    height: 38px;
+    font-size: 17px;
+    border-radius: 9px;
+  }
+
+  /* Banner de acción */
+  .md-card__action-banner {
+    font-size: 11px;
+    padding: 4px 14px;
+  }
+
+  /* ── Estados ───────────────────────────────────────────── */
+  .md-state {
+    padding: 48px 20px;
+  }
+  .md-empty-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 28px;
+  }
+  .md-state--empty h3 {
+    font-size: 15px;
+  }
+  .md-state--empty p {
+    font-size: 13px;
+  }
+
+  /* ── Footer hint ───────────────────────────────────────── */
+  .md-footer-hint {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 12.5px;
+  }
+  .md-footer-hint .md-btn-nueva--sm {
+    width: 100%;
+    justify-content: center;
+  }
+}

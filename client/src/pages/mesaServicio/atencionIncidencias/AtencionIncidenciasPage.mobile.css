@@ -1,0 +1,474 @@
+/* ══════════════════════════════════════════════════════════════
+   ATENCION INCIDENCIAS — RESPONSIVE MÓVIL
+   Pega esto al final de AtencionIncidenciasPage.css
+   No toca nada del CSS de escritorio existente.
+   Breakpoint principal: 768px
+══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  /* ── Root: permitir scroll normal en móvil ── */
+  .mha-root {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  /* ════════════════════════════════════════
+     KPIs — 2 columnas en móvil
+  ════════════════════════════════════════ */
+  .mha-kpis {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .mha-kpi {
+    padding: 12px 14px 14px;
+    gap: 7px;
+  }
+
+  .mha-kpi-num {
+    font-size: 24px;
+  }
+
+  .mha-kpi-label {
+    font-size: 10px;
+  }
+
+  .mha-kpi-sub {
+    display: none; /* ocultar subtítulo para ahorrar espacio */
+  }
+
+  .mha-kpi-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  /* ════════════════════════════════════════
+     FILTROS — scroll horizontal compacto
+  ════════════════════════════════════════ */
+  .mha-filters {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .mha-filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+    gap: 6px;
+  }
+
+  .mha-filter-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mha-filter-row2 {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .mha-filter-item {
+    flex-shrink: 0;
+  }
+
+  .mha-filter-label {
+    display: none; /* ocultar labels, solo mostrar selects */
+  }
+
+  .mha-filter-select {
+    font-size: 11px;
+    padding: 5px 7px;
+    max-width: 110px;
+  }
+
+  .mha-btn-refresh,
+  .mha-btn-export {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  /* ════════════════════════════════════════
+     TABLA — OCULTAR en móvil
+     Se reemplaza por cards via clase JS
+  ════════════════════════════════════════ */
+  .mha-table-wrap {
+    overflow: visible;
+    flex: unset;
+  }
+
+  /* Ocultar tabla nativa en móvil */
+  .mha-table {
+    display: none;
+  }
+
+  /* Ocultar paginador de escritorio — se muestra uno propio */
+  .mha-pager {
+    display: none;
+  }
+
+  /* ════════════════════════════════════════
+     CARDS MÓVIL — lista de tickets
+  ════════════════════════════════════════ */
+  .mha-cards-mobile {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .mha-card-mobile {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: box-shadow 0.18s;
+    cursor: pointer;
+  }
+
+  .mha-card-mobile:active {
+    box-shadow: 0 0 0 2px rgba(124, 140, 248, 0.3);
+  }
+
+  /* Cabecera de la card */
+  .mha-card-mobile__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mha-card-mobile__folio {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--secondary);
+    flex-shrink: 0;
+  }
+
+  .mha-card-mobile__chip {
+    flex-shrink: 0;
+  }
+
+  .mha-card-mobile__sla {
+    margin-left: auto;
+    font-size: 11px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .mha-card-mobile__chevron {
+    font-size: 13px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  .mha-card-mobile--exp .mha-card-mobile__chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Cuerpo de la card */
+  .mha-card-mobile__body {
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mha-card-mobile__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    gap: 8px;
+  }
+
+  .mha-card-mobile__label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .mha-card-mobile__val {
+    font-size: 12px;
+    color: var(--text-h);
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 60%;
+  }
+
+  .mha-card-mobile__val--muted {
+    color: var(--text-muted);
+  }
+
+  /* Servicio con icono */
+  .mha-card-mobile__servicio {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-body);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 60%;
+  }
+
+  .mha-card-mobile__servicio i {
+    font-size: 13px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  /* Pie de la card — acciones rápidas */
+  .mha-card-mobile__foot {
+    display: flex;
+    border-top: 1px solid var(--border);
+    background: var(--bg-elevated);
+  }
+
+  .mha-card-mobile__action {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 9px 4px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--text-muted);
+    border-right: 1px solid var(--border);
+    transition: background 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mha-card-mobile__action:last-child {
+    border-right: none;
+  }
+
+  .mha-card-mobile__action:active {
+    background: var(--bg-hover);
+  }
+
+  .mha-card-mobile__action i {
+    font-size: 17px;
+  }
+
+  .mha-card-mobile__action--primary {
+    color: var(--secondary);
+  }
+
+  .mha-card-mobile__action--green {
+    color: var(--primary);
+  }
+
+  .mha-card-mobile__action--danger {
+    color: #f38ba8;
+  }
+
+  /* Bloqueado */
+  .mha-card-mobile__blocked {
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+  }
+
+  /* ════════════════════════════════════════
+     PANEL EXPANDIDO en móvil
+  ════════════════════════════════════════ */
+  .mha-card-mobile__expand {
+    border-top: 1px solid var(--border);
+  }
+
+  /* Tabs: scroll horizontal */
+  .mha-expand-tabs {
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding: 0 12px;
+    gap: 0;
+  }
+
+  .mha-expand-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .mha-expand-tab {
+    font-size: 11px;
+    padding: 9px 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Contenido del panel expandido */
+  .mha-expand-content {
+    padding: 12px;
+  }
+
+  /* Grid de info general: 1 columna en móvil */
+  .mha-det-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .mha-det-col--wide {
+    grid-column: span 1;
+  }
+
+  /* SLA grid: 1 columna */
+  .mha-sla-tab {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  /* SLA block inner: vertical */
+  .mha-sla-block-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* Evidencias: 2 columnas */
+  .mha-evid-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Comentarios: reducir altura max */
+  .mha-com-list {
+    max-height: 200px;
+  }
+
+  /* Barra acciones: grid 2x3 */
+  .mha-action-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 10px 12px;
+  }
+
+  .mha-action-label {
+    grid-column: span 2;
+    font-size: 11px;
+    margin-right: 0;
+    margin-bottom: 2px;
+  }
+
+  .mha-action-btn {
+    justify-content: center;
+    font-size: 11px;
+    padding: 8px 6px;
+    text-align: center;
+  }
+
+  /* Bloqueado: ancho completo */
+  .mha-action-bar > *:only-child {
+    grid-column: span 2;
+  }
+
+  /* ════════════════════════════════════════
+     PAGINADOR MÓVIL
+  ════════════════════════════════════════ */
+  .mha-pager-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-surface);
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+  }
+
+  .mha-pager-mobile__info {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  .mha-pager-mobile__btns {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .mha-pager-mobile__btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 13px;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mha-pager-mobile__btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  .mha-pager-mobile__page {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-h);
+    min-width: 60px;
+    text-align: center;
+  }
+
+  /* ════════════════════════════════════════
+     MODALES — ocupar más ancho en móvil
+  ════════════════════════════════════════ */
+  .mha-modal-overlay {
+    padding: 16px;
+    align-items: flex-end; /* sheet desde abajo */
+  }
+
+  .mha-modal {
+    width: 100%;
+    border-radius: 16px 16px 12px 12px;
+  }
+
+  .mha-modal--escalar {
+    border-radius: 16px 16px 12px 12px;
+  }
+
+  /* Toast centrado */
+  .mha-toast {
+    min-width: unset;
+    width: calc(100vw - 32px);
+    max-width: 360px;
+    padding: 22px 20px 18px;
+  }
+}
+
+/* ── Desktop: ocultar elementos exclusivos de móvil ── */
+@media (min-width: 769px) {
+  .mha-cards-mobile {
+    display: none;
+  }
+
+  .mha-pager-mobile {
+    display: none;
+  }
+}

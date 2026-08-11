@@ -1,0 +1,286 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif}
+.root{display:flex;gap:24px;padding:20px 0;align-items:flex-start}
+.left{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px}
+.right{width:280px;flex-shrink:0;display:flex;flex-direction:column;gap:12px}
+
+/* header */
+.hdr{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+.back-btn{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-secondary);background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:5px 10px;cursor:pointer}
+.hdr-icon{width:36px;height:36px;border-radius:8px;background:#1a0a3a;display:flex;align-items:center;justify-content:center}
+.hdr-icon i{color:#7c3aed;font-size:18px}
+.page-title{font-size:17px;font-weight:500;color:var(--text-primary)}
+.page-sub{font-size:12px;color:var(--text-secondary)}
+
+/* stepper */
+.stepper{display:flex;align-items:center;gap:0;margin-bottom:2px}
+.step-item{display:flex;align-items:center;gap:6px}
+.step-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500}
+.step-num.done{background:#7c3aed;color:#fff}
+.step-num.active{background:#7c3aed;color:#fff}
+.step-num.idle{background:var(--surface-1);border:0.5px solid var(--border);color:var(--text-muted)}
+.step-label{font-size:12px;color:var(--text-secondary)}
+.step-label.active{color:var(--text-primary);font-weight:500}
+.step-line{width:32px;height:1px;background:var(--border-strong);margin:0 4px}
+
+/* card */
+.card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:20px}
+
+/* selected badge */
+.sel-badge{display:inline-flex;align-items:center;gap:6px;background:#1a0a3a;border:0.5px solid #4c1d95;border-radius:var(--radius);padding:4px 10px;font-size:12px;color:#a78bfa;margin-bottom:10px}
+.card-title{font-size:15px;font-weight:500;color:var(--text-primary);margin-bottom:3px}
+.card-sub{font-size:12px;color:var(--text-secondary);margin-bottom:16px}
+
+/* fields */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.label{font-size:12px;font-weight:500;color:var(--text-secondary)}
+.req{color:#ef4444}
+.input-sim{background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:8px 12px;font-size:13px;color:var(--text-primary);min-height:34px}
+.input-sim.muted{color:var(--text-muted)}
+.textarea-sim{background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:10px 12px;font-size:13px;color:var(--text-primary);line-height:1.6;min-height:90px}
+.char-count{font-size:11px;color:var(--text-muted);text-align:right;margin-top:2px}
+
+/* prioridad */
+.priority-group{display:flex;gap:8px}
+.prio-btn{flex:1;border-radius:var(--radius);padding:10px 8px;display:flex;flex-direction:column;align-items:center;gap:3px;border:1.5px solid transparent;cursor:pointer;transition:all .15s}
+.prio-btn.teal{background:#0f2d26;border-color:#0f766e}
+.prio-btn.amber{background:#2d1f00;border-color:#d97706}
+.prio-btn.orange{background:#2d1400;border-color:#ea580c}
+.prio-btn.red{background:#2d0a0a;border-color:#dc2626}
+.prio-label{font-size:12px;font-weight:500}
+.prio-btn.teal .prio-label{color:#5eead4}
+.prio-btn.amber .prio-label{color:#fcd34d}
+.prio-btn.orange .prio-label{color:#fb923c}
+.prio-btn.red .prio-label{color:#f87171}
+.prio-desc{font-size:10px;color:var(--text-muted);text-align:center;line-height:1.3}
+
+/* SLA banner */
+.sla-banner{display:flex;align-items:center;gap:10px;background:#1a0d00;border:0.5px solid #92400e;border-radius:var(--radius);padding:10px 14px;margin-top:-4px}
+.sla-dot{width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0}
+.sla-text{font-size:12px;color:#fcd34d;flex:1}
+.sla-time{font-size:13px;font-weight:500;color:#fbbf24;margin-left:auto}
+
+/* upload */
+.upload-area{border:0.5px dashed var(--border-strong);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--surface-1);cursor:pointer}
+.upload-area i{font-size:22px;color:var(--text-muted)}
+.upload-label{font-size:12px;color:var(--text-secondary)}
+.upload-sub{font-size:11px;color:var(--text-muted)}
+.upload-preview{display:flex;gap:8px;margin-top:8px}
+.thumb{width:56px;height:56px;border-radius:6px;background:#1a1a2e;border:0.5px solid #3730a3;display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0}
+.thumb i{font-size:20px;color:#818cf8}
+.thumb-name{font-size:10px;color:#a5b4fc;margin-top:2px;text-align:center;max-width:56px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.thumb-wrap{display:flex;flex-direction:column;align-items:center}
+
+/* info strip */
+.info-strip{display:flex;align-items:center;gap:10px;background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px}
+.info-avatar{width:30px;height:30px;border-radius:50%;background:#1a0a3a;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:500;color:#a78bfa;flex-shrink:0}
+.info-body{flex:1;min-width:0}
+.info-name{font-size:12px;font-weight:500;color:var(--text-primary)}
+.info-meta{font-size:11px;color:var(--text-muted)}
+.info-lock{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-muted)}
+
+/* actions */
+.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px}
+.btn-ghost{background:var(--surface-1);border:0.5px solid var(--border-strong);border-radius:var(--radius);padding:8px 14px;font-size:13px;color:var(--text-secondary);cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn-primary{background:#7c3aed;border:none;border-radius:var(--radius);padding:8px 18px;font-size:13px;font-weight:500;color:#fff;cursor:pointer;display:flex;align-items:center;gap:6px}
+
+/* right panel */
+.panel-card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:12px;padding:16px}
+.panel-title{font-size:12px;font-weight:500;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.folio-box{background:var(--surface-1);border:0.5px solid var(--border);border-radius:var(--radius);padding:10px 12px;text-align:center}
+.folio-num{font-size:19px;font-weight:500;color:var(--text-primary);font-variant-numeric:tabular-nums}
+.folio-sub{font-size:11px;color:var(--text-muted);margin-top:2px}
+.detail-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.detail-row:last-child{border-bottom:none}
+.detail-key{font-size:11px;color:var(--text-muted)}
+.detail-val{font-size:11px;color:var(--text-primary);font-weight:500;text-align:right}
+.status-pill{display:inline-flex;align-items:center;gap:4px;background:#1a0a3a;border:0.5px solid #4c1d95;border-radius:20px;padding:2px 8px;font-size:10px;color:#a78bfa}
+.status-dot{width:6px;height:6px;border-radius:50%;background:#a78bfa}
+.sla-row{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:var(--radius);background:#1a1000;border:0.5px solid #92400e;margin-top:8px}
+.sla-ico{font-size:14px;color:#f59e0b}
+.sla-info{flex:1}
+.sla-ttl{font-size:10px;color:#fcd34d;font-weight:500}
+.sla-sub{font-size:10px;color:var(--text-muted)}
+.tip-item{display:flex;gap:8px;padding:6px 0;border-bottom:0.5px solid var(--border)}
+.tip-item:last-child{border-bottom:none}
+.tip-ico{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tip-txt{font-size:11px;color:var(--text-secondary);line-height:1.4}
+</style>
+
+<h2 class="sr-only">Mockup del formulario de reporte de incidente — paso 2 con datos del usuario</h2>
+
+<div class="root">
+  <div class="left">
+    <!-- nav -->
+    <div>
+      <button class="back-btn"><i class="ti ti-arrow-left" aria-hidden="true"></i>Mesa de Servicio</button>
+    </div>
+
+    <!-- header -->
+    <div class="hdr">
+      <div class="hdr-icon"><i class="ti ti-alert-triangle" aria-hidden="true"></i></div>
+      <div>
+        <div class="page-title">Reporte de Incidente</div>
+        <div class="page-sub">Describe el problema para que TI pueda atenderte.</div>
+      </div>
+    </div>
+
+    <!-- stepper -->
+    <div class="stepper">
+      <div class="step-item">
+        <div class="step-num done"><i class="ti ti-check" style="font-size:11px" aria-hidden="true"></i></div>
+        <span class="step-label">Categoría</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step-item">
+        <div class="step-num active">2</div>
+        <span class="step-label active">Detalle</span>
+      </div>
+    </div>
+
+    <!-- card principal -->
+    <div class="card">
+      <div class="sel-badge"><i class="ti ti-wifi-off" style="font-size:13px" aria-hidden="true"></i>Internet y red</div>
+      <div class="card-title">Cuéntanos qué está pasando</div>
+      <div class="card-sub">Mientras más detalle des, más rápido podremos ayudarte.</div>
+
+      <!-- título -->
+      <div class="field">
+        <div class="label">Título del problema <span class="req">*</span></div>
+        <div class="input-sim">No tengo conexión a internet desde las 8 AM</div>
+      </div>
+
+      <!-- descripción -->
+      <div class="field">
+        <div class="label">Descripción detallada</div>
+        <div class="textarea-sim">Desde esta mañana no puedo conectarme a internet en mi equipo. Otros compañeros de área también reportan el mismo problema. El ícono de red muestra "Sin acceso a internet" aunque aparece conectado al Wi-Fi. Ya intenté reiniciar el equipo pero el problema persiste.</div>
+        <div class="char-count">247 / 1000 caracteres</div>
+      </div>
+
+      <!-- prioridad -->
+      <div class="field">
+        <div class="label">Prioridad <span class="req">*</span></div>
+        <div class="priority-group">
+          <div class="prio-btn teal">
+            <span class="prio-label">Baja</span>
+            <span class="prio-desc">No afecta operación</span>
+          </div>
+          <div class="prio-btn amber" style="border-width:2px">
+            <span class="prio-label">Media</span>
+            <span class="prio-desc">Afecta parcialmente</span>
+          </div>
+          <div class="prio-btn orange">
+            <span class="prio-label">Alta</span>
+            <span class="prio-desc">Bloquea mi trabajo</span>
+          </div>
+          <div class="prio-btn red">
+            <span class="prio-label">Crítica</span>
+            <span class="prio-desc">Detiene producción</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- SLA dinámico -->
+      <div class="sla-banner">
+        <div class="sla-dot"></div>
+        <span class="sla-text">Tiempo de respuesta estimado para prioridad <strong>Media</strong></span>
+        <span class="sla-time">24 hrs</span>
+      </div>
+
+      <!-- evidencia -->
+      <div class="field" style="margin-top:14px">
+        <div class="label">Evidencia (opcional)</div>
+        <div class="upload-area">
+          <i class="ti ti-cloud-upload" aria-hidden="true"></i>
+          <span class="upload-label">Arrastra una imagen o captura de pantalla</span>
+          <span class="upload-sub">PNG, JPG · Máx. 5 MB</span>
+          <div class="upload-preview">
+            <div class="thumb-wrap">
+              <div class="thumb"><i class="ti ti-photo" aria-hidden="true"></i></div>
+              <div class="thumb-name">captura.png</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- solicitante -->
+      <div class="info-strip">
+        <div class="info-avatar">JG</div>
+        <div class="info-body">
+          <div class="info-name">Juan Manuel García</div>
+          <div class="info-meta">Sistemas · PFV · Empleado #1042</div>
+        </div>
+        <div class="info-lock"><i class="ti ti-lock" style="font-size:11px" aria-hidden="true"></i>Automático</div>
+      </div>
+
+      <!-- acciones -->
+      <div class="actions" style="margin-top:16px">
+        <button class="btn-ghost"><i class="ti ti-arrow-left" aria-hidden="true"></i>Atrás</button>
+        <button class="btn-primary"><i class="ti ti-send" aria-hidden="true"></i>Enviar reporte</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- panel derecho -->
+  <div class="right">
+    <!-- folio -->
+    <div class="panel-card">
+      <div class="panel-title"><i class="ti ti-hash" style="font-size:14px" aria-hidden="true"></i>Folio asignado</div>
+      <div class="folio-box">
+        <div class="folio-num">TI-00127</div>
+        <div class="folio-sub">Generado automáticamente al enviar</div>
+      </div>
+    </div>
+
+    <!-- resumen -->
+    <div class="panel-card">
+      <div class="panel-title"><i class="ti ti-info-circle" style="font-size:14px" aria-hidden="true"></i>Resumen de solicitud</div>
+      <div class="detail-row">
+        <span class="detail-key">Estatus</span>
+        <span class="detail-val"><span class="status-pill"><span class="status-dot"></span>Abierto</span></span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-key">Categoría</span>
+        <span class="detail-val">Internet y red</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-key">Prioridad</span>
+        <span class="detail-val" style="color:#fbbf24">Media</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-key">Sitio</span>
+        <span class="detail-val">PFV</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-key">Fecha</span>
+        <span class="detail-val">17 jul 2026 · 09:14</span>
+      </div>
+      <div class="sla-row">
+        <i class="ti ti-clock sla-ico" aria-hidden="true"></i>
+        <div class="sla-info">
+          <div class="sla-ttl">Resolución estimada</div>
+          <div class="sla-sub">Antes de las 09:14 del 18 jul</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- tips -->
+    <div class="panel-card">
+      <div class="panel-title"><i class="ti ti-bulb" style="font-size:14px" aria-hidden="true"></i>Tips para una respuesta más rápida</div>
+      <div class="tip-item">
+        <div class="tip-ico" style="background:#0f2d26"><i class="ti ti-file-text" style="font-size:13px;color:#5eead4" aria-hidden="true"></i></div>
+        <div class="tip-txt">Describe desde cuándo ocurre el problema y si afecta a más personas.</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-ico" style="background:#1a0a3a"><i class="ti ti-screenshot" style="font-size:13px;color:#a78bfa" aria-hidden="true"></i></div>
+        <div class="tip-txt">Adjunta una captura de pantalla o foto del error visible.</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-ico" style="background:#2d1f00"><i class="ti ti-device-laptop" style="font-size:13px;color:#fcd34d" aria-hidden="true"></i></div>
+        <div class="tip-txt">Incluye el nombre de tu equipo o número de serie si lo sabes.</div>
+      </div>
+    </div>
+  </div>
+</div>
