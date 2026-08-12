@@ -1,11 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// solicitudesDesarrollo.service.js  v4
-// Nuevas funciones vs v3.1:
-//   - registrarHoras() / getHoras()
-//   - crearSubtarea() / getSubtareas() / actualizarSubtarea()
-//   - registrarBloqueo() / resolverBloqueo() / getBloqueos()
-//   - registrarEvaluacion() ahora valida que sea el solicitante
-//   - getDetalle() incluye horas, subtareas, bloqueos
+// solicitudesDesarrollo.service.js  v4.1
 // ═══════════════════════════════════════════════════════════════
 "use strict";
 
@@ -195,6 +189,7 @@ async function getLista(query) {
       s.tecnicoAsignado AS loginResponsable, s.nombreTecnico AS nombreResponsable,
       s.fechaCreacion, s.fechaActualizacion,
       dd.idDesarrollo,dd.idTipo,dd.fechaCompromiso,dd.fechaInicio,dd.porcentajeAvance,dd.motivoRevision,
+      dd.tipoDesarrollo,
       ced.nombre AS estatusNombre, ced.color AS estatusColor, ced.colorBg AS estatusBg,
       ctd.nombre AS tipoNombre, ctd.codigo AS tipoCodigo,
       cp.prioridad AS prioridadNombre, cp.colorHex AS prioridadColor,
@@ -258,6 +253,7 @@ async function getDetalle(idSolicitud) {
           dd.idDesarrollo,dd.idTipo,dd.justificacion,dd.beneficioEsperado,dd.impacto,dd.objetivo,
           dd.fechaCompromiso,dd.fechaInicio,dd.motivoRechazo,dd.motivoRevision,dd.impactaOtrasAreas,
           dd.loginConcluyo,dd.fechaConclusión,dd.porcentajeAvance,dd.horasEstimadas,
+          dd.tipoDesarrollo,
           ced.nombre AS estatusNombre, ced.color AS estatusColor, ced.colorBg AS estatusBg,
           ctd.nombre AS tipoNombre, ctd.codigo AS tipoCodigo,
           cp.prioridad AS prioridadNombre, cp.colorHex AS prioridadColor,
@@ -318,7 +314,6 @@ async function getDetalle(idSolicitud) {
       .query(
         "SELECT idImpacto,area,motivo,registradoPor,fecha FROM solicitudTI_desarrollo_impactos WHERE idSolicitud=@id ORDER BY fecha",
       ),
-    // Horas trabajadas con resúmenes
     pool.request().input("id", sql.Int, idSolicitud).query(`
         SELECT idRegistro,loginUsuario,nombreUsuario,minutosTrabajos,descripcion,fechaRegistro,fechaTrabajo,
           SUM(minutosTrabajos) OVER() AS totalMinutos,
@@ -326,7 +321,6 @@ async function getDetalle(idSolicitud) {
           SUM(CASE WHEN fechaTrabajo >= DATEADD(DAY,-DATEPART(WEEKDAY,GETDATE())+1,CAST(GETDATE() AS DATE)) THEN minutosTrabajos ELSE 0 END) OVER() AS minutosSemana
         FROM solicitudTI_desarrollo_horas WHERE idSolicitud=@id ORDER BY fechaTrabajo DESC,fechaRegistro DESC
       `),
-    // Subtareas con su prioridad
     pool.request().input("id", sql.Int, idSolicitud).query(`
         SELECT st.*,
           ced.nombre AS estatusNombre, ced.color AS estatusColor, ced.colorBg AS estatusBg,
@@ -336,7 +330,6 @@ async function getDetalle(idSolicitud) {
         LEFT JOIN cat_prioridad cp ON st.idPrioridad=cp.idPrioridad
         WHERE st.idSolicitud=@id ORDER BY st.orden,st.fechaCreacion
       `),
-    // Bloqueos
     pool
       .request()
       .input("id", sql.Int, idSolicitud)
@@ -638,6 +631,8 @@ async function asignarResponsable(idSolicitud, body, userJwt) {
   const pool = await getPool();
   const login = body.loginResponsable || userJwt.login;
   const nombre = body.nombreResponsable || userJwt.name;
+  const { tipoDesarrollo } = body;
+
   await pool
     .request()
     .input("id", sql.Int, idSolicitud)
@@ -646,6 +641,7 @@ async function asignarResponsable(idSolicitud, body, userJwt) {
     .query(
       "UPDATE solicitudTI SET tecnicoAsignado=@login,nombreTecnico=@nombre,fechaActualizacion=GETDATE() WHERE idSolicitud=@id",
     );
+
   await bitacora(pool, {
     idSolicitud,
     idUsuario: userJwt.login,
@@ -654,6 +650,17 @@ async function asignarResponsable(idSolicitud, body, userJwt) {
       ? `Responsable asignado: ${nombre}`
       : `${nombre} se auto-asignó como responsable`,
   });
+
+  if (tipoDesarrollo) {
+    await pool
+      .request()
+      .input("idSolicitud", sql.Int, parseInt(idSolicitud))
+      .input("tipoDesarrollo", sql.VarChar(30), tipoDesarrollo)
+      .query(
+        "UPDATE solicitudTI_desarrollo_detalle SET tipoDesarrollo=@tipoDesarrollo WHERE idSolicitud=@idSolicitud",
+      );
+  }
+
   return { ok: true, loginResponsable: login, nombreResponsable: nombre };
 }
 
@@ -662,6 +669,20 @@ async function asignarResponsable(idSolicitud, body, userJwt) {
 // ════════════════════════════════════════════════════════════
 async function actualizarDetalle(idSolicitud, body, userJwt) {
   const pool = await getPool();
+
+  // Validar responsable antes de actualizar
+  const check = await pool
+    .request()
+    .input("id", sql.Int, idSolicitud)
+    .query("SELECT tecnicoAsignado FROM solicitudTI WHERE idSolicitud=@id");
+  if (!check.recordset[0]?.tecnicoAsignado) {
+    return {
+      ok: false,
+      message:
+        "Asigna un responsable antes de actualizar el avance o la fecha del desarrollo.",
+    };
+  }
+
   await pool
     .request()
     .input("id", sql.Int, idSolicitud)
@@ -808,7 +829,6 @@ async function registrarHoras(idSolicitud, body, userJwt) {
 
 async function eliminarHoras(idSolicitud, idRegistro, userJwt) {
   const pool = await getPool();
-  // Solo puede eliminar el propio usuario dentro de 24h
   const chk = await pool
     .request()
     .input("id", sql.Int, idRegistro)
@@ -832,7 +852,6 @@ async function crearSubtarea(idSolicitud, body, userJwt) {
   const pool = await getPool();
   if (!body.titulo?.trim())
     throw new Error("El título de la subtarea es obligatorio.");
-  // Obtener orden máximo actual
   const ord = await pool
     .request()
     .input("id", sql.Int, idSolicitud)
@@ -986,7 +1005,6 @@ async function registrarEvaluacion(idSolicitud, body, userJwt) {
   if (!row) throw new Error("Solicitud no encontrada.");
   if (row.idEstatus !== 7)
     throw new Error("Solo se puede evaluar un desarrollo concluido.");
-  // Guard: solo el solicitante original puede evaluar
   if (row.idUsuario !== userJwt.login)
     throw new Error(
       "Solo el solicitante original puede evaluar este desarrollo.",
@@ -1009,7 +1027,7 @@ async function registrarEvaluacion(idSolicitud, body, userJwt) {
 }
 
 // ════════════════════════════════════════════════════════════
-// registrarImpacto (legacy) / subirAdjuntos
+// registrarImpacto / subirAdjuntos
 // ════════════════════════════════════════════════════════════
 async function registrarImpacto(idSolicitud, body, userJwt) {
   const pool = await getPool();
@@ -1064,11 +1082,9 @@ async function subirAdjuntos(idSolicitud, files, userJwt) {
   return insertados;
 }
 
-// ============================================================
-// AGREGAR en solicitudesDesarrollo.service.js
-// ============================================================
-
-// ------ getMisSolicitudes ------
+// ════════════════════════════════════════════════════════════
+// getMisSolicitudes
+// ════════════════════════════════════════════════════════════
 async function getMisSolicitudes(
   loginUsuario,
   { estatus, search, orden } = {},
@@ -1102,34 +1118,35 @@ async function getMisSolicitudes(
 
   const query = `
     SELECT
-    s.idSolicitud,
-    ISNULL(JSON_VALUE(s.camposExtra,'$.folioDesarrollo'), s.folio) AS folio,
-    s.titulo,
-    s.fechaCreacion,
-    s.idUsuario,
-    t.nombre                       AS tipoNombre,
-    s.idEstatus,
-    e.nombre                       AS estatusNombre,
-    e.color                        AS estatusColor,
-    e.colorBg                      AS estatusBg,
-    det.fechaCompromiso,
-    det.fechaInicio,
-    det.porcentajeAvance           AS avance,
-    det.fechaConclusión            AS fechaConcluido,
-    dev.desarrollo                 AS sistemaNombre,
-    s.nombreTecnico                AS responsableNombre,
-    ev.idEvaluacion
-  FROM solicitudTI s
-  JOIN solicitudTI_desarrollo_detalle det ON det.idSolicitud = s.idSolicitud
-  JOIN cat_estatus_desarrollo e           ON e.idEstatus     = s.idEstatus
-  LEFT JOIN cat_tipo_solicitud_dev t      ON t.idTipo        = det.idTipo
-  LEFT JOIN desarrollosTI dev             ON dev.id          = det.idDesarrollo
-  LEFT JOIN solicitudTI_desarrollo_evaluacion ev ON ev.idSolicitud = s.idSolicitud
-  WHERE s.idServicio = 2
-    AND s.idUsuario  = @login
-    ${whereExtra}
-  ORDER BY ${ordenSQL}
-    `;
+      s.idSolicitud,
+      ISNULL(JSON_VALUE(s.camposExtra,'$.folioDesarrollo'), s.folio) AS folio,
+      s.titulo,
+      s.fechaCreacion,
+      s.idUsuario,
+      t.nombre                       AS tipoNombre,
+      s.idEstatus,
+      e.nombre                       AS estatusNombre,
+      e.color                        AS estatusColor,
+      e.colorBg                      AS estatusBg,
+      det.fechaCompromiso,
+      det.fechaInicio,
+      det.tipoDesarrollo,
+      det.porcentajeAvance           AS avance,
+      det.fechaConclusión            AS fechaConcluido,
+      dev.desarrollo                 AS sistemaNombre,
+      s.nombreTecnico                AS responsableNombre,
+      ev.idEvaluacion
+    FROM solicitudTI s
+    JOIN solicitudTI_desarrollo_detalle det ON det.idSolicitud = s.idSolicitud
+    JOIN cat_estatus_desarrollo e           ON e.idEstatus     = s.idEstatus
+    LEFT JOIN cat_tipo_solicitud_dev t      ON t.idTipo        = det.idTipo
+    LEFT JOIN desarrollosTI dev             ON dev.id          = det.idDesarrollo
+    LEFT JOIN solicitudTI_desarrollo_evaluacion ev ON ev.idSolicitud = s.idSolicitud
+    WHERE s.idServicio = 2
+      AND s.idUsuario  = @login
+      ${whereExtra}
+    ORDER BY ${ordenSQL}
+  `;
 
   const result = await r.query(query);
 
@@ -1137,8 +1154,10 @@ async function getMisSolicitudes(
     idSolicitud: row.idSolicitud,
     folio: row.folio,
     titulo: row.titulo,
-    fechaSolicitud: row.fechaSolicitud,
+    fechaSolicitud: row.fechaCreacion,
+    idUsuario: row.idUsuario,
     tipo: row.tipoNombre,
+    tipoDesarrollo: row.tipoDesarrollo ?? null,
     estatus: {
       id: row.idEstatus,
       nombre: row.estatusNombre,
@@ -1155,15 +1174,15 @@ async function getMisSolicitudes(
   }));
 }
 
-// ------ getMiSolicitudDetalle ------
-// Reutiliza getDetalle() existente pero valida ownership
+// ════════════════════════════════════════════════════════════
+// getMiSolicitudDetalle
+// ════════════════════════════════════════════════════════════
 async function getMiSolicitudDetalle(idSolicitud, loginUsuario) {
   const pool = await getPool();
   const r = pool.request();
   r.input("id", sql.Int, parseInt(idSolicitud));
   r.input("login", sql.VarChar, loginUsuario);
 
-  // Verificar ownership
   const check = await r.query(
     `SELECT idUsuario FROM solicitudTI WHERE idSolicitud = @id AND idServicio = 2`,
   );
@@ -1171,58 +1190,51 @@ async function getMiSolicitudDetalle(idSolicitud, loginUsuario) {
   if (check.recordset[0].idUsuario !== loginUsuario)
     throw { status: 403, message: "Sin acceso" };
 
-  // Reutilizar getDetalle existente
   return await getDetalle(idSolicitud);
 }
 
-// ------ getMiSolicitudActividades ------
-// Devuelve actividades + bitácora automática filtrada para el usuario
+// ════════════════════════════════════════════════════════════
+// getMiSolicitudActividades
+// ════════════════════════════════════════════════════════════
 async function getMiSolicitudActividades(idSolicitud, loginUsuario) {
   const pool = await getPool();
-  const r = pool.request();
-  r.input("id", sql.Int, parseInt(idSolicitud));
-  r.input("login", sql.VarChar, loginUsuario);
+  const idSol = parseInt(idSolicitud);
 
-  // ownership check
-  const own = await r.query(
-    `SELECT idUsuario FROM solicitudTI WHERE idSolicitud = @id AND idServicio = 2`,
-  );
+  const own = await pool
+    .request()
+    .input("id", sql.Int, idSol)
+    .query(
+      `SELECT idUsuario FROM solicitudTI WHERE idSolicitud = @id AND idServicio = 2`,
+    );
+
   if (!own.recordset.length || own.recordset[0].idUsuario !== loginUsuario)
     throw { status: 403, message: "Sin acceso" };
 
-  // Actividades manuales (visibleUsuario = 1 o NULL — incluir por defecto)
-  const acts = await r.query(`
-    SELECT
-      a.idActividad,
-      a.descripcion,
-      a.fechaRegistro,
-      u.nombreCompleto AS autor,
-      'actividad'      AS tipo
-    FROM solicitudTI_desarrollo_actividades a
-    LEFT JOIN sec_users u ON u.login = a.idUsuario
-    WHERE a.idSolicitud = @id
-      AND ISNULL(a.visibleUsuario, 1) = 1
-    ORDER BY a.fechaRegistro DESC
-  `);
+  const acts = await pool.request().input("id", sql.Int, idSol).query(`
+      SELECT
+        a.idActividad        AS id,
+        a.actividad          AS descripcion,
+        a.fecha              AS fechaRegistro,
+        a.nombreUsuario      AS autor,
+        'actividad'          AS tipo
+      FROM solicitudTI_desarrollo_actividades a
+      WHERE a.idSolicitud = @id
+      ORDER BY a.fecha DESC
+    `);
 
-  // Bitácora automática (cambios de estatus, asignación, comentarios)
-  const bitacora = await r.query(`
-    SELECT
-      b.idBitacora,
-      b.accion,
-      b.descripcion,
-      b.fechaRegistro,
-      u.nombreCompleto AS autor,
-      'bitacora'       AS tipo
-    FROM solicitudTI_bitacora b
-    LEFT JOIN sec_users u ON u.login = b.idUsuario
-    WHERE b.idSolicitud = @id
-      AND b.visibleUsuario = 1
-    ORDER BY b.fechaRegistro DESC
-  `);
+  const bit = await pool.request().input("id", sql.Int, idSol).query(`
+      SELECT
+        b.idBitacora         AS id,
+        b.nota               AS descripcion,
+        b.fecha              AS fechaRegistro,
+        b.nombreUsuario      AS autor,
+        'bitacora'           AS tipo
+      FROM solicitudTI_bitacora b
+      WHERE b.idSolicitud = @id
+      ORDER BY b.fecha DESC
+    `);
 
-  // Merge y ordenar por fecha desc
-  const merged = [...acts.recordset, ...bitacora.recordset].sort(
+  const merged = [...acts.recordset, ...bit.recordset].sort(
     (a, b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro),
   );
 

@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -68,6 +69,18 @@ app.use(
       : path.join(__dirname, "../uploads"),
   ),
 );
+
+app.use(
+  "/uploads",
+  express.static(
+    process.env.UPLOADS_DIR
+      ? process.env.UPLOADS_DIR
+      : path.join(__dirname, "../uploads"),
+  ),
+);
+
+// AGREGAR ESTA LÍNEA — sirve también desde server/uploads/
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
 

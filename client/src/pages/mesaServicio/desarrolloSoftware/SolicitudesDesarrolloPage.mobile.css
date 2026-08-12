@@ -1,13 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════
-   SolicitudesDesarrolloPage — Mobile overrides
-   Breakpoints:
-     ≤ 640px  → móvil (teléfono)
-     641–900  → tablet  (ya cubierto en el CSS base)
+   MisDesarrollosPage.mobile.css
+   Igual que SolicitudesDesarrolloPage — Mobile overrides
    ═══════════════════════════════════════════════════════════════ */
 
-/* ────────────────────────────────────────────────────────────
-   KPI STRIP — scroll horizontal en lugar de wrap
-   ────────────────────────────────────────────────────────────*/
+/* ── KPI STRIP ──────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .sdp-kpi-strip {
     flex-wrap: nowrap;
@@ -15,15 +11,12 @@
     overflow-y: visible;
     padding: 12px 14px 0;
     gap: 6px;
-    /* evita corte visual en el scroll */
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
   }
   .sdp-kpi-strip::-webkit-scrollbar {
     display: none;
   }
-
-  /* chips fijos — no crecen, no se comprimen */
   .sdp-kpi-chip {
     flex: 0 0 auto;
     min-width: 90px;
@@ -43,9 +36,7 @@
   }
 }
 
-/* ────────────────────────────────────────────────────────────
-   TOOLBAR
-   ────────────────────────────────────────────────────────────*/
+/* ── TOOLBAR ────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .sdp-toolbar {
     flex-direction: column;
@@ -53,14 +44,10 @@
     padding: 10px 14px;
     gap: 8px;
   }
-
-  /* Búsqueda ocupa todo el ancho */
   .sdp-search-wrap {
     max-width: none;
     min-width: 0;
   }
-
-  /* Filtros en una fila scrollable */
   .sdp-toolbar-filters {
     display: flex;
     gap: 6px;
@@ -77,44 +64,24 @@
     font-size: 12px;
     height: 34px;
   }
-
-  /* Ocultar exportar, mostrar solo "Nueva solicitud" */
-  .sdp-btn-excel,
-  .sdp-btn-pdf {
-    display: none;
-  }
   .sdp-toolbar-spacer {
     display: none;
   }
-  /* Nueva solicitud full-width */
-  .sdp-btn-primary.sdp-toolbar-new {
-    width: 100%;
-    justify-content: center;
-    height: 40px;
-    font-size: 14px;
-  }
 }
 
-/* ────────────────────────────────────────────────────────────
-   TABLA → ocultar thead, tr como card
-   ────────────────────────────────────────────────────────────*/
+/* ── TABLA → cards en móvil ─────────────────────────────────── */
 @media (max-width: 640px) {
   .sdp-table-wrap {
     padding: 0 14px;
   }
-
   .sdp-table {
     border: none;
     background: transparent;
     border-radius: 0;
   }
-
-  /* Ocultar cabecera */
   .sdp-table thead {
     display: none;
   }
-
-  /* Cada fila es una card */
   .sdp-table tbody tr {
     display: block;
     background: var(--bg-card, #fff);
@@ -127,320 +94,78 @@
       border-color 0.15s,
       box-shadow 0.15s;
   }
-  .sdp-table tbody tr:hover,
-  .sdp-table tbody tr.row-expanded {
+  .sdp-table tbody tr:hover {
     border-color: #4f46e5;
     box-shadow: 0 2px 10px rgba(79, 70, 229, 0.1);
-    background: var(--bg-card, #fff);
   }
   .sdp-table tbody tr:last-child {
     border-bottom: 1px solid var(--border, #e5e7eb);
   }
-
-  /* Ocultar todas las celdas por defecto */
   .sdp-table td {
     display: none;
     padding: 0;
   }
 
-  /* Mostrar solo las celdas que construyen la card móvil */
-  .sdp-table td.col-titulo-main,
-  .sdp-table td.col-mobile-meta,
-  .sdp-table td.col-acciones {
+  /* Mostrar solo las celdas de la card móvil */
+  .sdp-table td.col-chevron,
+  .sdp-table td.col-titulo-main {
     display: block;
   }
 
-  /* ── Card: título/folio ── */
+  .sdp-table td.col-chevron {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 14px 0;
+    color: var(--text-secondary, #9ca3af);
+  }
   .sdp-table td.col-titulo-main {
-    padding: 12px 14px 8px;
-    border-bottom: 1px solid var(--border, #f0f0f0);
+    padding: 4px 14px 12px;
   }
-  .titulo-principal {
-    margin-bottom: 4px;
-  }
-  .titulo-text {
+  .titulo-text--truncado {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
     font-size: 14px;
-    white-space: normal; /* permite wrap en móvil */
-    overflow: visible;
-    text-overflow: unset;
     line-height: 1.4;
   }
-  .sdp-folio-tag {
-    font-size: 10px;
-  }
-
-  /* ── Card: fila de meta (estatus + responsable + avance) ── */
-  /* Esta celda no existe en el JSX original — la simulamos con
-     las celdas ocultas más abajo usando el truco col-mobile-row */
-  .sdp-table td.col-responsable,
-  .sdp-table td.col-avance {
-    display: none; /* lo re-mostramos dentro de col-mobile-row si existe */
-  }
-
-  /* ── Card: acciones footer ── */
-  .sdp-table td.col-acciones {
-    padding: 8px 12px;
-  }
-  .sdp-row-actions {
-    justify-content: flex-end;
-  }
-
-  /* Panel expandido dentro de la card */
-  .sdp-expand-row {
-    display: block;
-  }
-  .sdp-expand-row td {
-    display: block;
-    padding: 0;
-  }
 }
 
-/* ────────────────────────────────────────────────────────────
-   MOBILE CARD ROW — fila de metadata dentro de la card
-   (se inyecta via clase sdp-mobile-row en la celda virtual)
-   ────────────────────────────────────────────────────────────*/
-@media (max-width: 640px) {
-  /* La celda que usamos para renderizar estatus+responsable+avance
-     en el JSX: <td className="col-mobile-row"> (nueva clase) */
-  .sdp-table td.col-mobile-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    flex-wrap: wrap;
-  }
-
-  /* Ocultar en desktop */
-  .col-mobile-row {
-    display: none;
-  }
-}
-
-/* ────────────────────────────────────────────────────────────
-   PANEL EXPANDIDO
-   ────────────────────────────────────────────────────────────*/
-@media (max-width: 640px) {
-  .sdp-panel {
-    border-top-width: 3px;
-  }
-
-  /* Tabs — scroll horizontal sin wrap */
-  .sdp-tabs {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 0;
-    gap: 0;
-  }
-  .sdp-tabs-left {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    border-bottom: 1px solid var(--border, #e5e7eb);
-    padding: 0 14px;
-  }
-  .sdp-tabs-left::-webkit-scrollbar {
-    display: none;
-  }
-  .sdp-tab-btn {
-    padding: 10px 10px;
-    font-size: 12px;
-    gap: 4px;
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .sdp-tab-btn i {
-    font-size: 14px;
-  }
-
-  /* Acciones del panel en fila compacta */
-  .sdp-tabs-right {
-    display: flex;
-    padding: 8px 14px;
-    gap: 6px;
-    border-bottom: 1px solid var(--border, #e5e7eb);
-    background: var(--bg-card, #fff);
-  }
-  .sdp-tabs-right .sdp-btn {
-    flex: 1;
-    justify-content: center;
-    font-size: 12px;
-    height: 34px;
-  }
-
-  /* Contenido tabs */
-  .sdp-tab-content {
-    padding: 14px;
-  }
-
-  /* ── Tab Resumen ── */
-  .tab-resumen {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .resumen-block {
-    padding: 12px;
-  }
-  .prog-acciones {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-  .prog-acciones .sdp-btn {
-    justify-content: center;
-    font-size: 12px;
-  }
-  .rapido-items {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0;
-  }
-  .rapido-item {
-    padding: 6px 4px;
-  }
-
-  /* ── Tab Seguimiento ── */
-  .seg-cols {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .seg-card {
-    padding: 12px;
-  }
-  .seg-acciones {
-    flex-direction: column;
-  }
-  .seg-acciones .sdp-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  /* ── Tab Subtareas ── */
-  .sub-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  .sub-item-right {
-    display: flex; /* restaurar — lo ocultábamos en el base */
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  /* ── Tab Horas ── */
-  .horas-resumen {
-    gap: 8px;
-  }
-  .horas-stat {
-    padding: 10px 8px;
-  }
-  .horas-stat-val {
-    font-size: 18px;
-  }
-  .hora-item {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-  .hora-item-left {
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    width: 100%;
-  }
-  .hora-fecha {
-    font-size: 11px;
-  }
-
-  /* ── Tab Bloqueos ── */
-  .bloqueo-item {
-    flex-direction: column;
-    gap: 8px;
-  }
-  .bloqueo-item .sdp-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
-  /* ── Tab Actividades ── */
-  .act-item {
-    gap: 8px;
-  }
-  .act-body {
-    min-width: 0;
-  }
-  .act-texto {
-    font-size: 12.5px;
-  }
-
-  /* ── Tab Comentarios ── */
-  .sdp-comment-form textarea {
-    min-height: 70px;
-  }
-
-  /* ── Banners panel ── */
-  .sdp-panel-warn,
-  .sdp-panel-bloqueado {
-    padding: 10px 14px;
-    font-size: 12.5px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .sdp-panel-warn .sdp-btn {
-    flex: 1 0 auto;
-    justify-content: center;
-  }
-}
-
-/* ────────────────────────────────────────────────────────────
-   MODALES — ya están bien, pequeños ajustes
-   ────────────────────────────────────────────────────────────*/
+/* ── MODAL en móvil ─────────────────────────────────────────── */
 @media (max-width: 640px) {
   .sdp-modal-backdrop {
     align-items: flex-end;
     padding: 0;
   }
-  .sdp-modal {
+  .msd-modal-wrap {
     border-radius: 20px 20px 0 0;
     max-width: 100%;
     max-height: 92dvh;
-    padding: 20px 16px 28px; /* extra padding abajo para safe area */
   }
-  .sdp-modal-title {
+  .msd-modal-header-bar {
+    padding: 16px 16px 10px;
+  }
+  .msd-modal-titulo {
     font-size: 15px;
   }
-
-  /* Footer de modal siempre en columna en móvil */
-  .sdp-modal-footer {
-    flex-direction: column-reverse;
-    gap: 8px;
+  .sdp-panel-tab span {
+    display: none;
   }
-  .sdp-modal-footer .sdp-btn {
-    width: 100%;
-    justify-content: center;
-    height: 44px; /* táctil cómodo */
-    font-size: 14px;
+  .sdp-panel-tab {
+    padding: 10px 10px;
   }
-
-  /* Grid de fechas en subtarea → columna */
-  .sdp-modal .sdp-modal-field + .sdp-modal-field,
-  [style*="grid-template-columns: 1fr 1fr"] {
-    grid-template-columns: 1fr !important;
+  .sdp-panel-tab i {
+    font-size: 16px;
   }
-
-  /* Inputs de horas en fila legible */
-  .sdp-modal-field .sdp-horas-row {
-    flex-wrap: wrap;
-    gap: 6px;
+  .sdp-panel-body {
+    padding: 12px;
   }
-  .sdp-modal-field input[type="number"] {
-    width: 70px;
-    min-width: 0;
+  .sdp-resumen-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 }
 
-/* ────────────────────────────────────────────────────────────
-   PAGINACIÓN
-   ────────────────────────────────────────────────────────────*/
+/* ── PAGINACIÓN ─────────────────────────────────────────────── */
 @media (max-width: 640px) {
   .sdp-pagination {
     flex-direction: column;
@@ -448,27 +173,16 @@
     padding: 10px 14px 16px;
     gap: 10px;
   }
-  .sdp-pagination-info {
-    font-size: 12px;
-  }
-  .sdp-page-btn {
-    width: 36px;
-    height: 36px;
-  }
 }
 
-/* ────────────────────────────────────────────────────────────
-   TOAST en móvil — bottom en lugar de center
-   ────────────────────────────────────────────────────────────*/
+/* ── PANEL TABS en móvil ────────────────────────────────────── */
 @media (max-width: 640px) {
-  .sdp-toast {
-    top: auto;
-    bottom: 24px;
-    left: 14px;
-    right: 14px;
-    transform: none;
-    text-align: center;
-    font-size: 13px;
-    padding: 12px 18px;
+  .sdp-panel-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sdp-panel-tabs::-webkit-scrollbar {
+    display: none;
   }
 }

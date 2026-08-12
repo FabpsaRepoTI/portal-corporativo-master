@@ -425,6 +425,25 @@ export default function SolicitudesDesarrolloPage() {
   // Bloqueo
   const [mBloqueoMotivo, setMBloqueoMotivo] = useState("");
 
+  // Tipo de desarrollo (aparece tras asignar responsable)
+  const [mTipoDesarrollo, setMTipoDesarrollo] = useState("");
+  const [modalTipoDesarrollo, setModalTipoDesarrollo] = useState(null); // { idSolicitud, loginResponsable }
+
+  const TIPOS_DESARROLLO = [
+    {
+      valor: "SOLICITUD_USUARIO",
+      etiqueta: "Solicitud del usuario",
+      icon: "ti-user",
+    },
+    { valor: "CORRECTIVO", etiqueta: "Correctivo", icon: "ti-tool" },
+    { valor: "PREVENTIVO", etiqueta: "Preventivo", icon: "ti-shield-check" },
+    {
+      valor: "INICIATIVA_PROPIA",
+      etiqueta: "Iniciativa propia",
+      icon: "ti-bulb",
+    },
+  ];
+
   const [comentario, setComentario] = useState("");
 
   const [toast, setToast] = useState(null);
@@ -565,6 +584,9 @@ export default function SolicitudesDesarrolloPage() {
         nombreResponsable: user.name,
         loginResponsable: user.login,
       });
+      // Abrir modal de tipo de desarrollo inmediatamente
+      setMTipoDesarrollo("");
+      setModalTipoDesarrollo({ idSolicitud: sol.idSolicitud });
     } else showToast(r.message || "Error", "err");
   }
 
@@ -599,7 +621,8 @@ export default function SolicitudesDesarrolloPage() {
 
   async function handleAsignar() {
     if (!mAsignar.login) return;
-    const r = await apiPut(`${modal.sol.idSolicitud}/asignar`, {
+    const idSol = modal.sol.idSolicitud;
+    const r = await apiPut(`${idSol}/asignar`, {
       loginResponsable: mAsignar.login,
       nombreResponsable: mAsignar.nombre,
     });
@@ -614,6 +637,9 @@ export default function SolicitudesDesarrolloPage() {
         nombreResponsable: mAsignar.nombre,
         loginResponsable: mAsignar.login,
       });
+      // Abrir modal de tipo de desarrollo inmediatamente
+      setMTipoDesarrollo("");
+      setModalTipoDesarrollo({ idSolicitud: idSol });
     } else showToast(r.message || "Error", "err");
   }
 
@@ -678,6 +704,14 @@ export default function SolicitudesDesarrolloPage() {
   }
 
   async function handleDetalle() {
+    // Validar responsable antes de enviar (doble protección frontend)
+    if (!modal.sol.loginResponsable) {
+      showToast(
+        "Asigna un responsable antes de actualizar el avance o la fecha del desarrollo.",
+        "err",
+      );
+      return;
+    }
     const r = await apiPut(`${modal.sol.idSolicitud}/detalle`, {
       fechaCompromiso: mFecha || undefined,
       porcentajeAvance: mAvance ?? undefined,
@@ -688,6 +722,28 @@ export default function SolicitudesDesarrolloPage() {
       fetchRows();
       reloadPanel();
     } else showToast(r.message || "Error", "err");
+  }
+
+  async function handleGuardarTipoDesarrollo() {
+    if (!mTipoDesarrollo) {
+      showToast("Selecciona el tipo de desarrollo", "err");
+      return;
+    }
+    if (!modalTipoDesarrollo?.idSolicitud) return;
+    const r = await apiPut(
+      `${modalTipoDesarrollo.idSolicitud}/tipo-desarrollo`,
+      {
+        tipoDesarrollo: mTipoDesarrollo,
+      },
+    );
+    if (r.ok) {
+      showToast("Tipo de desarrollo guardado");
+      setModalTipoDesarrollo(null);
+      setMTipoDesarrollo("");
+      fetchRows();
+      reloadPanel();
+    } else
+      showToast(r.message || "Error al guardar el tipo de desarrollo", "err");
   }
 
   async function handleActividad() {
@@ -1936,11 +1992,19 @@ export default function SolicitudesDesarrolloPage() {
                   <p className="sdp-modal-title">
                     <i className="ti ti-calendar-event" /> Seguimiento
                   </p>
+                  {!modal.sol.loginResponsable && (
+                    <div className="sdp-modal-warn">
+                      <i className="ti ti-alert-triangle" /> Asigna un
+                      responsable antes de actualizar el avance o la fecha del
+                      desarrollo.
+                    </div>
+                  )}
                   <div className="sdp-modal-field">
                     <label>Fecha compromiso</label>
                     <input
                       type="date"
                       value={mFecha}
+                      disabled={!modal.sol.loginResponsable}
                       onChange={(e) => setMFecha(e.target.value)}
                     />
                   </div>
@@ -1955,6 +2019,7 @@ export default function SolicitudesDesarrolloPage() {
                       step={5}
                       value={mAvance}
                       className="sdp-range"
+                      disabled={!modal.sol.loginResponsable}
                       onChange={(e) => setMAvance(parseInt(e.target.value))}
                     />
                     <div className="sdp-range-labels">
@@ -1972,6 +2037,12 @@ export default function SolicitudesDesarrolloPage() {
                     </button>
                     <button
                       className="sdp-btn sdp-btn-primary"
+                      disabled={!modal.sol.loginResponsable}
+                      title={
+                        !modal.sol.loginResponsable
+                          ? "Asigna un responsable primero"
+                          : ""
+                      }
                       onClick={handleDetalle}
                     >
                       Guardar
@@ -2374,6 +2445,54 @@ export default function SolicitudesDesarrolloPage() {
           document.body,
         )}
 
+      {/* Modal tipo de desarrollo — aparece tras asignar responsable */}
+      {modalTipoDesarrollo &&
+        ReactDOM.createPortal(
+          <div
+            className="sdp-modal-backdrop"
+            onClick={() => setModalTipoDesarrollo(null)}
+          >
+            <div className="sdp-modal" onClick={(e) => e.stopPropagation()}>
+              <p className="sdp-modal-title">
+                <i className="ti ti-code" /> Tipo de desarrollo
+              </p>
+              <p className="sdp-modal-subtitle">
+                Responsable asignado. Ahora selecciona cómo clasificar este
+                desarrollo.
+              </p>
+              <div className="sdp-tipo-dev-grid">
+                {TIPOS_DESARROLLO.map((t) => (
+                  <button
+                    key={t.valor}
+                    type="button"
+                    className={`sdp-tipo-dev-card${mTipoDesarrollo === t.valor ? " sdp-tipo-dev-card--active" : ""}`}
+                    onClick={() => setMTipoDesarrollo(t.valor)}
+                  >
+                    <i className={`ti ${t.icon}`} />
+                    <span>{t.etiqueta}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="sdp-modal-footer">
+                <button
+                  className="sdp-btn sdp-btn-ghost"
+                  onClick={() => setModalTipoDesarrollo(null)}
+                >
+                  Omitir por ahora
+                </button>
+                <button
+                  className="sdp-btn sdp-btn-primary"
+                  onClick={handleGuardarTipoDesarrollo}
+                  disabled={!mTipoDesarrollo}
+                >
+                  <i className="ti ti-check" /> Guardar
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+
       {toast &&
         ReactDOM.createPortal(
           <div className={`sdp-toast sdp-toast--${toast.type}`}>
@@ -2629,6 +2748,30 @@ function TabResumen({
             value={<span className="sdp-mono">{sol.folioDesarrollo}</span>}
           />
           <InfoRow label="Tipo" value={sol.tipoNombre || "—"} />
+          <InfoRow
+            label="Tipo de desarrollo"
+            value={
+              sol.tipoDesarrollo ? (
+                <span className="sdp-tipo-desarrollo-badge">
+                  {{
+                    SOLICITUD_USUARIO: "Solicitud del usuario",
+                    CORRECTIVO: "Correctivo",
+                    PREVENTIVO: "Preventivo",
+                    INICIATIVA_PROPIA: "Iniciativa propia",
+                  }[sol.tipoDesarrollo] || sol.tipoDesarrollo}
+                </span>
+              ) : (
+                <span
+                  style={{
+                    color: "var(--text-secondary,#9ca3af)",
+                    fontSize: 12,
+                  }}
+                >
+                  Pendiente
+                </span>
+              )
+            }
+          />
           <InfoRow label="Sistema" value={sol.sistemaNombre || "—"} />
           <InfoRow
             label="Área solicitante"

@@ -4,6 +4,7 @@ import { AuthContext } from "../../../context/AuthContext";
 import "./MisSolicitudes.css";
 import "./MisSolicitudes.mobile.css";
 import HardwareMisSolicitudes from "./HardwareMisSolicitudes";
+import MisDesarrollosPage from "../solicitudesUsuario/MisDesarrollosPage";
 
 /* ─── Config ──────────────────────────────────────────────────── */
 const API = "";
@@ -1257,6 +1258,13 @@ const MAIN_TABS = [
     color: "#10b981",
     colorBg: "rgba(16,185,129,0.12)",
   },
+  {
+    key: "software",
+    label: "Solicitudes de desarrollo",
+    icon: "ti-code",
+    color: "#4f46e5",
+    colorBg: "rgba(79,70,229,0.10)",
+  },
 ];
 const ESTATUS_INC_OPTS = [
   { value: "", label: "Estado: Todos" },
@@ -1470,7 +1478,12 @@ export default function MisSolicitudesPage() {
       bg: "rgba(243,139,168,0.12)",
     },
   ];
-  const kpiCards = mainTab === "hardware" ? kpiCardsHw : kpiCardsInc;
+  const kpiCards =
+    mainTab === "hardware"
+      ? kpiCardsHw
+      : mainTab === "software"
+        ? []
+        : kpiCardsInc;
   const emptyType =
     buscar || filtroEstatus || filtroPrioridad ? "filtros" : "incidencias";
 
@@ -1634,6 +1647,9 @@ export default function MisSolicitudesPage() {
               filtroEstatus={filtroEstatus}
             />
           )}
+
+          {/* Tab software — Mis desarrollos */}
+          {mainTab === "software" && <MisDesarrollosPage embebido />}
 
           {/* Tab incidencias */}
           {mainTab === "incidencias" && (

@@ -28,7 +28,7 @@ const TABS = [
     key: "desarrollo",
     label: "Desarrollo de Software",
     icon: "ti-code",
-    color: "#f97316",
+    color: "#4F46E5",
   },
 ];
 

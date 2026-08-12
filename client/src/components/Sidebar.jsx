@@ -33,11 +33,6 @@ const NAV_SECTIONS = [
         icon: "ti-bulb",
         label: "Cultura Digital",
       },
-      {
-        label: "Mis desarrollos",
-        icon: "ti-code",
-        to: "/mesa-de-servicio/mis-desarrollos",
-      },
     ],
   },
 ];

@@ -64,6 +64,7 @@ async function cambiarEstatus(req, res) {
       parseInt(req.params.id),
       idEstatus,
       req.user.login, // ← nuevo: para validar que sea el asignado
+      req.user.name ?? req.user.login,
     );
 
     // El service devuelve { ok: false, code, message } si hay validación fallida
@@ -84,7 +85,13 @@ async function cambiarPrioridad(req, res) {
   try {
     const { idPrioridad } = req.body;
     if (!idPrioridad) return res.status(400).json({ ok: false });
-    await svc.cambiarPrioridad(parseInt(req.params.id), idPrioridad);
+    const result = await svc.cambiarPrioridad(
+      parseInt(req.params.id),
+      idPrioridad,
+    );
+    if (result && !result.ok) {
+      return res.status(422).json(result);
+    }
     res.json({ ok: true });
   } catch (err) {
     console.error("[mesa-admin] prioridad:", err);
@@ -145,6 +152,8 @@ async function transferir(req, res) {
       parseInt(req.params.id),
       tecnicoLogin,
       nombreTecnico ?? tecnicoLogin,
+      req.user.login, // ← agregar
+      req.user.name ?? req.user.login, // ← agregar
     );
     res.json({ ok: true });
   } catch (err) {

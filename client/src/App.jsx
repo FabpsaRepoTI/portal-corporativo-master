@@ -142,6 +142,10 @@ function AppLayout() {
               path="/mesa-de-servicio/desarrollo/nueva"
               element={<NuevoDesarrolloPage />}
             />
+            <Route
+              path="/mesa-de-servicio/mis-desarrollos"
+              element={<MisDesarrollosPage />}
+            />
           </Routes>
         </main>
         <Footer />

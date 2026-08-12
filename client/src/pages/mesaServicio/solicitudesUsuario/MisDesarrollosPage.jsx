@@ -1,508 +1,1203 @@
-import { useState, useEffect, useContext, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+// MisDesarrollosPage.jsx v6 — quirúrgico, sin reescritura de diseño
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  useRef,
+} from "react";
+import ReactDOM from "react-dom";
 import { AuthContext } from "../../../context/AuthContext";
+import "./MisDesarrollosPage.css";
+import "./MisDesarrollosPage.mobile.css";
 
 const API = "";
+const STATIC_BASE = (() => {
+  const h = window.location.hostname;
+  if (h === "192.168.16.198") return "http://192.168.16.198:3001";
+  if (h === "201.151.218.138") return "http://201.151.218.138:3001";
+  return "http://localhost:3001";
+})();
+
 function authH() {
   const t = localStorage.getItem("fabpsa_token");
   return { Authorization: `Bearer ${t}`, "Content-Type": "application/json" };
 }
-import "./MisDesarrollosPage.css";
-import "./MisDesarrollosPage.mobile.css";
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+const PAGE_SIZE = 10;
 
-const STEPPER_STEPS = [
-  { key: "solicitud", label: "Solicitud", ids: [1] },
-  { key: "analisis", label: "Análisis", ids: [2] },
-  { key: "asignacion", label: "Asignación", ids: [3] },
-  { key: "desarrollo", label: "Desarrollo", ids: [4] },
-  { key: "revision", label: "Revisión", ids: [5] },
-  { key: "concluido", label: "Concluido", ids: [6, 7] },
-];
-
-function stepIndex(idEstatus) {
-  const idx = STEPPER_STEPS.findIndex((s) => s.ids.includes(idEstatus));
-  return idx === -1 ? 0 : idx;
+function fmtDate(str) {
+  if (!str) return "—";
+  return new Date(str).toLocaleDateString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
-
-function fmtFecha(iso) {
-  if (!iso) return null;
-  return new Date(iso)
-    .toLocaleDateString("es-MX", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    })
+function fmtDateTime(str) {
+  if (!str) return "—";
+  return new Date(str).toLocaleString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+function iniciales(nombre) {
+  if (!nombre) return "?";
+  return nombre
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
     .toUpperCase();
 }
+function fileIcon(nombre) {
+  if (!nombre) return "ti-file";
+  const ext = nombre.split(".").pop().toLowerCase();
+  if (["jpg", "jpeg", "png", "gif", "webp"].includes(ext)) return "ti-photo";
+  if (ext === "pdf") return "ti-file-type-pdf";
+  if (["xlsx", "xls", "csv"].includes(ext)) return "ti-table";
+  if (["docx", "doc"].includes(ext)) return "ti-file-word";
+  return "ti-paperclip";
+}
+const stop = (fn) => (e) => {
+  e.stopPropagation();
+  fn(e);
+};
 
-function diasRestantes(iso) {
-  if (!iso) return null;
+const KPI_DEFS_USR = [
+  { key: "todas", label: "Todas", icon: "ti-stack-2", color: "#4f46e5" },
+  { key: "proceso", label: "En proceso", icon: "ti-code", color: "#3b82f6" },
+  {
+    key: "concluidas",
+    label: "Concluidas",
+    icon: "ti-circle-check",
+    color: "#10b981",
+  },
+  { key: "evaluar", label: "Por evaluar", icon: "ti-star", color: "#f59e0b" },
+];
+
+/* ── Componentes puros (sin acceso a estado del padre) ────────── */
+function Avatar({ nombre, size = 26 }) {
+  const colors = [
+    "#4f46e5",
+    "#7c3aed",
+    "#0891b2",
+    "#059669",
+    "#d97706",
+    "#dc2626",
+  ];
+  const idx = nombre ? nombre.charCodeAt(0) % colors.length : 0;
+  return (
+    <div
+      className="sdp-avatar"
+      style={{
+        width: size,
+        height: size,
+        background: colors[idx],
+        fontSize: size * 0.38,
+      }}
+    >
+      {iniciales(nombre)}
+    </div>
+  );
+}
+
+function StarRating({ value, onChange, size = 22 }) {
+  const [hover, setHover] = useState(0);
+  return (
+    <div className="star-rating">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          className={`star-btn${(hover || value) >= n ? " star-btn--on" : ""}`}
+          style={{ fontSize: size }}
+          onMouseEnter={() => onChange && setHover(n)}
+          onMouseLeave={() => onChange && setHover(0)}
+          onClick={() => onChange?.(n)}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function MiniBarraTiempo({ idEstatus, fechaCompromiso }) {
+  if (idEstatus >= 6)
+    return (
+      <span className="sdp-time-chip sdp-time-chip--done">
+        <i className="ti ti-circle-check" /> Concluido
+      </span>
+    );
+  if (!fechaCompromiso)
+    return <span className="sdp-time-chip sdp-time-chip--none">Sin fecha</span>;
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
-  const comp = new Date(iso);
-  comp.setHours(0, 0, 0, 0);
-  return Math.round((comp - hoy) / 86400000);
-}
-
-function TipoIcon({ tipo }) {
-  // ND = nuevo desarrollo, MA = mejora
-  if (!tipo)
-    return (
-      <span className="md-type-icon md-type-icon--nd">
-        <i className="ti ti-code" />
-      </span>
-    );
-  if (
-    tipo.toLowerCase().includes("mejora") ||
-    tipo.toLowerCase().startsWith("ma")
-  )
-    return (
-      <span className="md-type-icon md-type-icon--ma">
-        <i className="ti ti-trending-up" />
-      </span>
-    );
+  const c = new Date(fechaCompromiso);
+  c.setHours(0, 0, 0, 0);
+  const d = Math.round((c - hoy) / 86400000);
+  const color = d < 0 ? "#ef4444" : d <= 3 ? "#f59e0b" : "#4f46e5";
+  const label =
+    d < 0
+      ? `Vencido hace ${Math.abs(d)}d`
+      : d === 0
+        ? "Vence hoy"
+        : `${d}d restantes`;
   return (
-    <span className="md-type-icon md-type-icon--nd">
-      <i className="ti ti-code" />
-    </span>
-  );
-}
-
-function EntregaChip({ fechaCompromiso, fechaConcluido, evaluada }) {
-  if (fechaConcluido) {
-    return (
-      <div className="md-entrega">
-        <span className="md-entrega__label">Entregado el</span>
-        <span className="md-entrega__fecha">{fmtFecha(fechaConcluido)}</span>
-        {evaluada ? (
-          <span className="md-badge md-badge--eval-ok">
-            <i className="ti ti-circle-check" /> Evaluación completada
-          </span>
-        ) : (
-          <span className="md-badge md-badge--eval-pend">
-            <i className="ti ti-clock" /> Puedes evaluar
-          </span>
-        )}
-      </div>
-    );
-  }
-  if (!fechaCompromiso) {
-    return (
-      <div className="md-entrega">
-        <span className="md-entrega__label">Entrega estimada</span>
-        <span className="md-entrega__fecha md-entrega__fecha--nd">
-          Sin fecha definida
-        </span>
-      </div>
-    );
-  }
-  const dias = diasRestantes(fechaCompromiso);
-  let diasClass = "md-entrega__dias";
-  let diasText = `Faltan ${dias} día${dias !== 1 ? "s" : ""}`;
-  if (dias < 0) {
-    diasClass += " md-entrega__dias--vencida";
-    diasText = "Fecha vencida";
-  } else if (dias <= 2) diasClass += " md-entrega__dias--urgente";
-  return (
-    <div className="md-entrega">
-      <span className="md-entrega__label">Entrega estimada</span>
-      <span className="md-entrega__fecha">
-        <i className="ti ti-calendar" /> {fmtFecha(fechaCompromiso)}
-      </span>
-      <span className={diasClass}>
-        {dias < 0 || dias <= 2 ? <i className="ti ti-alert-triangle" /> : null}
-        {diasText}
-      </span>
-    </div>
-  );
-}
-
-function Stepper({ idEstatus }) {
-  const current = stepIndex(idEstatus);
-  return (
-    <div className="md-stepper">
-      {STEPPER_STEPS.map((step, i) => {
-        const done = i < current;
-        const active = i === current;
-        const pending = i > current;
-        return (
-          <div key={step.key} className="md-stepper__step">
-            {i > 0 && (
-              <div
-                className={`md-stepper__line ${done || active ? "md-stepper__line--done" : ""}`}
-              />
-            )}
-            <div
-              className={`md-stepper__dot ${done ? "md-stepper__dot--done" : ""} ${active ? "md-stepper__dot--active" : ""} ${pending ? "md-stepper__dot--pending" : ""}`}
-            >
-              {done ? <i className="ti ti-check" /> : null}
-            </div>
-            <span
-              className={`md-stepper__label ${active ? "md-stepper__label--active" : ""}`}
-            >
-              {step.label}
-            </span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function KpiStrip({ data }) {
-  const total = data.length;
-  const proceso = data.filter((d) => d.estatus.id <= 5).length;
-  const concluidas = data.filter(
-    (d) => d.estatus.id === 6 || d.estatus.id === 7,
-  ).length;
-  const accion = data.filter(
-    (d) => (d.estatus.id === 6 || d.estatus.id === 7) && !d.evaluada,
-  ).length;
-  const proxima = data
-    .filter((d) => d.fechaCompromiso && d.estatus.id <= 5)
-    .sort(
-      (a, b) => new Date(a.fechaCompromiso) - new Date(b.fechaCompromiso),
-    )[0];
-
-  return (
-    <div className="md-kpi-strip">
-      <div className="md-kpi">
-        <i className="ti ti-layout-grid md-kpi__icon md-kpi__icon--total" />
-        <div>
-          <span className="md-kpi__num">{total}</span>
-          <span className="md-kpi__lbl">Total</span>
-        </div>
-      </div>
-      <div className="md-kpi">
-        <i className="ti ti-code md-kpi__icon md-kpi__icon--proceso" />
-        <div>
-          <span className="md-kpi__num">{proceso}</span>
-          <span className="md-kpi__lbl">En proceso</span>
-        </div>
-      </div>
-      <div className="md-kpi">
-        <i className="ti ti-circle-check md-kpi__icon md-kpi__icon--concluidas" />
-        <div>
-          <span className="md-kpi__num">{concluidas}</span>
-          <span className="md-kpi__lbl">Concluidas</span>
-        </div>
-      </div>
-      {accion > 0 && (
-        <div className="md-kpi md-kpi--accion">
-          <i className="ti ti-alert-circle md-kpi__icon md-kpi__icon--accion" />
-          <div>
-            <span className="md-kpi__num">{accion}</span>
-            <span className="md-kpi__lbl">Por evaluar</span>
-          </div>
-        </div>
-      )}
-      {proxima && (
-        <div className="md-kpi md-kpi--proxima">
-          <i className="ti ti-calendar-due md-kpi__icon md-kpi__icon--proxima" />
-          <div>
-            <span className="md-kpi__num">
-              {fmtFecha(proxima.fechaCompromiso)}
-            </span>
-            <span className="md-kpi__lbl">Próxima entrega</span>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Tarjeta de solicitud ──────────────────────────────────────────────────────
-
-function SolicitudCard({ sol, onClick }) {
-  const needsAction =
-    (sol.estatus.id === 6 || sol.estatus.id === 7) && !sol.evaluada;
-
-  return (
-    <article
-      className={`md-card ${needsAction ? "md-card--accion" : ""}`}
-      onClick={onClick}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => e.key === "Enter" && onClick()}
-    >
-      {/* Columna izquierda: icono */}
-      <div className="md-card__icon-col">
-        <TipoIcon tipo={sol.tipo} />
-      </div>
-
-      {/* Columna central: info + stepper */}
-      <div className="md-card__body">
-        <div className="md-card__meta">
-          <span className="md-card__folio">{sol.folio}</span>
-          <span className="md-card__tipo">{sol.tipo || "Solicitud"}</span>
-        </div>
-        <h3 className="md-card__titulo">{sol.titulo}</h3>
-        {sol.sistema && (
-          <p className="md-card__sistema">
-            <i className="ti ti-database" /> {sol.sistema}
-          </p>
-        )}
-        <Stepper idEstatus={sol.estatus.id} />
-      </div>
-
-      {/* Columna derecha: estatus + entrega + responsable */}
-      <div className="md-card__aside">
-        <span
-          className="md-estatus-pill"
-          style={{ color: sol.estatus.color, background: sol.estatus.bg }}
-        >
-          {sol.estatus.nombre}
-        </span>
-
-        <EntregaChip
-          fechaCompromiso={sol.fechaCompromiso}
-          fechaConcluido={sol.fechaConcluido}
-          evaluada={sol.evaluada}
+    <div className="sdp-mini-barra">
+      <div className="sdp-mini-track">
+        <div
+          className="sdp-mini-fill"
+          style={{ width: "60%", background: color }}
         />
+      </div>
+      <span className="sdp-mini-label" style={{ color }}>
+        {label}
+      </span>
+    </div>
+  );
+}
 
-        {sol.responsable && (
-          <div className="md-card__responsable">
-            <span className="md-card__responsable-label">Responsable TI</span>
-            <span className="md-card__responsable-name">
-              <i className="ti ti-user-circle" /> {sol.responsable}
-            </span>
+/* ── Panel expandido (tabs del usuario) ───────────────────────── */
+const TABS_USR = [
+  { key: "resumen", label: "Resumen", icon: "ti-layout-grid" },
+  { key: "actividades", label: "Actividades", icon: "ti-activity" },
+  { key: "comentarios", label: "Comentarios", icon: "ti-message-circle" },
+  { key: "archivos", label: "Archivos", icon: "ti-paperclip" },
+  { key: "evaluacion", label: "Evaluación", icon: "ti-star" },
+];
+
+function PanelUsuario({
+  data,
+  tab,
+  onTabChange,
+  user,
+  idSolicitud,
+  onRefresh,
+}) {
+  const [comentario, setComentario] = useState("");
+  const [lightbox, setLightbox] = useState(null);
+  const [subiendo, setSubiendo] = useState(false);
+  const fileRef = useRef(null);
+  const folio = data.folioDesarrollo || data.folio || "";
+
+  async function postComentario() {
+    if (!comentario.trim()) return;
+    await fetch(`${API}/api/solicitudes-desarrollo/${idSolicitud}/comentario`, {
+      method: "POST",
+      headers: authH(),
+      body: JSON.stringify({ comentario: comentario.trim() }),
+    });
+    setComentario("");
+    onRefresh?.();
+  }
+
+  async function subirArchivos(files) {
+    if (!files?.length) return;
+    setSubiendo(true);
+    const fd = new FormData();
+    Array.from(files).forEach((f) => fd.append("archivos", f));
+    try {
+      const token = localStorage.getItem("fabpsa_token");
+      await fetch(`${API}/api/solicitudes-desarrollo/${idSolicitud}/adjuntos`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      onRefresh?.();
+    } finally {
+      setSubiendo(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
+  return (
+    <div className="sdp-panel-wrap">
+      <div className="sdp-panel-tabs">
+        {TABS_USR.map((t) => (
+          <button
+            key={t.key}
+            className={`sdp-panel-tab ${tab === t.key ? "active" : ""}`}
+            onClick={stop(() => onTabChange(t.key))}
+          >
+            <i className={`ti ${t.icon}`} /> <span>{t.label}</span>
+          </button>
+        ))}
+        <div className="sdp-panel-tabs-spacer" />
+      </div>
+      <div className="sdp-panel-body">
+        {/* RESUMEN */}
+        {tab === "resumen" && (
+          <div className="sdp-resumen-grid">
+            <div className="sdp-info-col">
+              <div className="sdp-section-title">INFORMACIÓN GENERAL</div>
+              {[
+                [
+                  "Folio",
+                  <span
+                    style={{
+                      fontFamily: "monospace",
+                      fontWeight: 700,
+                      color: "#4f46e5",
+                    }}
+                  >
+                    {folio}
+                  </span>,
+                ],
+                ["Tipo", data.tipoNombre || "—"],
+                ["Sistema", data.sistemaNombre || "—"],
+                ["Área", data.areaUsuario || "—"],
+                ["Solicitante", data.nombreUsuario || "—"],
+                ["Registro", fmtDateTime(data.fechaCreacion)],
+              ].map(([label, val]) => (
+                <div key={label} className="info-row">
+                  <span className="info-row-label">{label}</span>
+                  <span className="info-row-val">{val}</span>
+                </div>
+              ))}
+            </div>
+            <div className="sdp-desc-col">
+              <div className="sdp-section-title">DESCRIPCIÓN</div>
+              <p className="sdp-desc-text">
+                {data.descripcion || data.objetivo || "—"}
+              </p>
+              {data.beneficioEsperado && (
+                <>
+                  <div className="sdp-section-title" style={{ marginTop: 12 }}>
+                    BENEFICIO
+                  </div>
+                  <p className="sdp-desc-text">{data.beneficioEsperado}</p>
+                </>
+              )}
+            </div>
+            <div className="sdp-prog-col">
+              <div className="sdp-section-title">PROGRESO Y TIEMPOS</div>
+              <div className="bt-full" style={{ marginBottom: 10 }}>
+                <div className="bt-header">
+                  <span>Avance</span>
+                  <span className="bt-pct" style={{ color: "#4f46e5" }}>
+                    {data.porcentajeAvance || 0}%
+                  </span>
+                </div>
+                <div className="bt-track">
+                  <div
+                    className="bt-fill"
+                    style={{
+                      width: `${data.porcentajeAvance || 0}%`,
+                      background: "#4f46e5",
+                    }}
+                  />
+                </div>
+              </div>
+              {[
+                ["Compromiso", fmtDate(data.fechaCompromiso)],
+                ["Inicio real", fmtDate(data.fechaInicio)],
+                ["Entregado", fmtDate(data.fechaConclusión)],
+              ].map(([l, v]) => (
+                <div key={l} className="info-row">
+                  <span className="info-row-label">{l}</span>
+                  <span className="info-row-val">{v}</span>
+                </div>
+              ))}
+              {data.nombreTecnico && (
+                <div style={{ marginTop: 10 }}>
+                  <div
+                    className="sdp-section-title"
+                    style={{ marginBottom: 6 }}
+                  >
+                    Responsable
+                  </div>
+                  <div className="sdp-resp-cell">
+                    <Avatar nombre={data.nombreTecnico} size={28} />
+                    <span>{data.nombreTecnico}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="sdp-resumen-rapido">
+              <div className="sdp-section-title">RESUMEN RÁPIDO</div>
+              {[
+                ["ti-activity", "Actividades", data.actividades?.length || 0],
+                ["ti-paperclip", "Archivos", data.adjuntos?.length || 0],
+                [
+                  "ti-message-circle",
+                  "Comentarios",
+                  data.comentarios?.length || 0,
+                ],
+              ].map(([icon, label, val]) => (
+                <div key={label} className="sdp-quick-row">
+                  <span className="sdp-quick-label">
+                    <i className={`ti ${icon}`} /> {label}
+                  </span>
+                  <span className="sdp-quick-val">{val}</span>
+                </div>
+              ))}
+              <div style={{ marginTop: 10 }}>
+                <span
+                  className="sdp-estatus-pill"
+                  style={{
+                    background: data.estatusBg,
+                    color: data.estatusColor,
+                  }}
+                >
+                  {data.estatusNombre}
+                </span>
+              </div>
+            </div>
           </div>
         )}
 
-        <button className="md-btn-ver">
-          Ver detalle <i className="ti ti-chevron-right" />
+        {/* ACTIVIDADES */}
+        {tab === "actividades" && (
+          <ActividadesPanel idSolicitud={idSolicitud} />
+        )}
+
+        {/* COMENTARIOS */}
+        {tab === "comentarios" && (
+          <div className="sdp-comments">
+            {!data.comentarios?.filter((c) => !c.esInterno).length ? (
+              <div className="sdp-empty-inline">
+                <i className="ti ti-message-circle" />
+                <p>Sin comentarios aún.</p>
+              </div>
+            ) : (
+              data.comentarios
+                .filter((c) => !c.esInterno)
+                .map((c, i) => (
+                  <div key={c.idComentario || i} className="sdp-comment-item">
+                    <div className="sdp-comment-header">
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 8,
+                        }}
+                      >
+                        <Avatar nombre={c.nombreUsuario} size={26} />
+                        <span className="sdp-comment-author">
+                          {c.nombreUsuario}
+                        </span>
+                      </div>
+                      <span className="sdp-comment-date">
+                        {fmtDateTime(c.fecha)}
+                      </span>
+                    </div>
+                    <p className="sdp-comment-text">{c.comentario}</p>
+                  </div>
+                ))
+            )}
+            <div className="sdp-comment-form">
+              <textarea
+                placeholder="Escribe un comentario…"
+                value={comentario}
+                onChange={(e) => setComentario(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+              <button
+                className="sdp-btn sdp-btn-primary sdp-btn-sm"
+                style={{ alignSelf: "flex-end" }}
+                onClick={stop(postComentario)}
+              >
+                <i className="ti ti-send" /> Enviar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ARCHIVOS */}
+        {tab === "archivos" && (
+          <div>
+            <div
+              className="msd-upload-zone"
+              onClick={() => !subiendo && fileRef.current?.click()}
+            >
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                accept="image/*,.pdf,.doc,.docx,.xlsx,.xls,.txt"
+                style={{ display: "none" }}
+                onChange={(e) => subirArchivos(e.target.files)}
+              />
+              {subiendo ? (
+                <>
+                  <i className="ti ti-loader msd-upload-icon spinning" />
+                  <span>Subiendo…</span>
+                </>
+              ) : (
+                <>
+                  <i className="ti ti-cloud-upload msd-upload-icon" />
+                  <span className="msd-upload-label">
+                    Haz clic para adjuntar archivos
+                  </span>
+                  <span className="msd-upload-hint">
+                    Imágenes, PDF, Word, Excel — máx. 10 MB
+                  </span>
+                </>
+              )}
+            </div>
+            {!data.adjuntos?.length ? (
+              <div className="sdp-empty-inline">
+                <i className="ti ti-paperclip" />
+                <p>Sin archivos adjuntos.</p>
+              </div>
+            ) : (
+              <div className="sdp-files-grid">
+                {data.adjuntos.map((f, i) => {
+                  const url = `${STATIC_BASE}${f.rutaServidor}`;
+                  const esImg = f.mimeType?.startsWith("image/");
+                  if (esImg)
+                    return (
+                      <div
+                        key={i}
+                        className="sdp-file-item sdp-file-item--img"
+                        onClick={stop(() => setLightbox(url))}
+                      >
+                        <img
+                          src={url}
+                          alt={f.nombreArchivo}
+                          onError={(e) => {
+                            e.target.style.display = "none";
+                          }}
+                        />
+                        <span className="sdp-file-name">{f.nombreArchivo}</span>
+                      </div>
+                    );
+                  return (
+                    <a
+                      key={i}
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="sdp-file-item"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <i className={`ti ${fileIcon(f.nombreArchivo)}`} />
+                      <span className="sdp-file-name">{f.nombreArchivo}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+            {lightbox && (
+              <div className="msd-lightbox" onClick={() => setLightbox(null)}>
+                <img
+                  src={lightbox}
+                  alt="preview"
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <button
+                  className="msd-lightbox-close"
+                  onClick={() => setLightbox(null)}
+                >
+                  <i className="ti ti-x" />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* EVALUACIÓN */}
+        {tab === "evaluacion" && (
+          <TabEvaluacionUsuario
+            evaluacion={data.evaluacion}
+            esConcluido={data.idEstatus === 7}
+            esSolicitante={data.idUsuario === user?.login}
+            idSolicitud={idSolicitud}
+            onRefresh={onRefresh}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ActividadesPanel({ idSolicitud }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    fetch(
+      `${API}/api/solicitudes-desarrollo/mis-solicitudes/${idSolicitud}/actividades`,
+      { headers: authH() },
+    )
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.ok) setItems(j.data || []);
+      })
+      .finally(() => setLoading(false));
+  }, [idSolicitud]);
+  if (loading)
+    return (
+      <div className="sdp-spinner-wrap">
+        <div className="sdp-spinner" />
+      </div>
+    );
+  if (!items.length)
+    return (
+      <div className="sdp-empty-inline">
+        <i className="ti ti-activity" />
+        <p>Sin actividades registradas.</p>
+      </div>
+    );
+  return (
+    <div className="sdp-activities">
+      {items.map((a, i) => (
+        <div key={i} className="sdp-act-item">
+          <div className="sdp-act-dot">
+            <i className="ti ti-point-filled" />
+          </div>
+          <div className="sdp-act-body">
+            <div className="sdp-act-header">
+              <span className="sdp-act-autor">{a.autor || "Sistemas"}</span>
+              <span className="sdp-act-fecha">
+                {fmtDateTime(a.fechaRegistro)}
+              </span>
+            </div>
+            <p className="sdp-act-desc">{a.descripcion}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function TabEvaluacionUsuario({
+  evaluacion,
+  esConcluido,
+  esSolicitante,
+  idSolicitud,
+  onRefresh,
+}) {
+  const [form, setForm] = useState({
+    satisfaccion: 0,
+    cumplimiento: 0,
+    tiempoEntrega: 0,
+    calidad: 0,
+    comentarios: "",
+  });
+  const [enviado, setEnviado] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  if (evaluacion) {
+    const prom = (
+      (evaluacion.satisfaccion +
+        evaluacion.cumplimiento +
+        evaluacion.tiempoEntrega +
+        evaluacion.calidad) /
+      4
+    ).toFixed(1);
+    return (
+      <div className="tab-eval">
+        <div className="eval-header">
+          <i
+            className="ti ti-star-filled"
+            style={{ color: "#f59e0b", fontSize: 22 }}
+          />
+          <span>Evaluación del solicitante</span>
+          <span className="eval-fecha">
+            {fmtDate(evaluacion.fechaEvaluacion)}
+          </span>
+        </div>
+        <div className="eval-promedio">
+          <span className="eval-promedio-num">{prom}</span>
+          <StarRating value={Math.round(parseFloat(prom))} size={20} />
+          <span className="eval-promedio-label">Promedio general</span>
+        </div>
+        <div className="eval-grid">
+          {[
+            ["Satisfacción general", evaluacion.satisfaccion],
+            ["Cumplimiento", evaluacion.cumplimiento],
+            ["Tiempo de entrega", evaluacion.tiempoEntrega],
+            ["Calidad", evaluacion.calidad],
+          ].map(([l, v]) => (
+            <div key={l} className="eval-row">
+              <span className="eval-dim">{l}</span>
+              <StarRating value={v} size={16} />
+              <span className="eval-val">{v}/5</span>
+            </div>
+          ))}
+        </div>
+        {evaluacion.comentarios && (
+          <div className="eval-comentarios">
+            <label>Comentarios</label>
+            <p>"{evaluacion.comentarios}"</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+  if (!esConcluido)
+    return (
+      <div className="sdp-empty-inline">
+        <i className="ti ti-star" />
+        <p>
+          La evaluación estará disponible cuando el desarrollo sea concluido.
+        </p>
+      </div>
+    );
+  if (!esSolicitante)
+    return (
+      <div className="sdp-empty-inline">
+        <i className="ti ti-star" />
+        <p>La evaluación corresponde exclusivamente al usuario solicitante.</p>
+      </div>
+    );
+  if (enviado)
+    return (
+      <div className="sdp-empty-inline">
+        <i className="ti ti-circle-check" style={{ color: "#10b981" }} />
+        <p>¡Evaluación enviada! Gracias.</p>
+      </div>
+    );
+
+  async function handleEnviar() {
+    if (
+      !form.satisfaccion ||
+      !form.cumplimiento ||
+      !form.tiempoEntrega ||
+      !form.calidad
+    ) {
+      setError("Califica todas las dimensiones.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    const r = await fetch(
+      `${API}/api/solicitudes-desarrollo/${idSolicitud}/evaluacion`,
+      {
+        method: "POST",
+        headers: authH(),
+        body: JSON.stringify(form),
+      },
+    ).then((r) => r.json());
+    setLoading(false);
+    if (r.ok) {
+      setEnviado(true);
+      onRefresh?.();
+    } else setError(r.message || "Error al enviar");
+  }
+
+  return (
+    <div className="tab-eval">
+      <p className="eval-intro">
+        El desarrollo está concluido. Califica el desempeño del equipo de
+        Sistemas.
+      </p>
+      {[
+        ["satisfaccion", "Satisfacción general"],
+        ["cumplimiento", "Cumplimiento"],
+        ["tiempoEntrega", "Tiempo de entrega"],
+        ["calidad", "Calidad"],
+      ].map(([key, label]) => (
+        <div key={key} className="eval-form-row">
+          <span className="eval-form-label">{label}</span>
+          <StarRating
+            value={form[key]}
+            onChange={(v) => setForm((p) => ({ ...p, [key]: v }))}
+          />
+        </div>
+      ))}
+      <div className="sdp-modal-field" style={{ marginTop: 12 }}>
+        <label
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--text-secondary,#6b7280)",
+          }}
+        >
+          Comentarios (opcional)
+        </label>
+        <textarea
+          rows={3}
+          value={form.comentarios}
+          onChange={(e) =>
+            setForm((p) => ({ ...p, comentarios: e.target.value }))
+          }
+          placeholder="¿Qué te pareció el desarrollo?"
+        />
+      </div>
+      {error && (
+        <p style={{ color: "#dc2626", fontSize: 12, margin: 0 }}>{error}</p>
+      )}
+      <div
+        style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}
+      >
+        <button
+          className="sdp-btn sdp-btn-primary"
+          disabled={loading}
+          onClick={handleEnviar}
+        >
+          {loading ? (
+            <>
+              <i className="ti ti-loader-2 sdp-spin" /> Enviando…
+            </>
+          ) : (
+            <>
+              <i className="ti ti-send" /> Enviar evaluación
+            </>
+          )}
         </button>
       </div>
-
-      {needsAction && (
-        <div className="md-card__action-banner">
-          <i className="ti ti-star" /> Puedes evaluar este desarrollo
-        </div>
-      )}
-    </article>
+    </div>
   );
 }
 
-// ── Página principal ──────────────────────────────────────────────────────────
-
-export default function MisDesarrollosPage() {
+/* ══════════════════════════════════════════════════════════════
+   PÁGINA PRINCIPAL
+══════════════════════════════════════════════════════════════ */
+export default function MisDesarrollosPage({ embebido = false }) {
   const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [buscar, setBuscar] = useState("");
+  const [filtroEstatus, setFiltroEstatus] = useState("");
+  const [activeKpi, setActiveKpi] = useState("todas");
+  // Modal de detalle
+  const [modalId, setModalId] = useState(null);
+  const [modalTab, setModalTab] = useState("resumen");
+  const [modalData, setModalData] = useState(null);
+  const pollingRef = useRef(null);
 
-  const [filtroEstatus, setFiltroEstatus] = useState(
-    searchParams.get("filtro") || "todas",
+  // ESC cierra modal
+  useEffect(() => {
+    const fn = (e) => {
+      if (e.key === "Escape") setModalId(null);
+    };
+    document.addEventListener("keydown", fn);
+    return () => document.removeEventListener("keydown", fn);
+  }, []);
+
+  const fetchSolicitudes = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      try {
+        const p = new URLSearchParams({ page, limit: PAGE_SIZE });
+        if (buscar.trim()) p.set("search", buscar.trim());
+        if (filtroEstatus) p.set("estatus", filtroEstatus);
+        const r = await fetch(
+          `${API}/api/solicitudes-desarrollo/mis-solicitudes?${p}`,
+          { headers: authH() },
+        );
+        const j = await r.json();
+        if (j.ok) setSolicitudes(j.data || []);
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [page, buscar, filtroEstatus],
   );
-  const [search, setSearch] = useState("");
-  const [orden, setOrden] = useState("recientes");
-
-  const cargar = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams();
-      if (filtroEstatus !== "todas") params.set("estatus", filtroEstatus);
-      if (search.trim()) params.set("search", search.trim());
-      if (orden !== "recientes") params.set("orden", orden);
-
-      const res = await fetch(
-        `${API}/api/solicitudes-desarrollo/mis-solicitudes?${params}`,
-        { headers: authH() },
-      );
-      const json = await res.json();
-      if (!json.ok) throw new Error(json.message);
-      setSolicitudes(json.data);
-    } catch (e) {
-      setError(e.message || "Error al cargar solicitudes");
-    } finally {
-      setLoading(false);
-    }
-  }, [filtroEstatus, search, orden]);
 
   useEffect(() => {
-    cargar();
-  }, [cargar]);
+    fetchSolicitudes(false);
+  }, [fetchSolicitudes]);
 
-  // Sincronizar filtro con URL
+  // Polling silencioso cada 20 segundos
   useEffect(() => {
-    const p = new URLSearchParams(searchParams);
-    if (filtroEstatus === "todas") p.delete("filtro");
-    else p.set("filtro", filtroEstatus);
-    setSearchParams(p, { replace: true });
-  }, [filtroEstatus]);
+    pollingRef.current = setInterval(() => {
+      fetchSolicitudes(true);
+    }, 20000);
+    return () => clearInterval(pollingRef.current);
+  }, [fetchSolicitudes]);
 
-  const abrirDetalle = (sol) => {
-    navigate(`/mesa-de-servicio/mis-desarrollos/${sol.idSolicitud}`);
-  };
+  function abrirModal(idSol) {
+    setModalId(idSol);
+    setModalTab("resumen");
+    setModalData(null);
+    fetch(`${API}/api/solicitudes-desarrollo/mis-solicitudes/${idSol}`, {
+      headers: authH(),
+    })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.ok && j.data) setModalData(j.data);
+      });
+  }
 
-  // Conteos para tabs
-  const counts = {
+  function refrescarModal() {
+    if (!modalId) return;
+    fetch(`${API}/api/solicitudes-desarrollo/mis-solicitudes/${modalId}`, {
+      headers: authH(),
+    })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.ok && j.data) setModalData(j.data);
+      });
+    fetchSolicitudes(true);
+  }
+
+  // KPIs calculados localmente
+  const kpiCounts = {
     todas: solicitudes.length,
-    proceso: solicitudes.filter((s) => s.estatus.id <= 5).length,
-    concluidas: solicitudes.filter((s) => s.estatus.id >= 6).length,
-    accion: solicitudes.filter((s) => s.estatus.id >= 6 && !s.evaluada).length,
+    proceso: solicitudes.filter((s) => (s.estatus?.id || s.idEstatus || 0) < 6)
+      .length,
+    concluidas: solicitudes.filter(
+      (s) => (s.estatus?.id || s.idEstatus || 0) >= 6,
+    ).length,
+    evaluar: solicitudes.filter(
+      (s) => (s.estatus?.id || s.idEstatus || 0) === 7 && !s.evaluada,
+    ).length,
   };
 
-  // Filtrado local adicional sobre los datos ya filtrados del server
-  // (el server filtra por estatus/search; aquí solo re-aplicamos si cambia search en tiempo real)
-  const FILTROS = [
-    { key: "todas", label: "Todas" },
-    { key: "proceso", label: "En proceso" },
-    { key: "concluidas", label: "Concluidas" },
-    { key: "accion", label: "Por evaluar" },
-  ];
+  const filas =
+    activeKpi === "proceso"
+      ? solicitudes.filter((s) => (s.estatus?.id || s.idEstatus || 0) < 6)
+      : activeKpi === "concluidas"
+        ? solicitudes.filter((s) => (s.estatus?.id || s.idEstatus || 0) >= 6)
+        : activeKpi === "evaluar"
+          ? solicitudes.filter(
+              (s) => (s.estatus?.id || s.idEstatus || 0) === 7 && !s.evaluada,
+            )
+          : solicitudes;
+
+  const totalPages = Math.max(1, Math.ceil(filas.length / PAGE_SIZE));
+  const slice = filas.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="md-root">
-      {/* ── Header ── */}
-      <div className="md-header">
-        <div className="md-header__left">
-          <div className="md-header__icon-wrap">
-            <i className="ti ti-code" />
-          </div>
-          <div>
-            <h1 className="md-header__title">Mis solicitudes de desarrollo</h1>
-            <p className="md-header__sub">
-              Consulta el estado y avance de las solicitudes que has creado.
-            </p>
-          </div>
-        </div>
-        <button
-          className="md-btn-nueva"
-          onClick={() => navigate("/mesa-de-servicio/desarrollo/nueva")}
-        >
-          <i className="ti ti-plus" /> Nueva solicitud
-        </button>
-      </div>
-
-      {/* ── KPI Strip ── */}
-      {!loading && !error && solicitudes.length > 0 && (
-        <KpiStrip data={solicitudes} />
-      )}
-
-      {/* ── Toolbar ── */}
-      <div className="md-toolbar">
-        {/* Filtros tab */}
-        <div className="md-toolbar__tabs">
-          {FILTROS.map((f) => (
+    <div className={embebido ? "sdp-root sdp-root--embebido" : "sdp-root"}>
+      {/* KPI Strip */}
+      <div className="sdp-kpi-strip">
+        {KPI_DEFS_USR.map((kpi) => {
+          const count = kpiCounts[kpi.key] || 0;
+          return (
             <button
-              key={f.key}
-              className={`md-tab ${filtroEstatus === f.key ? "md-tab--active" : ""}`}
-              onClick={() => setFiltroEstatus(f.key)}
+              key={kpi.key}
+              className={`sdp-kpi-chip ${activeKpi === kpi.key ? "active" : ""} ${kpi.key === "evaluar" && count > 0 ? "chip-alert" : ""}`}
+              onClick={() => {
+                setActiveKpi(kpi.key);
+                setPage(1);
+              }}
             >
-              {f.label}
-              {counts[f.key] > 0 && (
-                <span className="md-tab__count">{counts[f.key]}</span>
+              <div
+                className="kpi-icon-wrap"
+                style={{ background: kpi.color + "18", color: kpi.color }}
+              >
+                <i className={`ti ${kpi.icon}`} />
+              </div>
+              <div className="kpi-text">
+                <span
+                  className="kpi-count"
+                  style={{
+                    color: activeKpi === kpi.key ? kpi.color : undefined,
+                  }}
+                >
+                  {count}
+                </span>
+                <span className="kpi-label">{kpi.label}</span>
+              </div>
+              {kpi.key === "evaluar" && count > 0 && (
+                <span className="kpi-pulse" />
               )}
             </button>
-          ))}
-        </div>
-
-        {/* Controles derecha */}
-        <div className="md-toolbar__controls">
-          <div className="md-search">
-            <i className="ti ti-search" />
-            <input
-              type="text"
-              placeholder="Buscar por folio o nombre..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search && (
-              <button onClick={() => setSearch("")}>
-                <i className="ti ti-x" />
-              </button>
-            )}
-          </div>
-          <div className="md-orden">
-            <label>Ordenar:</label>
-            <select value={orden} onChange={(e) => setOrden(e.target.value)}>
-              <option value="recientes">Más recientes</option>
-              <option value="az">A → Z</option>
-              <option value="za">Z → A</option>
-            </select>
-          </div>
-        </div>
+          );
+        })}
       </div>
 
-      {/* ── Contenido ── */}
-      <div className="md-content">
-        {loading && (
-          <div className="md-state md-state--loading">
-            <div className="md-spinner" />
-            <p>Cargando tus solicitudes...</p>
-          </div>
-        )}
-
-        {!loading && error && (
-          <div className="md-state md-state--error">
-            <i className="ti ti-alert-circle" />
-            <p>{error}</p>
-            <button onClick={cargar}>Reintentar</button>
-          </div>
-        )}
-
-        {!loading && !error && solicitudes.length === 0 && (
-          <div className="md-state md-state--empty">
-            <div className="md-empty-icon">
-              <i className="ti ti-code-off" />
-            </div>
-            <h3>
-              {filtroEstatus === "todas"
-                ? "Aún no tienes solicitudes de desarrollo"
-                : "No hay solicitudes en esta categoría"}
-            </h3>
-            <p>
-              {filtroEstatus === "todas"
-                ? "Cuando envíes una solicitud a Sistemas, aparecerá aquí para que puedas darle seguimiento."
-                : "Prueba con otro filtro o revisa todas tus solicitudes."}
-            </p>
-            {filtroEstatus === "todas" && (
-              <button
-                className="md-btn-nueva md-btn-nueva--ghost"
-                onClick={() => navigate("/mesa-de-servicio/desarrollo/nueva")}
-              >
-                <i className="ti ti-plus" /> Crear primera solicitud
-              </button>
-            )}
-          </div>
-        )}
-
-        {!loading && !error && solicitudes.length > 0 && (
-          <div className="md-list">
-            {solicitudes.map((sol) => (
-              <SolicitudCard
-                key={sol.idSolicitud}
-                sol={sol}
-                onClick={() => abrirDetalle(sol)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── Footer hint ── */}
-      {!loading && !error && (
-        <div className="md-footer-hint">
-          <i className="ti ti-info-circle" />
-          <span>
-            Si tu solicitud requiere más detalles o archivos, el equipo de
-            Sistemas te lo hará saber en el seguimiento.
-          </span>
-          <button
-            className="md-btn-nueva md-btn-nueva--sm"
-            onClick={() => navigate("/mesa-de-servicio/desarrollo/nueva")}
+      {/* Toolbar */}
+      <div className="sdp-toolbar">
+        <div className="sdp-search-wrap">
+          <i className="ti ti-search" />
+          <input
+            placeholder="Buscar por folio o título…"
+            value={buscar}
+            onChange={(e) => {
+              setBuscar(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+        <div className="sdp-toolbar-filters">
+          <select
+            className="sdp-filter-select"
+            value={filtroEstatus}
+            onChange={(e) => {
+              setFiltroEstatus(e.target.value);
+              setPage(1);
+              setActiveKpi("todas");
+            }}
           >
-            <i className="ti ti-plus" /> Crear nueva solicitud
-          </button>
+            <option value="">Todos los estatus</option>
+            <option value="proceso">En proceso</option>
+            <option value="concluidas">Concluidas</option>
+            <option value="accion">Por evaluar</option>
+          </select>
+        </div>
+        <div className="sdp-toolbar-spacer" />
+        {solicitudes.length > 0 && (
+          <span
+            style={{ fontSize: 12, color: "var(--text-secondary,#6b7280)" }}
+          >
+            {filas.length} solicitud{filas.length !== 1 ? "es" : ""}
+          </span>
+        )}
+      </div>
+
+      {/* Tabla */}
+      <div className="sdp-table-wrap">
+        {loading ? (
+          <div className="sdp-spinner-wrap">
+            <div className="sdp-spinner" />
+          </div>
+        ) : filas.length === 0 ? (
+          <div className="sdp-empty">
+            <i className="ti ti-code-circle" />
+            <p>
+              {activeKpi === "todas"
+                ? "Aún no tienes solicitudes de desarrollo."
+                : "No hay solicitudes en esta categoría."}
+            </p>
+          </div>
+        ) : (
+          <table className="sdp-table">
+            <thead>
+              <tr>
+                <th style={{ width: 32 }} />
+                <th>Folio / Tipo</th>
+                <th>Título</th>
+                <th>Sistema</th>
+                <th>Prioridad</th>
+                <th>Estatus</th>
+                <th>Responsable TI</th>
+                <th>Avance</th>
+                <th>Fecha estimada</th>
+              </tr>
+            </thead>
+            <tbody>
+              {slice.map((sol) => {
+                const idSol = sol.idSolicitud;
+                const idEst = sol.estatus?.id || sol.idEstatus || 0;
+                const sinEval = idEst === 7 && !sol.evaluada;
+                const folio = sol.folio || "";
+                const tipo = sol.tipo || sol.tipoNombre || "";
+                const esMejora = tipo.toLowerCase().includes("mejora");
+
+                return (
+                  <tr
+                    key={idSol}
+                    onClick={() => abrirModal(idSol)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <td className="col-chevron">
+                      <i className="ti ti-chevron-right" />
+                    </td>
+                    <td className="col-folio">
+                      <span className="sdp-folio-num sdp-folio-num--sobrio">
+                        {folio}
+                      </span>
+                      {tipo && (
+                        <span
+                          className={`sdp-tipo-mini ${esMejora ? "sdp-tipo-mini--ma" : "sdp-tipo-mini--nd"}`}
+                        >
+                          {tipo}
+                        </span>
+                      )}
+                      {sinEval && (
+                        <span className="sdp-eval-badge">
+                          <i className="ti ti-star" /> Por evaluar
+                        </span>
+                      )}
+                    </td>
+                    <td className="col-titulo-main">
+                      <span className="titulo-text titulo-text--truncado">
+                        {sol.titulo}
+                      </span>
+                    </td>
+                    <td className="col-sistema">
+                      {sol.sistema || sol.sistemaNombre || "—"}
+                    </td>
+                    <td>
+                      {sol.prioridadNombre ? (
+                        <span className="sdp-prio">
+                          <span
+                            className="sdp-prio-dot"
+                            style={{
+                              background: sol.prioridadColor || "#9ca3af",
+                            }}
+                          />
+                          {sol.prioridadNombre}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>
+                      {sol.estatus?.nombre || sol.estatusNombre ? (
+                        <span
+                          className="sdp-estatus-pill"
+                          style={{
+                            background:
+                              sol.estatus?.bg || sol.estatusBg || "#f3f4f6",
+                            color:
+                              sol.estatus?.color ||
+                              sol.estatusColor ||
+                              "#6b7280",
+                          }}
+                        >
+                          {sol.estatus?.nombre || sol.estatusNombre}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="col-responsable">
+                      {sol.responsable || sol.nombreTecnico ? (
+                        <div className="sdp-resp-cell">
+                          <Avatar
+                            nombre={sol.responsable || sol.nombreTecnico}
+                            size={24}
+                          />
+                          <span>{sol.responsable || sol.nombreTecnico}</span>
+                        </div>
+                      ) : (
+                        <span style={{ color: "#9ca3af", fontSize: 12 }}>
+                          Sin asignar
+                        </span>
+                      )}
+                    </td>
+                    <td className="col-avance">
+                      <div className="avance-cell">
+                        <div className="avance-track">
+                          <div
+                            className="avance-fill"
+                            style={{
+                              width: `${sol.avance || sol.porcentajeAvance || 0}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="avance-num">
+                          {sol.avance || sol.porcentajeAvance || 0}%
+                        </span>
+                      </div>
+                      <MiniBarraTiempo
+                        idEstatus={idEst}
+                        fechaCompromiso={sol.fechaCompromiso}
+                      />
+                    </td>
+                    <td className="col-fecha">
+                      {sol.fechaConcluido ? (
+                        <>
+                          <i
+                            className="ti ti-calendar-check"
+                            style={{ color: "#10b981", marginRight: 4 }}
+                          />
+                          {fmtDate(sol.fechaConcluido)}
+                        </>
+                      ) : (
+                        fmtDate(sol.fechaCompromiso) || "Sin fecha"
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="sdp-pagination">
+          <span className="sdp-pag-info">
+            {(page - 1) * PAGE_SIZE + 1}–
+            {Math.min(page * PAGE_SIZE, filas.length)} de {filas.length}
+          </span>
+          <div className="sdp-pag-btns">
+            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}>
+              <i className="ti ti-chevron-left" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+              <button
+                key={p}
+                className={page === p ? "active" : ""}
+                onClick={() => setPage(p)}
+              >
+                {p}
+              </button>
+            ))}
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              <i className="ti ti-chevron-right" />
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Modal de detalle — portal limpio */}
+      {modalId &&
+        ReactDOM.createPortal(
+          <div
+            className="sdp-modal-backdrop"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setModalId(null);
+            }}
+          >
+            <div
+              className="msd-modal-wrap"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="msd-modal-header-bar">
+                {modalData ? (
+                  <div className="msd-modal-title-area">
+                    <span className="sdp-folio-num sdp-folio-num--sobrio">
+                      {modalData.folioDesarrollo || modalData.folio}
+                    </span>
+                    <h2 className="msd-modal-titulo">{modalData.titulo}</h2>
+                  </div>
+                ) : (
+                  <div
+                    className="sdp-spinner"
+                    style={{ width: 20, height: 20, borderWidth: 2 }}
+                  />
+                )}
+                <div className="msd-modal-header-right">
+                  {modalData && (
+                    <span
+                      className="sdp-estatus-pill"
+                      style={{
+                        background: modalData.estatusBg,
+                        color: modalData.estatusColor,
+                      }}
+                    >
+                      {modalData.estatusNombre}
+                    </span>
+                  )}
+                  <button
+                    className="sdp-icon-btn"
+                    onClick={() => setModalId(null)}
+                    title="Cerrar (ESC)"
+                  >
+                    <i className="ti ti-x" />
+                  </button>
+                </div>
+              </div>
+              <div className="msd-modal-body">
+                {!modalData ? (
+                  <div className="sdp-spinner-wrap">
+                    <div className="sdp-spinner" />
+                  </div>
+                ) : (
+                  <PanelUsuario
+                    data={modalData}
+                    tab={modalTab}
+                    onTabChange={setModalTab}
+                    user={user}
+                    idSolicitud={modalId}
+                    onRefresh={refrescarModal}
+                  />
+                )}
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

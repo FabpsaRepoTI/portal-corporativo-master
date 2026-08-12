@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════════════════════
-// solicitudesDesarrollo.routes.js  v4
+// solicitudesDesarrollo.routes.js  v4.1
 // ═══════════════════════════════════════════════════════════════
 "use strict";
 
@@ -8,6 +8,8 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const jwt = require("jsonwebtoken");
+const sql = require("mssql");
+const { getPool } = require("../db");
 const svc = require("../services/solicitudesDesarrollo.service");
 
 router.use((req, res, next) => {
@@ -87,11 +89,15 @@ router.post("/", verifyToken, upload.array("archivos", 5), async (req, res) => {
   }
 });
 
-// ── Mis solicitudes (usuario) — ANTES de /:id ─────────────
+// ── Mis solicitudes (usuario) — ANTES de /:id ────────────────
 router.get("/mis-solicitudes", verifyToken, async (req, res) => {
   try {
     const { estatus, search, orden } = req.query;
-    const data = await svc.getMisSolicitudes(req.user.login, { estatus, search, orden });
+    const data = await svc.getMisSolicitudes(req.user.login, {
+      estatus,
+      search,
+      orden,
+    });
     res.json({ ok: true, data });
   } catch (e) {
     res.status(e.status || 500).json({ ok: false, message: e.message });
@@ -107,13 +113,44 @@ router.get("/mis-solicitudes/:id", verifyToken, async (req, res) => {
   }
 });
 
-router.get("/mis-solicitudes/:id/actividades", verifyToken, async (req, res) => {
-  try {
-    const data = await svc.getMiSolicitudActividades(req.params.id, req.user.login);
-    res.json({ ok: true, data });
-  } catch (e) {
-    res.status(e.status || 500).json({ ok: false, message: e.message });
+router.get(
+  "/mis-solicitudes/:id/actividades",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const data = await svc.getMiSolicitudActividades(
+        req.params.id,
+        req.user.login,
+      );
+      res.json({ ok: true, data });
+    } catch (e) {
+      res.status(e.status || 500).json({ ok: false, message: e.message });
+    }
+  },
+);
+
+// ── Archivo estático — ANTES de /:id para evitar colisión ─────
+router.get("/archivo", verifyToken, (req, res) => {
+  const ruta = req.query.ruta;
+
+  if (!ruta || !ruta.startsWith("/uploads/")) {
+    return res.status(400).json({ ok: false, message: "Ruta inválida" });
   }
+
+  const UPLOADS_ROOT = process.env.UPLOADS_DIR
+    ? path.dirname(process.env.UPLOADS_DIR)
+    : path.join(__dirname, "..", "..", "uploads");
+
+  const rutaRelativa = ruta.replace(/^\/uploads\//, "");
+  const rutaFisica = path.join(UPLOADS_ROOT, rutaRelativa);
+
+  if (!fs.existsSync(rutaFisica)) {
+    return res
+      .status(404)
+      .json({ ok: false, message: "Archivo no encontrado", ruta: rutaFisica });
+  }
+
+  res.sendFile(rutaFisica);
 });
 
 // ── Detalle ───────────────────────────────────────────────────
@@ -167,6 +204,41 @@ router.put("/:id/detalle", verifyToken, soloSistemas, async (req, res) => {
     );
   } catch (e) {
     err(res, e);
+  }
+});
+
+// ── Tipo de desarrollo ────────────────────────────────────────
+router.put("/:id/tipo-desarrollo", verifyToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tipoDesarrollo } = req.body;
+
+    const TIPOS_VALIDOS = [
+      "SOLICITUD_USUARIO",
+      "CORRECTIVO",
+      "PREVENTIVO",
+      "INICIATIVA_PROPIA",
+    ];
+    if (!tipoDesarrollo || !TIPOS_VALIDOS.includes(tipoDesarrollo)) {
+      return res.json({ ok: false, message: "Tipo de desarrollo inválido" });
+    }
+
+    const pool = await getPool();
+    await pool
+      .request()
+      .input("idSolicitud", sql.Int, parseInt(id))
+      .input("tipoDesarrollo", sql.VarChar(30), tipoDesarrollo)
+      .query(
+        "UPDATE solicitudTI_desarrollo_detalle SET tipoDesarrollo=@tipoDesarrollo WHERE idSolicitud=@idSolicitud",
+      );
+
+    return res.json({ ok: true, message: "Tipo de desarrollo guardado" });
+  } catch (e) {
+    console.error(e);
+    return res.json({
+      ok: false,
+      message: "Error al guardar tipo de desarrollo",
+    });
   }
 });
 

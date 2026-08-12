@@ -1,3 +1,15 @@
+// AtencionIncidenciasPage.jsx — v5
+// Cambios:
+//   - ESTATUS_MAP: agrega estado 6 "En pausa"
+//   - BarraAcciones: deshabilita todo si !tecnicoAsignado, con tooltip claro
+//   - Botones quick del grid: deshabilitan si !tecnicoAsignado
+//   - PanelExpandido: agrega tab "Seguimiento" (índice 2, desplaza SLA/Comentarios)
+//   - TabSeguimiento: timeline de bitácora + input para actividad manual
+//   - TabSLA: SLA en minutos, resolución no inicia hasta "En proceso",
+//             pausa del SLA cuando idEstatus=6
+//   - TabInfoGeneral: tiempos actualizados (usa misma lógica que TabSLA)
+//   - confirmarEstatus: maneja estado 6 (pausa) sin abrir modal extra
+//   - Polling silencioso cada 20s sin cerrar detalle ni perder filtros
 import { useState, useEffect, useContext, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import * as XLSX from "xlsx";
@@ -5,18 +17,7 @@ import { AuthContext } from "../../../context/AuthContext";
 import "./AtencionIncidenciasPage.css";
 import "./AtencionIncidenciasPage.mobile.css";
 
-/*const API_BASE = "";
-const STATIC_BASE = (() => {
-  const h = window.location.hostname;
-  if (h === "192.168.16.198") return "http://192.168.16.198:3001";
-  if (h === "201.151.218.138") return "http://201.151.218.138:3001";
-  return "http://localhost:3001";
-})();*/
-
-// API_BASE vacío = va al mismo origen que el frontend (localhost:3000 en dev)
 const API_BASE = "";
-
-// STATIC_BASE solo se usa para archivos estáticos (imágenes, PDFs)
 const STATIC_BASE = (() => {
   if (window.location.hostname === "localhost") return "http://localhost:3001";
   return "";
@@ -37,12 +38,14 @@ const apiFetch = async (path, opts = {}) => {
   return data;
 };
 
+// ── Estado 6 "En pausa" agregado ─────────────────────────────
 const ESTATUS_MAP = {
   1: { label: "Abierto", bg: "rgba(76,201,166,0.12)", color: "#4cc9a6" },
   2: { label: "En proceso", bg: "rgba(124,140,248,0.12)", color: "#7c8cf8" },
   3: { label: "Resuelto", bg: "rgba(76,201,166,0.12)", color: "#4cc9a6" },
   4: { label: "Cerrado", bg: "rgba(148,163,184,0.12)", color: "#94a3b8" },
   5: { label: "Cancelado", bg: "rgba(243,139,168,0.12)", color: "#f38ba8" },
+  6: { label: "En pausa", bg: "rgba(246,193,119,0.12)", color: "#f6c177" },
   7: {
     label: "En diagnóstico",
     bg: "rgba(243,139,168,0.12)",
@@ -80,15 +83,24 @@ function getServicioIcono(nombre, iconoBD) {
   return SERVICIO_ICONOS.default;
 }
 
+// ── SLA helpers ───────────────────────────────────────────────
+
+// Convierte horas a minutos para mostrar en UI
+function hrsAMin(hrs) {
+  if (!hrs && hrs !== 0) return null;
+  return Math.round(parseFloat(hrs) * 60);
+}
+
 function getSlaInfo(fechaLimite) {
-  if (!fechaLimite) return { texto: "—", color: "var(--text-muted)", pct: 0 };
+  if (!fechaLimite)
+    return { texto: "—", color: "var(--text-muted)", pct: 0, min: null };
   const diff = new Date(fechaLimite) - new Date();
   const min = Math.floor(diff / 60000);
   const texto =
     min < 0
       ? "Vencida"
       : min < 60
-        ? `${min}m`
+        ? `${min} min`
         : min < 1440
           ? `${Math.floor(min / 60)}h ${min % 60}m`
           : `${Math.floor(min / 1440)}d`;
@@ -100,6 +112,119 @@ function getSlaInfo(fechaLimite) {
         : "var(--success)";
   const pct = Math.min(100, Math.max(0, ((1440 - min) / 1440) * 100));
   return { texto, color, pct, min };
+}
+
+// SLA de resolución: calcula tiempo restante desde fechaInicioResolucion,
+// descontando pausas ya acumuladas. Si está en pausa, el contador está detenido.
+function getSlaResolucionInfo(sol) {
+  const {
+    idEstatus,
+    fechaInicioResolucion,
+    slaResolucionHrs,
+    tiempoTotalPausaMin = 0,
+    fechaUltimaPausa,
+    fechaResolucion,
+    tiempoAtencionMin,
+  } = sol;
+
+  const slaMin = hrsAMin(slaResolucionHrs);
+
+  // Antes de "En proceso": no iniciado
+  if (!fechaInicioResolucion) {
+    return {
+      iniciado: false,
+      slaMin,
+      texto: "—",
+      color: "var(--text-muted)",
+      pct: 0,
+      min: null,
+      estado: "sin_iniciar",
+    };
+  }
+
+  // Ya resuelto/cerrado: usar tiempoAtencionMin guardado en BD
+  if ([3, 4].includes(idEstatus) && tiempoAtencionMin != null) {
+    const consumidoMin = tiempoAtencionMin;
+    const restante = (slaMin ?? 0) - consumidoMin;
+    return {
+      iniciado: true,
+      slaMin,
+      consumidoMin,
+      texto: restante >= 0 ? `${restante} min restantes` : "Vencida",
+      color: restante >= 0 ? "var(--success)" : "var(--danger)",
+      pct: Math.min(100, (consumidoMin / (slaMin || 1)) * 100),
+      min: restante,
+      estado: restante >= 0 ? "en_tiempo" : "vencido",
+      concluido: true,
+      tiempoReal: consumidoMin,
+    };
+  }
+
+  // En pausa: el contador está detenido, calcular cuánto se consumió hasta la pausa
+  if (idEstatus === 6 && fechaUltimaPausa) {
+    const consumidoMin =
+      Math.floor(
+        (new Date(fechaUltimaPausa) - new Date(fechaInicioResolucion)) / 60000,
+      ) - (tiempoTotalPausaMin ?? 0);
+    const restante = (slaMin ?? 0) - consumidoMin;
+    return {
+      iniciado: true,
+      pausado: true,
+      slaMin,
+      consumidoMin: Math.max(0, consumidoMin),
+      texto: `En pausa · ${Math.max(0, restante)} min restantes`,
+      color: "var(--warning)",
+      pct: Math.min(100, (Math.max(0, consumidoMin) / (slaMin || 1)) * 100),
+      min: restante,
+      estado: "pausado",
+    };
+  }
+
+  // Activo: calcular tiempo consumido
+  const ahora = new Date();
+  const inicio = new Date(fechaInicioResolucion);
+  const transcurridoMin = Math.floor((ahora - inicio) / 60000);
+  const consumidoMin = Math.max(
+    0,
+    transcurridoMin - (tiempoTotalPausaMin ?? 0),
+  );
+  const restante = (slaMin ?? 0) - consumidoMin;
+
+  const estado =
+    restante < 0
+      ? "vencido"
+      : restante < 30
+        ? "critico"
+        : restante < 60
+          ? "en_riesgo"
+          : "en_tiempo";
+
+  const color =
+    restante < 0
+      ? "var(--danger)"
+      : restante < 30
+        ? "var(--danger)"
+        : restante < 60
+          ? "var(--warning)"
+          : "var(--success)";
+
+  const texto =
+    restante < 0
+      ? "Vencida"
+      : restante < 60
+        ? `${restante} min`
+        : `${Math.floor(restante / 60)}h ${restante % 60}m`;
+
+  return {
+    iniciado: true,
+    slaMin,
+    consumidoMin,
+    texto,
+    color,
+    pct: Math.min(100, (consumidoMin / (slaMin || 1)) * 100),
+    min: restante,
+    estado,
+  };
 }
 
 function fmtTiempoAtencion(min) {
@@ -134,16 +259,10 @@ function ticketBloqueado(sol) {
   );
 }
 
-/* ══════════════════════════════════════════════════════════════
-   ModalPortal — renderiza en document.body para escapar del
-   stacking context de .mha-root { overflow:hidden }
-   Esto hace que position:fixed funcione relativo al viewport.
-══════════════════════════════════════════════════════════════ */
 function ModalPortal({ children }) {
   return createPortal(children, document.body);
 }
 
-/* ── Chip ── */
 function Chip({ idEstatus, label }) {
   const cfg = ESTATUS_MAP[idEstatus] ?? {
     label: label ?? "—",
@@ -157,7 +276,6 @@ function Chip({ idEstatus, label }) {
   );
 }
 
-/* ── KPI card ── */
 function KpiCard({
   icon,
   iconBg,
@@ -191,7 +309,6 @@ function KpiCard({
   );
 }
 
-/* ── Toast ── */
 function Toast({ toast }) {
   if (!toast) return null;
   const esError = toast.tipo === "error";
@@ -215,10 +332,15 @@ function Toast({ toast }) {
   );
 }
 
-/* ── Tab: Información general ── */
+/* ── Tab: Información general ────────────────────────────────── */
 function TabInfoGeneral({ sol, onRecargar }) {
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
+
+  // Reutiliza la lógica de SLA de resolución de TabSLA
+  const resolInfo = getSlaResolucionInfo(sol);
+  const respInfo = getSlaInfo(sol.fechaLimiteResp);
+
   async function guardarNota() {
     if (!nota.trim()) return;
     setGuardando(true);
@@ -230,6 +352,7 @@ function TabInfoGeneral({ sol, onRecargar }) {
     setGuardando(false);
     onRecargar();
   }
+
   return (
     <div className="mha-det-grid">
       <div className="mha-det-col">
@@ -267,6 +390,7 @@ function TabInfoGeneral({ sol, onRecargar }) {
           </div>
         </div>
       </div>
+
       <div className="mha-det-col mha-det-col--wide">
         <div className="mha-det-card">
           <div className="mha-det-card-title">Descripción del incidente</div>
@@ -321,46 +445,48 @@ function TabInfoGeneral({ sol, onRecargar }) {
           </div>
         </div>
       </div>
+
       <div className="mha-det-col">
         <div className="mha-det-card">
           <div className="mha-det-card-title">Tiempos</div>
           <div className="mha-sla-rows">
-            {[
-              {
-                label: "1ª respuesta comprometida",
-                val: fmtFecha(sol.fechaLimiteResp, true),
-                color: null,
-              },
-              {
-                label: "Tiempo restante respuesta",
-                val: getSlaInfo(sol.fechaLimiteResp).texto,
-                color: getSlaInfo(sol.fechaLimiteResp).color,
-              },
-              {
-                label: "Resolución comprometida",
-                val: fmtFecha(sol.fechaLimiteResol, true),
-                color: null,
-              },
-              {
-                label: "Tiempo restante resolución",
-                val: getSlaInfo(sol.fechaLimiteResol).texto,
-                color: getSlaInfo(sol.fechaLimiteResol).color,
-              },
-              {
-                label: "Tiempo de atención",
-                val: fmtTiempoAtencion(sol.tiempoAtencionMin),
-                color: null,
-              },
-            ].map((r, i) => (
-              <div key={i} className="mha-sla-row-item">
-                <span>{r.label}</span>
-                <strong
-                  style={r.color ? { color: r.color, fontWeight: 600 } : {}}
-                >
-                  {r.val}
-                </strong>
+            {/* Primera respuesta */}
+            <div className="mha-sla-row-item">
+              <span>1ª resp. comprometida</span>
+              <strong>{fmtFecha(sol.fechaLimiteResp, true)}</strong>
+            </div>
+            <div className="mha-sla-row-item">
+              <span>SLA primera respuesta</span>
+              <strong>{hrsAMin(sol.slaRespuestaHrs) ?? "—"} min</strong>
+            </div>
+            <div className="mha-sla-row-item">
+              <span>T. restante respuesta</span>
+              <strong style={{ color: respInfo.color }}>
+                {respInfo.texto}
+              </strong>
+            </div>
+            {/* Resolución */}
+            <div className="mha-sla-row-item" style={{ marginTop: 8 }}>
+              <span>Inicio resolución</span>
+              <strong>{fmtFecha(sol.fechaInicioResolucion, true)}</strong>
+            </div>
+            <div className="mha-sla-row-item">
+              <span>SLA resolución</span>
+              <strong>{resolInfo.slaMin ?? "—"} min</strong>
+            </div>
+            <div className="mha-sla-row-item">
+              <span>T. restante resolución</span>
+              <strong style={{ color: resolInfo.color }}>
+                {resolInfo.iniciado ? resolInfo.texto : "Sin iniciar"}
+              </strong>
+            </div>
+            {/* Tiempo de atención final (solo si ya concluyó) */}
+            {resolInfo.concluido && (
+              <div className="mha-sla-row-item">
+                <span>Tiempo de resolución</span>
+                <strong>{fmtTiempoAtencion(resolInfo.tiempoReal)}</strong>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>
@@ -368,7 +494,7 @@ function TabInfoGeneral({ sol, onRecargar }) {
   );
 }
 
-/* ── Tab: Evidencias ── */
+/* ── Tab: Evidencias ─────────────────────────────────────────── */
 function TabEvidencias({ archivos }) {
   const [preview, setPreview] = useState(null);
   if (!archivos?.length)
@@ -447,14 +573,189 @@ function TabEvidencias({ archivos }) {
   );
 }
 
-/* ── Tab: SLA ── */
+/* ── Tab: Seguimiento ────────────────────────────────────────── */
+// Muestra la bitácora como timeline + permite agregar actividades manuales
+function TabSeguimiento({ sol, onRecargar }) {
+  const [actividad, setActividad] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const bottomRef = useRef();
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [sol.bitacora]);
+
+  async function guardarActividad() {
+    if (!actividad.trim()) return;
+    setGuardando(true);
+    await apiFetch(`/api/mesa-admin/solicitudes/${sol.idSolicitud}/bitacora`, {
+      method: "POST",
+      body: JSON.stringify({ nota: actividad.trim() }),
+    });
+    setActividad("");
+    setGuardando(false);
+    onRecargar();
+  }
+
+  const items = sol.bitacora ?? [];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Timeline */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+        {!items.length && (
+          <div className="mha-empty">Sin actividades registradas aún.</div>
+        )}
+        {items.map((b, i) => (
+          <div
+            key={b.idBitacora ?? i}
+            style={{
+              display: "flex",
+              gap: 12,
+              paddingBottom: i < items.length - 1 ? 16 : 0,
+              position: "relative",
+            }}
+          >
+            {/* Línea vertical */}
+            {i < items.length - 1 && (
+              <div
+                style={{
+                  position: "absolute",
+                  left: 11,
+                  top: 22,
+                  bottom: 0,
+                  width: 1,
+                  background: "var(--border)",
+                }}
+              />
+            )}
+            {/* Punto */}
+            <div
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                flexShrink: 0,
+                background: "rgba(124,140,248,0.15)",
+                border: "2px solid var(--secondary)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: 1,
+                zIndex: 1,
+              }}
+            >
+              <i
+                className="ti ti-point-filled"
+                style={{ fontSize: 8, color: "var(--secondary)" }}
+              />
+            </div>
+            {/* Contenido */}
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 4,
+                  flexWrap: "wrap",
+                }}
+              >
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  {fmtFecha(b.fecha, true)}
+                </span>
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: "var(--text-h)",
+                  }}
+                >
+                  {b.nombreUsuario}
+                </span>
+              </div>
+              <div
+                style={{
+                  background: "var(--bg-elevated)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  color: "var(--text-body)",
+                  lineHeight: 1.6,
+                }}
+              >
+                {b.nota}
+              </div>
+            </div>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input para actividad manual */}
+      <div
+        style={{
+          borderTop: "1px solid var(--border)",
+          paddingTop: 14,
+          marginTop: 4,
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        <span
+          style={{
+            fontSize: 12,
+            fontWeight: 500,
+            color: "var(--text-muted)",
+            textTransform: "uppercase",
+            letterSpacing: "0.3px",
+          }}
+        >
+          Agregar actividad
+        </span>
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+          <textarea
+            placeholder="Escribe una actividad o nota técnica…"
+            value={actividad}
+            onChange={(e) => setActividad(e.target.value)}
+            rows={2}
+            style={{
+              flex: 1,
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              padding: "8px 10px",
+              fontSize: 12,
+              resize: "none",
+              outline: "none",
+              fontFamily: "var(--font-sans)",
+              background: "var(--bg-elevated)",
+              color: "var(--text-body)",
+            }}
+          />
+          <button
+            className="mha-btn-nota"
+            disabled={guardando || !actividad.trim()}
+            onClick={guardarActividad}
+          >
+            <i className="ti ti-plus" /> Agregar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Tab: SLA ────────────────────────────────────────────────── */
 function TabSLA({ sol }) {
-  const resp = getSlaInfo(sol.fechaLimiteResp),
-    resol = getSlaInfo(sol.fechaLimiteResol);
+  const respInfo = getSlaInfo(sol.fechaLimiteResp);
+  const resolInfo = getSlaResolucionInfo(sol);
   const r = 36,
     circ = 2 * Math.PI * r;
-  function Ring({ info }) {
-    const offset = circ - (info.pct / 100) * circ;
+
+  function Ring({ info, pct }) {
+    const usePct = pct ?? info.pct;
+    const offset = circ - (usePct / 100) * circ;
     return (
       <div className="mha-sla-ring-wrap">
         <svg width="90" height="90" viewBox="0 0 90 90">
@@ -490,71 +791,126 @@ function TabSLA({ sol }) {
       </div>
     );
   }
+
   const estadoLabel = (i) =>
-    i.min < 0
-      ? "Vencida"
-      : i.min < 60
-        ? "Crítico"
-        : i.min < 180
-          ? "En riesgo"
-          : "En tiempo";
+    i.min == null
+      ? "—"
+      : i.min < 0
+        ? "Vencida"
+        : i.min < 60
+          ? "Crítico"
+          : i.min < 180
+            ? "En riesgo"
+            : "En tiempo";
+
   const estadoBg = (i) =>
-    i.min < 0 || i.min < 60
+    i.min == null || i.min < 0 || i.min < 60
       ? "rgba(243,139,168,0.12)"
       : i.min < 180
         ? "rgba(246,193,119,0.12)"
         : "rgba(76,201,166,0.12)";
+
   return (
     <div className="mha-sla-tab">
-      {[
-        {
-          title: "Primera respuesta",
-          info: resp,
-          fecha: sol.fechaLimiteResp,
-          hrs: sol.slaRespuestaHrs,
-        },
-        {
-          title: "Resolución",
-          info: resol,
-          fecha: sol.fechaLimiteResol,
-          hrs: sol.slaResolucionHrs,
-        },
-      ].map((blk, i) => (
-        <div key={i} className="mha-sla-block">
-          <div className="mha-sla-block-title">{blk.title}</div>
+      {/* Primera respuesta */}
+      <div className="mha-sla-block">
+        <div className="mha-sla-block-title">Primera respuesta</div>
+        <div className="mha-sla-block-inner">
+          <Ring info={respInfo} />
+          <div className="mha-sla-block-rows">
+            <div className="mha-sla-row-item">
+              <span>Comprometida</span>
+              <strong>{fmtFecha(sol.fechaLimiteResp, true)}</strong>
+            </div>
+            <div className="mha-sla-row-item">
+              <span>Tiempo restante</span>
+              <strong style={{ color: respInfo.color, fontWeight: 600 }}>
+                {respInfo.texto}
+              </strong>
+            </div>
+            <div className="mha-sla-row-item">
+              <span>SLA</span>
+              {/* En minutos */}
+              <strong>{hrsAMin(sol.slaRespuestaHrs) ?? "—"} min</strong>
+            </div>
+            <div className="mha-sla-row-item">
+              <span>Estado</span>
+              <span
+                className="mha-chip"
+                style={{
+                  background: estadoBg(respInfo),
+                  color: respInfo.color,
+                }}
+              >
+                {estadoLabel(respInfo)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Resolución */}
+      <div className="mha-sla-block">
+        <div className="mha-sla-block-title">Resolución</div>
+        {!resolInfo.iniciado ? (
+          <div className="mha-tac-nd">
+            <span>—</span>
+            <small>
+              El SLA de resolución comienza cuando el ticket pase a{" "}
+              <strong>En proceso</strong>.
+              <br />
+              SLA configurado: <strong>{resolInfo.slaMin ?? "—"} min</strong>
+            </small>
+          </div>
+        ) : (
           <div className="mha-sla-block-inner">
-            <Ring info={blk.info} />
+            <Ring info={resolInfo} pct={resolInfo.pct} />
             <div className="mha-sla-block-rows">
               <div className="mha-sla-row-item">
-                <span>Comprometida</span>
-                <strong>{fmtFecha(blk.fecha, true)}</strong>
+                <span>Inicio</span>
+                <strong>{fmtFecha(sol.fechaInicioResolucion, true)}</strong>
               </div>
               <div className="mha-sla-row-item">
                 <span>Tiempo restante</span>
-                <strong style={{ color: blk.info.color, fontWeight: 600 }}>
-                  {blk.info.texto}
+                <strong style={{ color: resolInfo.color, fontWeight: 600 }}>
+                  {resolInfo.texto}
+                  {resolInfo.pausado && " ⏸"}
                 </strong>
               </div>
               <div className="mha-sla-row-item">
                 <span>SLA</span>
-                <strong>{blk.hrs}h</strong>
+                <strong>{resolInfo.slaMin ?? "—"} min</strong>
               </div>
+              {resolInfo.concluido && (
+                <div className="mha-sla-row-item">
+                  <span>Tiempo real</span>
+                  <strong>{fmtTiempoAtencion(resolInfo.tiempoReal)}</strong>
+                </div>
+              )}
               <div className="mha-sla-row-item">
                 <span>Estado</span>
                 <span
                   className="mha-chip"
                   style={{
-                    background: estadoBg(blk.info),
-                    color: blk.info.color,
+                    background: estadoBg(resolInfo),
+                    color: resolInfo.color,
                   }}
                 >
-                  {estadoLabel(blk.info)}
+                  {resolInfo.pausado
+                    ? "En pausa"
+                    : resolInfo.concluido
+                      ? resolInfo.min >= 0
+                        ? "En tiempo"
+                        : "Vencido"
+                      : estadoLabel(resolInfo)}
                 </span>
               </div>
             </div>
           </div>
-        </div>
-      ))}
+        )}
+      </div>
+
+      {/* Tiempo de atención */}
       <div className="mha-sla-block">
         <div className="mha-sla-block-title">Tiempo de atención</div>
         {sol.tiempoAtencionMin != null ? (
@@ -564,9 +920,7 @@ function TabSLA({ sol }) {
         ) : (
           <div className="mha-tac-nd">
             <span>—</span>
-            <small>
-              Se calculará automáticamente al marcar como resuelto o cerrado.
-            </small>
+            <small>Se calculará al marcar como resuelto o cerrado.</small>
           </div>
         )}
       </div>
@@ -574,7 +928,7 @@ function TabSLA({ sol }) {
   );
 }
 
-/* ── Tab: Comentarios ── */
+/* ── Tab: Comentarios ────────────────────────────────────────── */
 function TabComentarios({ sol, onNuevoComentario }) {
   const [texto, setTexto] = useState(""),
     [enviando, setEnviando] = useState(false);
@@ -646,7 +1000,7 @@ function TabComentarios({ sol, onNuevoComentario }) {
   );
 }
 
-/* ── Tab: Evaluación ── */
+/* ── Tab: Evaluación ─────────────────────────────────────────── */
 function TabEvaluacion({ sol }) {
   const ev = sol.evaluacion;
   if (!ev)
@@ -772,7 +1126,7 @@ function TabEvaluacion({ sol }) {
   );
 }
 
-/* ── Modal: Escalar ── */
+/* ── Modales ─────────────────────────────────────────────────── */
 function ModalEscalar({ sol, onConfirm, onClose }) {
   const [escalaA, setEscalaA] = useState(""),
     [motivo, setMotivo] = useState(""),
@@ -784,16 +1138,25 @@ function ModalEscalar({ sol, onConfirm, onClose }) {
     await onConfirm(escalaA.trim(), motivo.trim());
     setGuardando(false);
   }
+  const inputStyle = {
+    width: "100%",
+    boxSizing: "border-box",
+    border: "1px solid var(--border)",
+    borderRadius: 8,
+    padding: "9px 12px",
+    fontSize: 13,
+    background: "var(--bg-base)",
+    color: "var(--text-body)",
+    outline: "none",
+    fontFamily: "inherit",
+  };
   return (
     <div className="mha-modal-overlay" onClick={onClose}>
       <div
         className="mha-modal mha-modal--escalar"
         onClick={(e) => e.stopPropagation()}
       >
-        <div
-          className="mha-modal-head"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
+        <div className="mha-modal-head">
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <span
               style={{
@@ -810,7 +1173,7 @@ function ModalEscalar({ sol, onConfirm, onClose }) {
             >
               <i className="ti ti-arrow-up-circle" />
             </span>
-            <span>Escalar incidente</span>
+            Escalar incidente
           </div>
           <button
             onClick={onClose}
@@ -865,29 +1228,11 @@ function ModalEscalar({ sol, onConfirm, onClose }) {
             </label>
             <input
               type="text"
-              placeholder="Ej. Multivisión, IISI, Telmex, proveedor…"
+              placeholder="Ej. Multivisión, IISI, Telmex…"
               value={escalaA}
               onChange={(e) => setEscalaA(e.target.value)}
               autoFocus
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                padding: "9px 12px",
-                fontSize: 13,
-                background: "var(--bg-base)",
-                color: "var(--text-body)",
-                outline: "none",
-                fontFamily: "inherit",
-                transition: "border-color 0.15s",
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "#f38ba8";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "var(--border)";
-              }}
+              style={inputStyle}
             />
           </div>
           <div>
@@ -906,38 +1251,17 @@ function ModalEscalar({ sol, onConfirm, onClose }) {
                   fontSize: 11,
                   color: "var(--text-faint)",
                   fontWeight: 400,
-                  marginLeft: 5,
                 }}
               >
-                (opcional — se registra en bitácora)
+                (opcional)
               </span>
             </label>
             <textarea
-              placeholder="Describe el motivo o contexto del escalamiento…"
+              placeholder="Describe el motivo…"
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               rows={3}
-              style={{
-                width: "100%",
-                boxSizing: "border-box",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                padding: "9px 12px",
-                fontSize: 13,
-                resize: "vertical",
-                background: "var(--bg-base)",
-                color: "var(--text-body)",
-                outline: "none",
-                fontFamily: "inherit",
-                minHeight: 72,
-                transition: "border-color 0.15s",
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = "#f38ba8";
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = "var(--border)";
-              }}
+              style={{ ...inputStyle, resize: "vertical", minHeight: 72 }}
             />
           </div>
         </div>
@@ -953,15 +1277,11 @@ function ModalEscalar({ sol, onConfirm, onClose }) {
           >
             {guardando ? (
               <>
-                <i
-                  className="ti ti-loader-2"
-                  style={{ animation: "spin 1s linear infinite" }}
-                />{" "}
-                Escalando…
+                <i className="ti ti-loader-2" /> Escalando…
               </>
             ) : (
               <>
-                <i className="ti ti-arrow-up-circle" /> Confirmar escalamiento
+                <i className="ti ti-arrow-up-circle" /> Confirmar
               </>
             )}
           </button>
@@ -971,7 +1291,6 @@ function ModalEscalar({ sol, onConfirm, onClose }) {
   );
 }
 
-/* ── Modal: Estatus ── */
 function ModalEstatus({ onConfirm, onClose }) {
   const [sel, setSel] = useState("");
   return (
@@ -1016,7 +1335,6 @@ function ModalEstatus({ onConfirm, onClose }) {
   );
 }
 
-/* ── Modal: Prioridad ── */
 function ModalPrioridad({ prioridades, onConfirm, onClose }) {
   const [sel, setSel] = useState(null);
   return (
@@ -1061,7 +1379,6 @@ function ModalPrioridad({ prioridades, onConfirm, onClose }) {
   );
 }
 
-/* ── Modal: Transferir ── */
 function ModalTransferir({ tecnicos, onConfirm, onClose }) {
   const [sel, setSel] = useState(null);
   return (
@@ -1106,7 +1423,7 @@ function ModalTransferir({ tecnicos, onConfirm, onClose }) {
   );
 }
 
-/* ── Barra de acciones ── */
+/* ── Barra de acciones ───────────────────────────────────────── */
 function BarraAcciones({ sol, onAccion }) {
   if (ticketBloqueado(sol))
     return (
@@ -1120,28 +1437,65 @@ function BarraAcciones({ sol, onAccion }) {
         </span>
       </div>
     );
+
+  const sinResponsable = !sol.tecnicoAsignado;
   const stop = (fn) => (e) => {
     e.stopPropagation();
     fn();
   };
+  const tooltip = sinResponsable
+    ? "Asigna un responsable antes de realizar acciones sobre este ticket."
+    : "";
+
   return (
     <div className="mha-action-bar">
       <span className="mha-action-label">Acciones rápidas</span>
+
+      {/* Asignar siempre disponible */}
       <button
         className="mha-action-btn mha-action-btn--primary"
         onClick={stop(() => onAccion("asignar"))}
       >
         <i className="ti ti-user-plus" /> Asignarme el incidente
       </button>
+
+      {/* El resto requiere responsable */}
       <button
         className="mha-action-btn mha-action-btn--outline"
+        title={tooltip}
+        disabled={sinResponsable}
         onClick={stop(() => onAccion("estatus"))}
       >
         <i className="ti ti-refresh" /> Cambiar estado{" "}
         <i className="ti ti-chevron-down" />
       </button>
+
+      {/* Pausa / Reanudar según estatus */}
+      {sol.idEstatus === 2 && (
+        <button
+          className="mha-action-btn mha-action-btn--outline"
+          title={tooltip}
+          disabled={sinResponsable}
+          onClick={stop(() => onAccion("pausar"))}
+        >
+          <i className="ti ti-player-pause" /> Pausar
+        </button>
+      )}
+      {sol.idEstatus === 6 && (
+        <button
+          className="mha-action-btn mha-action-btn--outline"
+          title={tooltip}
+          disabled={sinResponsable}
+          onClick={stop(() => onAccion("reanudar"))}
+        >
+          <i className="ti ti-player-play" /> Reanudar
+        </button>
+      )}
+
       <button
         className="mha-action-btn mha-action-btn--outline"
+        title={tooltip}
+        disabled={sinResponsable}
         onClick={stop(() => onAccion("prioridad"))}
       >
         <i className="ti ti-flag" /> Cambiar prioridad{" "}
@@ -1149,6 +1503,8 @@ function BarraAcciones({ sol, onAccion }) {
       </button>
       <button
         className="mha-action-btn mha-action-btn--outline"
+        title={tooltip}
+        disabled={sinResponsable}
         onClick={stop(() => onAccion("transferir"))}
       >
         <i className="ti ti-transfer" /> Transferir incidente{" "}
@@ -1156,6 +1512,8 @@ function BarraAcciones({ sol, onAccion }) {
       </button>
       <button
         className="mha-action-btn mha-action-btn--outline"
+        title={tooltip}
+        disabled={sinResponsable}
         onClick={stop(() => onAccion("escalar"))}
       >
         <i className="ti ti-arrow-up-circle" /> Escalar incidente{" "}
@@ -1163,6 +1521,8 @@ function BarraAcciones({ sol, onAccion }) {
       </button>
       <button
         className="mha-action-btn mha-action-btn--green"
+        title={tooltip}
+        disabled={sinResponsable}
         onClick={stop(() => onAccion("resolver"))}
       >
         <i className="ti ti-circle-check" /> Marcar como resuelto
@@ -1171,11 +1531,16 @@ function BarraAcciones({ sol, onAccion }) {
   );
 }
 
-/* ── Panel expandido escritorio ── */
+/* ── Panel expandido escritorio ──────────────────────────────── */
 function PanelExpandido({ sol, onAccion, onNuevoComentario, onRecargar }) {
   const [tab, setTab] = useState(0);
+  // Nuevo tab "Seguimiento" en índice 1, desplaza el resto
   const tabs = [
     { label: "Información general" },
+    {
+      label: "Seguimiento",
+      badge: sol.bitacora?.length > 0 ? sol.bitacora.length : null,
+    },
     {
       label: "Evidencias",
       badge: sol.archivos?.length > 0 ? sol.archivos.length : null,
@@ -1210,12 +1575,13 @@ function PanelExpandido({ sol, onAccion, onNuevoComentario, onRecargar }) {
           </div>
           <div className="mha-expand-content">
             {tab === 0 && <TabInfoGeneral sol={sol} onRecargar={onRecargar} />}
-            {tab === 1 && <TabEvidencias archivos={sol.archivos} />}
-            {tab === 2 && <TabSLA sol={sol} />}
-            {tab === 3 && (
+            {tab === 1 && <TabSeguimiento sol={sol} onRecargar={onRecargar} />}
+            {tab === 2 && <TabEvidencias archivos={sol.archivos} />}
+            {tab === 3 && <TabSLA sol={sol} />}
+            {tab === 4 && (
               <TabComentarios sol={sol} onNuevoComentario={onNuevoComentario} />
             )}
-            {tab === 4 && <TabEvaluacion sol={sol} />}
+            {tab === 5 && <TabEvaluacion sol={sol} />}
           </div>
           <BarraAcciones sol={sol} onAccion={onAccion} />
         </div>
@@ -1224,7 +1590,7 @@ function PanelExpandido({ sol, onAccion, onNuevoComentario, onRecargar }) {
   );
 }
 
-/* ── Panel expandido móvil ── */
+/* ── Panel expandido móvil ───────────────────────────────────── */
 function PanelExpandidoMobile({
   sol,
   onAccion,
@@ -1234,6 +1600,10 @@ function PanelExpandidoMobile({
   const [tab, setTab] = useState(0);
   const tabs = [
     { label: "Info" },
+    {
+      label: "Seguimiento",
+      badge: sol.bitacora?.length > 0 ? sol.bitacora.length : null,
+    },
     {
       label: "Evidencias",
       badge: sol.archivos?.length > 0 ? sol.archivos.length : null,
@@ -1266,19 +1636,20 @@ function PanelExpandidoMobile({
       </div>
       <div className="mha-expand-content">
         {tab === 0 && <TabInfoGeneral sol={sol} onRecargar={onRecargar} />}
-        {tab === 1 && <TabEvidencias archivos={sol.archivos} />}
-        {tab === 2 && <TabSLA sol={sol} />}
-        {tab === 3 && (
+        {tab === 1 && <TabSeguimiento sol={sol} onRecargar={onRecargar} />}
+        {tab === 2 && <TabEvidencias archivos={sol.archivos} />}
+        {tab === 3 && <TabSLA sol={sol} />}
+        {tab === 4 && (
           <TabComentarios sol={sol} onNuevoComentario={onNuevoComentario} />
         )}
-        {tab === 4 && <TabEvaluacion sol={sol} />}
+        {tab === 5 && <TabEvaluacion sol={sol} />}
       </div>
       <BarraAcciones sol={sol} onAccion={onAccion} />
     </>
   );
 }
 
-/* ── Mobile Card ── */
+/* ── Mobile Card ─────────────────────────────────────────────── */
 function MobileCard({
   s,
   isExp,
@@ -1291,6 +1662,7 @@ function MobileCard({
   const { texto: slaTxt, color: slaColor } = getSlaInfo(s.fechaLimiteResp);
   const icono = getServicioIcono(s.servicio, s.servicioIcono);
   const bloqueado = ticketBloqueado(s);
+  const sinResponsable = !s.tecnicoAsignado;
   const stop = (fn) => (e) => {
     e.stopPropagation();
     fn();
@@ -1311,49 +1683,40 @@ function MobileCard({
         <i className="ti ti-chevron-down mha-card-mobile__chevron" />
       </div>
       <div className="mha-card-mobile__body">
-        <div className="mha-card-mobile__row">
-          <span className="mha-card-mobile__label">Usuario</span>
-          <span className="mha-card-mobile__val">{s.nombreUsuario}</span>
-        </div>
-        <div className="mha-card-mobile__row">
-          <span className="mha-card-mobile__label">Área</span>
-          <span className="mha-card-mobile__val mha-card-mobile__val--muted">
-            {s.areaUsuario ?? "—"} · {s.sitioUsuario ?? "—"}
-          </span>
-        </div>
-        <div className="mha-card-mobile__row">
-          <span className="mha-card-mobile__label">Servicio</span>
-          <div className="mha-card-mobile__servicio">
-            <i className={`ti ${icono}`} />
-            <span>{s.servicio ?? "—"}</span>
+        {[
+          { label: "Usuario", val: s.nombreUsuario },
+          {
+            label: "Área",
+            val: `${s.areaUsuario ?? "—"} · ${s.sitioUsuario ?? "—"}`,
+            muted: true,
+          },
+          { label: "Prioridad", val: `● ${s.prioridad}`, color: s.prioColor },
+          {
+            label: "Ingeniero",
+            val: s.nombreTecnico ?? "Sin asignar",
+            muted: true,
+          },
+          {
+            label: "Creación",
+            val: fmtFecha(s.fechaCreacion, true),
+            muted: true,
+          },
+        ].map(({ label, val, muted, color }) => (
+          <div key={label} className="mha-card-mobile__row">
+            <span className="mha-card-mobile__label">{label}</span>
+            <span
+              className={`mha-card-mobile__val${muted ? " mha-card-mobile__val--muted" : ""}`}
+              style={color ? { color, fontWeight: 600 } : {}}
+            >
+              {val}
+            </span>
           </div>
-        </div>
-        <div className="mha-card-mobile__row">
-          <span className="mha-card-mobile__label">Prioridad</span>
-          <span
-            className="mha-card-mobile__val"
-            style={{ color: s.prioColor, fontWeight: 600 }}
-          >
-            ● {s.prioridad}
-          </span>
-        </div>
-        <div className="mha-card-mobile__row">
-          <span className="mha-card-mobile__label">Ingeniero</span>
-          <span className="mha-card-mobile__val mha-card-mobile__val--muted">
-            {s.nombreTecnico ?? "Sin asignar"}
-          </span>
-        </div>
-        <div className="mha-card-mobile__row">
-          <span className="mha-card-mobile__label">Creación</span>
-          <span className="mha-card-mobile__val mha-card-mobile__val--muted">
-            {fmtFecha(s.fechaCreacion, true)}
-          </span>
-        </div>
+        ))}
       </div>
       {bloqueado ? (
         <div className="mha-card-mobile__blocked">
           <i className="ti ti-lock" />
-          <span>Ticket cerrado — sin acciones disponibles</span>
+          <span>Ticket cerrado</span>
         </div>
       ) : (
         <div
@@ -1369,6 +1732,7 @@ function MobileCard({
           </button>
           <button
             className="mha-card-mobile__action"
+            disabled={sinResponsable}
             onClick={stop(() => onAccion("estatus", s))}
           >
             <i className="ti ti-refresh" />
@@ -1376,6 +1740,7 @@ function MobileCard({
           </button>
           <button
             className="mha-card-mobile__action"
+            disabled={sinResponsable}
             onClick={stop(() => onAccion("prioridad", s))}
           >
             <i className="ti ti-flag" />
@@ -1383,6 +1748,7 @@ function MobileCard({
           </button>
           <button
             className="mha-card-mobile__action"
+            disabled={sinResponsable}
             onClick={stop(() => onAccion("escalar", s))}
           >
             <i className="ti ti-arrow-up-circle" />
@@ -1390,6 +1756,7 @@ function MobileCard({
           </button>
           <button
             className="mha-card-mobile__action mha-card-mobile__action--green"
+            disabled={sinResponsable}
             onClick={stop(() => onAccion("resolver", s))}
           >
             <i className="ti ti-circle-check" />
@@ -1416,9 +1783,9 @@ function MobileCard({
   );
 }
 
-/* ══════════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
    COMPONENTE PRINCIPAL
-══════════════════════════════════════════════════════════════════ */
+══════════════════════════════════════════════════════════════ */
 export default function MesaAyudaAdminPage() {
   const { user } = useContext(AuthContext);
   const [kpis, setKpis] = useState(null);
@@ -1442,6 +1809,11 @@ export default function MesaAyudaAdminPage() {
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
 
+  // Refs para polling silencioso
+  const pollingRef = useRef(null);
+  const expandidoRef = useRef(null);
+  expandidoRef.current = expandido;
+
   function mostrarToast(tipo, mensaje) {
     setToast({ tipo, mensaje });
     setTimeout(() => setToast(null), 4500);
@@ -1452,22 +1824,26 @@ export default function MesaAyudaAdminPage() {
     if (res.ok) setKpis(res.data);
   }, []);
 
-  const cargarSolicitudes = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams({ pagina, porPagina: 10 });
-    if (busqueda) params.set("busqueda", busqueda);
-    if (fechaDesde) params.set("fechaDesde", fechaDesde);
-    if (fechaHasta) params.set("fechaHasta", fechaHasta);
-    Object.entries(filtros).forEach(([k, v]) => {
-      if (v) params.set(k, v);
-    });
-    const res = await apiFetch(`/api/mesa-admin/solicitudes?${params}`);
-    if (res.ok) {
-      setSolicitudes(res.data);
-      setTotal(res.total);
-    }
-    setLoading(false);
-  }, [pagina, busqueda, filtros, fechaDesde, fechaHasta]);
+  // cargarSolicitudes silent=true no toca setLoading → sin parpadeo
+  const cargarSolicitudes = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      const params = new URLSearchParams({ pagina, porPagina: 10 });
+      if (busqueda) params.set("busqueda", busqueda);
+      if (fechaDesde) params.set("fechaDesde", fechaDesde);
+      if (fechaHasta) params.set("fechaHasta", fechaHasta);
+      Object.entries(filtros).forEach(([k, v]) => {
+        if (v) params.set(k, v);
+      });
+      const res = await apiFetch(`/api/mesa-admin/solicitudes?${params}`);
+      if (res.ok) {
+        setSolicitudes(res.data);
+        setTotal(res.total);
+      }
+      if (!silent) setLoading(false);
+    },
+    [pagina, busqueda, filtros, fechaDesde, fechaHasta],
+  );
 
   useEffect(() => {
     cargarKPIs();
@@ -1480,8 +1856,26 @@ export default function MesaAyudaAdminPage() {
   }, []);
 
   useEffect(() => {
-    cargarSolicitudes();
+    cargarSolicitudes(false);
   }, [cargarSolicitudes]);
+
+  // Polling silencioso cada 20 segundos
+  useEffect(() => {
+    pollingRef.current = setInterval(() => {
+      cargarSolicitudes(true);
+      cargarKPIs();
+      // Si hay detalle abierto, refrescarlo también silenciosamente
+      if (expandidoRef.current) {
+        apiFetch(`/api/mesa-admin/solicitudes/${expandidoRef.current}`).then(
+          (res) => {
+            if (res.ok)
+              setDetalles((p) => ({ ...p, [expandidoRef.current]: res.data }));
+          },
+        );
+      }
+    }, 20000);
+    return () => clearInterval(pollingRef.current);
+  }, [cargarSolicitudes, cargarKPIs]);
 
   async function toggleExpandir(sol) {
     if (expandido === sol.idSolicitud) {
@@ -1505,26 +1899,33 @@ export default function MesaAyudaAdminPage() {
   async function handleAccion(tipo, sol) {
     const id = sol?.idSolicitud;
     if (!id) return;
+
+    // Asignar: siempre permitido
     if (tipo === "asignar") {
       await apiFetch(`/api/mesa-admin/solicitudes/${id}/asignar`, {
         method: "PUT",
       });
       cargarKPIs();
-      cargarSolicitudes();
+      cargarSolicitudes(true);
       recargarDetalle(id);
-    } else if (tipo === "resolver") {
-      if (!sol.tecnicoAsignado && !sol.nombreTecnico) {
-        mostrarToast(
-          "error",
-          "Debes asignarte o asignar el ticket antes de marcarlo como resuelto.",
-        );
-        return;
-      }
+      return;
+    }
+
+    // Para el resto: validar responsable en frontend también
+    if (!sol.tecnicoAsignado) {
+      mostrarToast(
+        "error",
+        "Asigna un responsable antes de realizar acciones sobre este ticket.",
+      );
+      return;
+    }
+
+    if (tipo === "resolver") {
       const res = await apiFetch(`/api/mesa-admin/solicitudes/${id}/estatus`, {
         method: "PUT",
         body: JSON.stringify({ idEstatus: 3 }),
       });
-      if (res.__httpError) {
+      if (res.__httpError || res.ok === false) {
         mostrarToast(
           "error",
           res.message || "No se pudo marcar como resuelto.",
@@ -1532,7 +1933,35 @@ export default function MesaAyudaAdminPage() {
         return;
       }
       cargarKPIs();
-      cargarSolicitudes();
+      cargarSolicitudes(true);
+      recargarDetalle(id);
+    } else if (tipo === "pausar") {
+      // Cambiar a "En pausa" (6) directamente sin modal
+      const res = await apiFetch(`/api/mesa-admin/solicitudes/${id}/estatus`, {
+        method: "PUT",
+        body: JSON.stringify({ idEstatus: 6 }),
+      });
+      if (res.__httpError || res.ok === false) {
+        mostrarToast("error", res.message || "No se pudo pausar el ticket.");
+        return;
+      }
+      mostrarToast("ok", "Ticket puesto en pausa");
+      cargarKPIs();
+      cargarSolicitudes(true);
+      recargarDetalle(id);
+    } else if (tipo === "reanudar") {
+      // Reanudar → volver a "En proceso" (2)
+      const res = await apiFetch(`/api/mesa-admin/solicitudes/${id}/estatus`, {
+        method: "PUT",
+        body: JSON.stringify({ idEstatus: 2 }),
+      });
+      if (res.__httpError || res.ok === false) {
+        mostrarToast("error", res.message || "No se pudo reanudar el ticket.");
+        return;
+      }
+      mostrarToast("ok", "Ticket reanudado");
+      cargarKPIs();
+      cargarSolicitudes(true);
       recargarDetalle(id);
     } else {
       setModal({ tipo, sol });
@@ -1544,24 +1973,34 @@ export default function MesaAyudaAdminPage() {
       setModal({ tipo: "escalar", sol: modal.sol });
       return;
     }
-    await apiFetch(
+    const res = await apiFetch(
       `/api/mesa-admin/solicitudes/${modal.sol.idSolicitud}/estatus`,
       { method: "PUT", body: JSON.stringify({ idEstatus }) },
     );
+    if (res.__httpError || res.ok === false) {
+      mostrarToast("error", res.message || "No se pudo cambiar el estado.");
+      setModal(null);
+      return;
+    }
     setModal(null);
     cargarKPIs();
-    cargarSolicitudes();
+    cargarSolicitudes(true);
     recargarDetalle(modal.sol.idSolicitud);
   }
+
   async function confirmarPrioridad(idPrioridad) {
-    await apiFetch(
+    const res = await apiFetch(
       `/api/mesa-admin/solicitudes/${modal.sol.idSolicitud}/prioridad`,
       { method: "PUT", body: JSON.stringify({ idPrioridad }) },
     );
+    if (res.__httpError || res.ok === false) {
+      mostrarToast("error", res.message || "No se pudo cambiar la prioridad.");
+    }
     setModal(null);
-    cargarSolicitudes();
+    cargarSolicitudes(true);
     recargarDetalle(modal.sol.idSolicitud);
   }
+
   async function confirmarEscalar(escalaA, motivo) {
     const id = modal.sol.idSolicitud;
     await apiFetch(`/api/mesa-admin/solicitudes/${id}/escalar`, {
@@ -1571,9 +2010,10 @@ export default function MesaAyudaAdminPage() {
     setModal(null);
     mostrarToast("ok", `Incidente escalado a ${escalaA}`);
     cargarKPIs();
-    cargarSolicitudes();
+    cargarSolicitudes(true);
     recargarDetalle(id);
   }
+
   async function confirmarTransferir(tecnico) {
     await apiFetch(
       `/api/mesa-admin/solicitudes/${modal.sol.idSolicitud}/transferir`,
@@ -1586,7 +2026,7 @@ export default function MesaAyudaAdminPage() {
       },
     );
     setModal(null);
-    cargarSolicitudes();
+    cargarSolicitudes(true);
     recargarDetalle(modal.sol.idSolicitud);
   }
 
@@ -1769,7 +2209,10 @@ export default function MesaAyudaAdminPage() {
             </button>
           )}
           <div style={{ flex: 1 }} />
-          <button className="mha-btn-refresh" onClick={cargarSolicitudes}>
+          <button
+            className="mha-btn-refresh"
+            onClick={() => cargarSolicitudes(false)}
+          >
             <i className="ti ti-refresh" /> Actualizar
           </button>
           <button className="mha-btn-export" onClick={exportarExcel}>
@@ -1904,6 +2347,7 @@ export default function MesaAyudaAdminPage() {
                   det = detalles[s.idSolicitud];
                 const icono = getServicioIcono(s.servicio, s.servicioIcono),
                   bloqueado = ticketBloqueado(s);
+                const sinResponsable = !s.tecnicoAsignado;
                 return [
                   <tr
                     key={s.idSolicitud}
@@ -1926,7 +2370,9 @@ export default function MesaAyudaAdminPage() {
                         />
                       </button>
                     </td>
+                    {/* Quick actions: deshabilitar si sin responsable */}
                     <td onClick={(e) => e.stopPropagation()}>
+                      {/* Asignar siempre visible */}
                       {!bloqueado && (
                         <button
                           className="mha-quick-btn"
@@ -1941,8 +2387,16 @@ export default function MesaAyudaAdminPage() {
                       {!bloqueado && (
                         <button
                           className="mha-quick-btn"
-                          title="Cambiar estado"
-                          onClick={() => setModal({ tipo: "estatus", sol: s })}
+                          title={
+                            sinResponsable
+                              ? "Asigna un responsable primero"
+                              : "Cambiar estado"
+                          }
+                          disabled={sinResponsable}
+                          onClick={() =>
+                            !sinResponsable &&
+                            setModal({ tipo: "estatus", sol: s })
+                          }
                         >
                           <i className="ti ti-refresh" />
                         </button>
@@ -1952,8 +2406,15 @@ export default function MesaAyudaAdminPage() {
                       {!bloqueado && (
                         <button
                           className="mha-quick-btn mha-quick-btn--green"
-                          title="Marcar resuelto"
-                          onClick={() => handleAccion("resolver", s)}
+                          title={
+                            sinResponsable
+                              ? "Asigna un responsable primero"
+                              : "Marcar resuelto"
+                          }
+                          disabled={sinResponsable}
+                          onClick={() =>
+                            !sinResponsable && handleAccion("resolver", s)
+                          }
                         >
                           <i className="ti ti-circle-check" />
                         </button>
@@ -1961,13 +2422,11 @@ export default function MesaAyudaAdminPage() {
                     </td>
                     <td className="mha-folio">{s.folio}</td>
                     <td>
-                      <td>
-                        <span className="mha-uname">{s.nombreUsuario}</span>
-                        <span className="mha-uemail">
-                          {s.correoUsuario ??
-                            `${s.idUsuario?.toLowerCase()}@fabpsa.com.mx`}
-                        </span>
-                      </td>
+                      <span className="mha-uname">{s.nombreUsuario}</span>
+                      <span className="mha-uemail">
+                        {s.correoUsuario ??
+                          `${s.idUsuario?.toLowerCase()}@fabpsa.com.mx`}
+                      </span>
                     </td>
                     <td className="mha-dep">{s.areaUsuario ?? "—"}</td>
                     <td className="mha-sitio">{s.sitioUsuario ?? "—"}</td>
@@ -2040,6 +2499,19 @@ export default function MesaAyudaAdminPage() {
                             : s.idEstatus === 4
                               ? "Cerrado"
                               : "Cancelado"}
+                        </span>
+                      ) : s.idEstatus === 6 ? (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 500,
+                            padding: "2px 8px",
+                            borderRadius: 20,
+                            background: "rgba(246,193,119,0.12)",
+                            color: "#f6c177",
+                          }}
+                        >
+                          ⏸ En pausa
                         </span>
                       ) : (
                         <span
@@ -2128,11 +2600,7 @@ export default function MesaAyudaAdminPage() {
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════════════
-          MODALES — via ModalPortal → document.body
-          Escapa del overflow:hidden de .mha-root para que
-          position:fixed funcione relativo al viewport real.
-      ══════════════════════════════════════════════════════ */}
+      {/* Modales */}
       {modal?.tipo === "estatus" && (
         <ModalPortal>
           <ModalEstatus
