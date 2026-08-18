@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useContext } from "react";
 import logoFabpsa from "../logo-fabpsa.png";
+import { AuthContext } from "../context/AuthContext";
 
 const NAV_SECTIONS = [
   {
     label: "General",
-    items: [{ to: "/", icon: "ti-home", label: "Inicio" }],
+    items: [{ to: "/", icon: "ti-home", label: "Inicio", modulo: "portal" }],
   },
   {
     label: "Mesa de Servicio",
@@ -15,29 +16,45 @@ const NAV_SECTIONS = [
         icon: "ti-device-laptop",
         label: "Mesa de Servicio",
         color: "#10b981",
+        modulo: "mesa_servicio",
       },
     ],
   },
   {
     label: "Recursos",
     items: [
-      { to: "/aplicativos", icon: "ti-layout-grid", label: "Aplicativos" },
+      {
+        to: "/aplicativos",
+        icon: "ti-layout-grid",
+        label: "Aplicativos",
+        modulo: "portal",
+      },
       {
         to: "http://201.151.218.138:3550/fabp/Directorio",
         icon: "ti-address-book",
         label: "Directorio",
         external: true,
+        modulo: "portal",
       },
       {
         to: "/cultura-digital",
         icon: "ti-bulb",
         label: "Cultura Digital",
+        modulo: "cultura_digital",
+      },
+      {
+        to: "/cedis/facturas",
+        icon: "ti-barcode",
+        label: "Escaner",
+        modulo: "escaner",
       },
     ],
   },
 ];
 
 export default function Sidebar() {
+  const { modulos = [] } = useContext(AuthContext); // ← NUEVO
+
   const [supportOpen, setSupportOpen] = useState(false);
   const [sidebarMobileOpen, setSidebarMobileOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(
@@ -46,7 +63,6 @@ export default function Sidebar() {
   const [popoverTop, setPopoverTop] = useState(0);
   const helpRef = useRef(null);
 
-  /* ── Tema ── */
   const toggleTheme = () => {
     const next = !darkMode;
     setDarkMode(next);
@@ -56,7 +72,6 @@ export default function Sidebar() {
     );
   };
 
-  /* ── Popover soporte ── */
   const handleSupportClick = () => {
     if (helpRef.current) {
       const rect = helpRef.current.getBoundingClientRect();
@@ -65,7 +80,6 @@ export default function Sidebar() {
     setSupportOpen((v) => !v);
   };
 
-  /* ── Cerrar popover al hacer clic fuera ── */
   useEffect(() => {
     const handler = (e) => {
       if (
@@ -79,32 +93,34 @@ export default function Sidebar() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  /* ── Escuchar botón hamburguesa desde Navbar ── */
   useEffect(() => {
     const handler = () => setSidebarMobileOpen((v) => !v);
     document.addEventListener("sidebar:toggle", handler);
     return () => document.removeEventListener("sidebar:toggle", handler);
   }, []);
 
-  /* ── Cerrar sidebar al navegar ── */
   const closeMobile = () => setSidebarMobileOpen(false);
+
+  // ── Filtrar secciones según módulos del usuario ──────────
+  const seccionesFiltradas = NAV_SECTIONS.map((section) => ({
+    ...section,
+    items: section.items.filter((item) => modulos.includes(item.modulo)),
+  })).filter((section) => section.items.length > 0);
 
   return (
     <>
-      {/* Overlay FUERA del aside — z-index 599, sidebar es 600 */}
       {sidebarMobileOpen && (
         <div className="sb-mobile-overlay" onClick={closeMobile} />
       )}
 
       <aside className={`sidebar${sidebarMobileOpen ? " sidebar--open" : ""}`}>
-        {/* Logo + botón cerrar (X solo visible en móvil) */}
         <div className="sb-logo-area">
           <div className="sidebar-logo-mark">
             <img className="logoFabpsa" src={logoFabpsa} alt="FABPSA" />
           </div>
           <div className="sb-logo-text">
-            <span className="sb-logo-name">FABPSA</span>
-            <span className="sb-logo-sub">Mesa de Servicio</span>
+            <span className="sb-logo-name">PORTAL CORPORATIVO</span>
+            <span className="sb-logo-sub">FABPSA</span>
           </div>
           <button
             className="sb-close-btn"
@@ -115,69 +131,27 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {/* Navegación */}
         <nav className="sidebar-nav">
-          {NAV_SECTIONS.map((section) => (
-            <div key={section.label} className="sb-section">
-              <span className="sidebar-group-label">{section.label}</span>
-              <ul className="sidebar-group">
-                {section.items.map((item) => (
-                  <SidebarItem
-                    key={item.to}
-                    {...item}
-                    onNavigate={closeMobile}
-                  />
-                ))}
-              </ul>
-            </div>
-          ))}
+          {seccionesFiltradas.map(
+            (
+              section, // ← seccionesFiltradas en lugar de NAV_SECTIONS
+            ) => (
+              <div key={section.label} className="sb-section">
+                <span className="sidebar-group-label">{section.label}</span>
+                <ul className="sidebar-group">
+                  {section.items.map((item) => (
+                    <SidebarItem
+                      key={item.to}
+                      {...item}
+                      onNavigate={closeMobile}
+                    />
+                  ))}
+                </ul>
+              </div>
+            ),
+          )}
         </nav>
 
-        {/* Bottom: help card + theme toggle */}
-        <div className="sidebar-bottom">
-          <div className="sidebar-bottom-inner">
-            <div ref={helpRef}>
-              <div className="sb-help-card">
-                <div className="sb-help-card-header">
-                  <span className="sb-help-ico">
-                    <i className="ti ti-headset" />
-                  </span>
-                  <span className="sb-help-card-title">¿Necesitas ayuda?</span>
-                </div>
-                <p className="sb-help-card-desc">
-                  Nuestro equipo está listo para asistirte.
-                </p>
-                <button className="sb-help-btn" onClick={handleSupportClick}>
-                  <i className="ti ti-message-circle" />
-                  Contactar a soporte
-                  <i
-                    className={`ti ${supportOpen ? "ti-chevron-up" : "ti-chevron-down"} sb-help-chev`}
-                  />
-                </button>
-              </div>
-            </div>
-
-            <div className="sb-theme-row">
-              <i
-                className={`ti ${darkMode ? "ti-moon" : "ti-sun"} sb-theme-icon`}
-              />
-              <span className="sb-theme-label">
-                {darkMode ? "Modo oscuro" : "Modo claro"}
-              </span>
-              <button
-                className={`sb-theme-toggle${darkMode ? " on" : ""}`}
-                onClick={toggleTheme}
-                aria-label="Cambiar tema"
-                role="switch"
-                aria-checked={darkMode}
-              >
-                <span className="sb-theme-knob" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Popover soporte — position:fixed via JS */}
         <div
           className={`sb-support-popover${supportOpen ? " open" : ""}`}
           style={{ top: popoverTop }}

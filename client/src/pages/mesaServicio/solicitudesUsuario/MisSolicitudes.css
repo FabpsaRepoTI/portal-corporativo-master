@@ -1612,3 +1612,72 @@
     bottom: 70px;
   }
 }
+/* ═══════════════════════════════════════════════════════════════
+   Pegar al final de MisSolicitudes.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Pestaña Info: 4 columnas fijas — descripción no desplaza el resto */
+.msp-tab-content--info {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 1.25rem;
+}
+
+/* Descripción con altura máxima y scroll */
+.msp-descripcion-box {
+  max-height: 140px;
+  overflow-y: auto;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+.msp-descripcion-box::-webkit-scrollbar {
+  width: 4px;
+}
+.msp-descripcion-box::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* Secciones no crecen más allá de su columna */
+.msp-tab-content--info .msp-detail-section {
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Valores truncan en lugar de empujar */
+.msp-detail-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Panel expandido: altura máxima + scroll interno */
+.msp-detail .msp-tab-content {
+  max-height: 480px;
+  overflow-y: auto;
+}
+.msp-detail .msp-tab-content::-webkit-scrollbar {
+  width: 5px;
+}
+.msp-detail .msp-tab-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* Acciones siempre al fondo */
+.msp-detail-actions {
+  flex-shrink: 0;
+}
+
+@media (max-width: 1100px) {
+  .msp-tab-content--info {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+@media (max-width: 768px) {
+  .msp-tab-content--info {
+    grid-template-columns: 1fr;
+  }
+}

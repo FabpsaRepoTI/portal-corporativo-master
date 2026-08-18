@@ -1,0 +1,696 @@
+/* src/pages/cedis/FacturasCedis.css */
+
+/* ── ROOT ─────────────────────────────────────────── */
+.cedis-root {
+  min-height: 100dvh;
+  background: #f2f2f7;
+  color: #000;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── HEADER ───────────────────────────────────────── */
+.cedis-header {
+  background: #fff;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.2);
+  padding: 14px 20px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.cedis-header-left {
+  display: flex;
+  flex-direction: column;
+}
+.cedis-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #8e8e93;
+  margin-bottom: 1px;
+}
+.cedis-title {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  color: #000;
+}
+.cedis-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #007aff;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── TABS ─────────────────────────────────────────── */
+.cedis-tabs {
+  background: #fff;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.2);
+  display: flex;
+  padding: 0 8px;
+  position: sticky;
+  top: 57px;
+  z-index: 99;
+}
+.cedis-tab {
+  flex: 1;
+  padding: 10px 4px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #8e8e93;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 0.15s;
+}
+.cedis-tab.active {
+  color: #007aff;
+  border-bottom-color: #007aff;
+}
+
+/* ── MAIN ─────────────────────────────────────────── */
+.cedis-main {
+  padding-bottom: 40px;
+}
+
+/* ── SCAN PAD ─────────────────────────────────────── */
+.cedis-scan-pad {
+  padding: 20px 16px 0;
+}
+
+.cedis-scan-btn {
+  width: 100%;
+  background: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 15px;
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+  transition:
+    transform 0.12s,
+    opacity 0.12s;
+}
+.cedis-scan-btn svg {
+  width: 22px;
+  height: 22px;
+}
+.cedis-scan-btn:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+.cedis-sec-lbl {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  color: #8e8e93;
+  margin-bottom: 8px;
+  padding-left: 4px;
+}
+
+/* ── LAST SCAN CARD ───────────────────────────────── */
+.cedis-last-wrap {
+}
+.cedis-last-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+.cedis-last-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.cedis-last-icon.green {
+  background: #e8f8ed;
+  color: #1a8234;
+}
+.cedis-last-icon.amber {
+  background: #fff4e0;
+  color: #b36a00;
+}
+.cedis-last-icon.red {
+  background: #ffebe9;
+  color: #c0251c;
+}
+.cedis-last-folio {
+  font-size: 16px;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: -0.2px;
+}
+.cedis-last-client {
+  font-size: 13px;
+  color: #8e8e93;
+  margin-top: 2px;
+}
+
+/* ── COUNTERS ─────────────────────────────────────── */
+.cedis-counters {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.cedis-ctr {
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px 6px 10px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.cedis-ctr-n {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.cedis-ctr-n.total {
+  color: #000;
+}
+.cedis-ctr-n.green {
+  color: #34c759;
+}
+.cedis-ctr-n.amber {
+  color: #ff9500;
+}
+.cedis-ctr-n.red {
+  color: #ff3b30;
+}
+.cedis-ctr-l {
+  font-size: 10px;
+  font-weight: 500;
+  color: #8e8e93;
+}
+
+/* ── BADGES ───────────────────────────────────────── */
+.cedis-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+.cedis-badge.green {
+  background: #e8f8ed;
+  color: #1a8234;
+}
+.cedis-badge.amber {
+  background: #fff4e0;
+  color: #b36a00;
+}
+.cedis-badge.red {
+  background: #ffebe9;
+  color: #c0251c;
+}
+
+/* ── LIST PAD ─────────────────────────────────────── */
+.cedis-list-pad {
+  padding: 16px;
+}
+
+.cedis-pill-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 14px;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.cedis-pill-row::-webkit-scrollbar {
+  display: none;
+}
+.cedis-pill {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: inherit;
+  border: none;
+  background: #fff;
+  color: #8e8e93;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  transition: all 0.15s;
+}
+.cedis-pill.on {
+  background: #007aff;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+}
+
+.cedis-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+.cedis-search svg {
+  width: 16px;
+  height: 16px;
+  stroke: #8e8e93;
+  flex-shrink: 0;
+}
+.cedis-search input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 15px;
+  color: #000;
+}
+.cedis-search input::placeholder {
+  color: #c7c7cc;
+}
+
+/* ── GROUP / ROWS ─────────────────────────────────── */
+.cedis-group {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
+}
+.cedis-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  background: #fff;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.15);
+}
+.cedis-row.last {
+  border-bottom: none;
+}
+
+.cedis-pip {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.cedis-pip.green {
+  background: #34c759;
+}
+.cedis-pip.amber {
+  background: #ff9500;
+}
+.cedis-pip.red {
+  background: #ff3b30;
+}
+
+.cedis-rb {
+  flex: 1;
+  min-width: 0;
+}
+.cedis-rt {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+.cedis-r-folio {
+  font-size: 15px;
+  font-weight: 700;
+  color: #000;
+  letter-spacing: -0.2px;
+}
+.cedis-r-amt {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3c3c43;
+}
+.cedis-r-client {
+  font-size: 13px;
+  color: #8e8e93;
+  margin-bottom: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cedis-r-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.cedis-r-meta {
+  font-size: 11px;
+  color: #8e8e93;
+}
+
+/* ── HISTORIC SELECTS ─────────────────────────────── */
+.cedis-sel-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.cedis-ios-sel {
+  flex: 1;
+  background: #fff;
+  color: #000;
+  border: 0.5px solid rgba(60, 60, 67, 0.2);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ── STATE MESSAGES ───────────────────────────────── */
+.cedis-state-msg {
+  text-align: center;
+  color: #8e8e93;
+  font-size: 14px;
+  padding: 32px 20px;
+}
+.cedis-state-msg.error {
+  color: #ff3b30;
+}
+
+/* ── CAMERA MODAL ─────────────────────────────────── */
+.cedis-cam-wrap {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+}
+
+.cedis-cam-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  padding: 52px 20px 24px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.75), transparent);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+.cedis-cam-ey {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.cedis-cam-ttl {
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+}
+.cedis-cam-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.cedis-cam-body {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* html5-qrcode monta el video aquí */
+.cedis-cam-feed {
+  width: 100%;
+  height: 100%;
+}
+.cedis-cam-feed video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+/* Ocultar UI interna de html5-qrcode que no necesitamos */
+.cedis-cam-feed #cedis-qr-reader__scan_region {
+  border: none !important;
+}
+.cedis-cam-feed #cedis-qr-reader__dashboard {
+  display: none !important;
+}
+
+.cedis-cam-hint {
+  position: absolute;
+  bottom: 48px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 10;
+}
+.cedis-cam-hint span {
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 20px;
+  border-radius: 20px;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+}
+
+.cedis-cam-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  text-align: center;
+  padding: 24px;
+  z-index: 20;
+}
+.cedis-cam-error button {
+  background: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 28px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* ── RESULT BOTTOM SHEET ──────────────────────────── */
+.cedis-sheet-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(6px);
+  z-index: 600;
+  display: flex;
+  align-items: flex-end;
+}
+.cedis-sheet {
+  width: 100%;
+  background: #f2f2f7;
+  border-radius: 22px 22px 0 0;
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+  animation: cedisSheetUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+@keyframes cedisSheetUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.cedis-sheet-handle-row {
+  background: #f2f2f7;
+  padding: 10px 0 4px;
+  display: flex;
+  justify-content: center;
+}
+.cedis-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: #c7c7cc;
+}
+.cedis-sheet-body {
+  padding: 16px 20px 0;
+}
+
+.cedis-r-icon-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+.cedis-r-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+}
+.cedis-r-icon.green {
+  background: #e8f8ed;
+}
+.cedis-r-icon.amber {
+  background: #fff4e0;
+}
+.cedis-r-icon.red {
+  background: #ffebe9;
+}
+
+.cedis-r-title {
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+  margin-bottom: 4px;
+}
+.cedis-r-title.green {
+  color: #1a8234;
+}
+.cedis-r-title.amber {
+  color: #b36a00;
+}
+.cedis-r-title.red {
+  color: #c0251c;
+}
+
+.cedis-r-sub {
+  text-align: center;
+  font-size: 14px;
+  color: #8e8e93;
+  margin-bottom: 18px;
+  line-height: 1.4;
+}
+
+.cedis-info-block {
+  background: #fff;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+.cedis-i-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #fff;
+  border-bottom: 0.5px solid rgba(60, 60, 67, 0.15);
+}
+.cedis-i-row:last-child {
+  border-bottom: none;
+}
+.cedis-i-k {
+  font-size: 14px;
+  color: #8e8e93;
+  font-weight: 500;
+}
+.cedis-i-v {
+  font-size: 14px;
+  font-weight: 700;
+  color: #000;
+  text-align: right;
+  max-width: 60%;
+}
+.cedis-i-v.accent {
+  color: #007aff;
+}
+
+.cedis-s-btn {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.12s;
+  margin-bottom: 10px;
+}
+.cedis-s-btn:last-child {
+  margin-bottom: 0;
+}
+.cedis-s-btn:active {
+  opacity: 0.8;
+}
+.cedis-s-btn.primary {
+  background: #007aff;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25);
+}
+.cedis-s-btn.ghost {
+  background: #fff;
+  color: #007aff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}

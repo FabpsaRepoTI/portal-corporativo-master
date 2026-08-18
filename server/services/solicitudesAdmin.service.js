@@ -109,6 +109,7 @@ async function getSolicitudes({
       s.idUsuario, s.nombreUsuario, s.areaUsuario, s.sitioUsuario,
       s.tecnicoAsignado, s.nombreTecnico,
       s.slaRespuestaHrs, s.slaResolucionHrs,
+      sv.slaRespuestaMin, sv.slaResolucionMin,
       s.fechaLimiteResp, s.fechaLimiteResol,
       s.fechaCreacion, s.fechaActualizacion, s.fechaResolucion,
       s.tiempoAtencionMin, s.escalaA,
@@ -148,6 +149,7 @@ async function getSolicitudDetalle(idSolicitud) {
       s.idUsuario, s.nombreUsuario, s.areaUsuario, s.sitioUsuario,
       s.tecnicoAsignado, s.nombreTecnico,
       s.slaRespuestaHrs, s.slaResolucionHrs,
+      sv.slaRespuestaMin, sv.slaResolucionMin,
       s.fechaLimiteResp, s.fechaLimiteResol,
       s.fechaCreacion, s.fechaActualizacion, s.fechaResolucion,
       s.tiempoAtencionMin, s.escalaA,
@@ -233,7 +235,6 @@ async function asignar(idSolicitud, tecnicoLogin, nombreTecnico) {
       UPDATE solicitudTI
       SET tecnicoAsignado    = @tecnicoAsignado,
           nombreTecnico      = @nombreTecnico,
-          idEstatus          = CASE WHEN idEstatus = 1 THEN 2 ELSE idEstatus END,
           fechaActualizacion = GETDATE()
       WHERE idSolicitud = @idSolicitud
     `);

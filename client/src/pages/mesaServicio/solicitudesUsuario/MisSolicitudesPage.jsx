@@ -6,7 +6,6 @@ import "./MisSolicitudes.mobile.css";
 import HardwareMisSolicitudes from "./HardwareMisSolicitudes";
 import MisDesarrollosPage from "../solicitudesUsuario/MisDesarrollosPage";
 
-/* ─── Config ──────────────────────────────────────────────────── */
 const API = "";
 const STATIC_BASE = (() => {
   const h = window.location.hostname;
@@ -64,10 +63,16 @@ function isImage(mime) {
   return mime?.startsWith("image/");
 }
 
-/* ─── SLA info ────────────────────────────────────────────────── */
+/* ─── SLA — primera respuesta (fecha límite fija) ─────────────── */
 function getSlaInfo(fechaLimite) {
   if (!fechaLimite)
-    return { texto: "—", color: "var(--text-faint)", pct: 0, cls: "none" };
+    return {
+      texto: "—",
+      color: "var(--text-faint)",
+      pct: 0,
+      cls: "none",
+      min: null,
+    };
   const diff = new Date(fechaLimite) - new Date();
   const min = Math.floor(diff / 60000);
   const texto =
@@ -91,13 +96,128 @@ function getSlaInfo(fechaLimite) {
   };
 }
 
-/* ─── Estatus map ─────────────────────────────────────────────── */
+/* ─── SLA — resolución (misma lógica que Sistemas TI) ─────────── */
+function getSlaResolucionInfo(d) {
+  const {
+    idEstatus,
+    fechaInicioResolucion,
+    slaResolucionMin,
+    tiempoTotalPausaMin = 0,
+    fechaUltimaPausa,
+    tiempoAtencionMin,
+  } = d;
+
+  const slaMin = slaResolucionMin ?? null;
+
+  // Sin iniciar (no ha pasado a "En proceso")
+  if (!fechaInicioResolucion) {
+    return {
+      iniciado: false,
+      slaMin,
+      texto: "—",
+      color: "var(--text-faint)",
+      pct: 0,
+      min: null,
+      estado: "sin_iniciar",
+    };
+  }
+
+  // Ya resuelto/cerrado: usar tiempoAtencionMin guardado en BD
+  if ([3, 4].includes(idEstatus) && tiempoAtencionMin != null) {
+    const consumidoMin = tiempoAtencionMin;
+    const restante = (slaMin ?? 0) - consumidoMin;
+    return {
+      iniciado: true,
+      concluido: true,
+      slaMin,
+      consumidoMin,
+      tiempoReal: consumidoMin,
+      texto: restante >= 0 ? `${restante} min restantes` : "Vencida",
+      color: restante >= 0 ? "var(--success)" : "var(--danger)",
+      pct: Math.min(100, (consumidoMin / (slaMin || 1)) * 100),
+      min: restante,
+      estado: restante >= 0 ? "en_tiempo" : "vencido",
+    };
+  }
+
+  // En pausa: contador congelado
+  if (idEstatus === 6 && fechaUltimaPausa) {
+    const consumidoMin = Math.max(
+      0,
+      Math.floor(
+        (new Date(fechaUltimaPausa) - new Date(fechaInicioResolucion)) / 60000,
+      ) - (tiempoTotalPausaMin ?? 0),
+    );
+    const restante = (slaMin ?? 0) - consumidoMin;
+    return {
+      iniciado: true,
+      pausado: true,
+      slaMin,
+      consumidoMin,
+      texto: `${Math.max(0, restante)} min`,
+      color: "var(--warning)",
+      pct: Math.min(100, (consumidoMin / (slaMin || 1)) * 100),
+      min: restante,
+      estado: "pausado",
+    };
+  }
+
+  // Activo: tiempo corriendo
+  const ahora = new Date();
+  const transcurridoMin = Math.floor(
+    (ahora - new Date(fechaInicioResolucion)) / 60000,
+  );
+  const consumidoMin = Math.max(
+    0,
+    transcurridoMin - (tiempoTotalPausaMin ?? 0),
+  );
+  const restante = (slaMin ?? 0) - consumidoMin;
+  const estado =
+    restante < 0
+      ? "vencido"
+      : restante < 30
+        ? "critico"
+        : restante < 60
+          ? "en_riesgo"
+          : "en_tiempo";
+  const color =
+    restante < 0 || restante < 30
+      ? "var(--danger)"
+      : restante < 60
+        ? "var(--warning)"
+        : "var(--success)";
+  const texto =
+    restante < 0
+      ? "Vencida"
+      : restante < 60
+        ? `${restante} min`
+        : `${Math.floor(restante / 60)}h ${restante % 60}m`;
+  return {
+    iniciado: true,
+    slaMin,
+    consumidoMin,
+    texto,
+    color,
+    pct: Math.min(100, (consumidoMin / (slaMin || 1)) * 100),
+    min: restante,
+    estado,
+  };
+}
+
+/* ─── Estatus map — incluye estado 6 En pausa ─────────────────── */
 const ESTATUS_MAP = {
   1: { label: "Abierto", bg: "rgba(124,140,248,0.12)", color: "#7c8cf8" },
   2: { label: "En progreso", bg: "rgba(245,158,11,0.12)", color: "#f59e0b" },
   3: { label: "Resuelto", bg: "rgba(16,185,129,0.12)", color: "#10b981" },
   4: { label: "Cerrado", bg: "rgba(107,114,128,0.12)", color: "#6b7280" },
   5: { label: "Cancelado", bg: "rgba(239,68,68,0.12)", color: "#ef4444" },
+  6: { label: "En pausa", bg: "rgba(246,193,119,0.12)", color: "#f6c177" },
+  7: {
+    label: "En diagnóstico",
+    bg: "rgba(243,139,168,0.12)",
+    color: "#f38ba8",
+  },
+  8: { label: "Escalado", bg: "rgba(243,139,168,0.15)", color: "#f38ba8" },
 };
 
 function EstatusChip({ idEstatus, label }) {
@@ -139,7 +259,7 @@ function PrioChip({ nombre, color }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   EMPTY STATE
+   EMPTY STATE — sin cambios
    ═══════════════════════════════════════════════════════════════ */
 function EmptyState({ tipo, onAction }) {
   const configs = {
@@ -316,7 +436,7 @@ function EmptyState({ tipo, onAction }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MODAL CONFIRMAR CIERRE
+   MODAL CONFIRMAR CIERRE — sin cambios
    ═══════════════════════════════════════════════════════════════ */
 function ModalCerrarTicket({ onConfirm, onCancel }) {
   return (
@@ -348,7 +468,7 @@ function ModalCerrarTicket({ onConfirm, onCancel }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   POPOVER EVALUACIÓN
+   POPOVER EVALUACIÓN — sin cambios
    ═══════════════════════════════════════════════════════════════ */
 function EvalPopover({ ticketId, detalle, onEvaluado, onClose }) {
   const [estrellas, setEstrellas] = useState(0);
@@ -482,11 +602,43 @@ function EvalPopover({ ticketId, detalle, onEvaluado, onClose }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB: Información general
+   TAB: Información general — layout fijo, resolución estimada
+   corregida con getSlaResolucionInfo
    ═══════════════════════════════════════════════════════════════ */
 function TabInfoGeneral({ d }) {
+  const resolInfo = getSlaResolucionInfo(d);
+
+  // Texto de "Resolución estimada" consistente con Sistemas TI
+  let resolucionEstimada;
+  if (!resolInfo.iniciado) {
+    resolucionEstimada = (
+      <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
+        Sin iniciar — esperando "En proceso"
+      </span>
+    );
+  } else if (resolInfo.pausado) {
+    resolucionEstimada = (
+      <span style={{ color: "var(--warning)" }}>
+        ⏸ {resolInfo.texto} restantes (pausado)
+      </span>
+    );
+  } else if (resolInfo.concluido) {
+    resolucionEstimada = (
+      <span style={{ color: "var(--success)" }}>
+        {fmtTiempo(resolInfo.tiempoReal)} (resuelto)
+      </span>
+    );
+  } else {
+    resolucionEstimada = (
+      <span style={{ color: resolInfo.color, fontWeight: 600 }}>
+        {resolInfo.texto}
+      </span>
+    );
+  }
+
   return (
-    <div className="msp-tab-content">
+    <div className="msp-tab-content msp-tab-content--info">
+      {/* Col 1: Detalles */}
       <div className="msp-detail-section">
         <div className="msp-detail-section-title">Detalles</div>
         <div className="msp-detail-row">
@@ -514,11 +666,13 @@ function TabInfoGeneral({ d }) {
         )}
         <div className="msp-detail-row">
           <span className="msp-detail-label">Descripción</span>
-        </div>
-        <div className="msp-descripcion-box">
-          {d.descripcion || "Sin descripción."}
+          <div className="msp-descripcion-box">
+            {d.descripcion || "Sin descripción."}
+          </div>
         </div>
       </div>
+
+      {/* Col 2: Estado */}
       <div className="msp-detail-section">
         <div className="msp-detail-section-title">Estado</div>
         <div className="msp-detail-row">
@@ -548,6 +702,8 @@ function TabInfoGeneral({ d }) {
           </div>
         )}
       </div>
+
+      {/* Col 3: Asignación */}
       <div className="msp-detail-section">
         <div className="msp-detail-section-title">Asignación</div>
         <div className="msp-asignacion-card">
@@ -567,6 +723,8 @@ function TabInfoGeneral({ d }) {
           )}
         </div>
       </div>
+
+      {/* Col 4: Tiempos */}
       <div className="msp-detail-section">
         <div className="msp-detail-section-title">Tiempos</div>
         <div className="msp-tiempos-card">
@@ -576,6 +734,28 @@ function TabInfoGeneral({ d }) {
               {fmtFecha(d.fechaLimiteResp, true)}
             </span>
           </div>
+          <div className="msp-tiempo-row">
+            <span className="msp-tiempo-label">SLA respuesta</span>
+            <span className="msp-tiempo-val">
+              {d.slaRespuestaMin ?? "—"} min
+            </span>
+          </div>
+          <div className="msp-tiempo-row">
+            <span className="msp-tiempo-label">Inicio resolución</span>
+            <span className="msp-tiempo-val">
+              {fmtFecha(d.fechaInicioResolucion, true)}
+            </span>
+          </div>
+          <div className="msp-tiempo-row">
+            <span className="msp-tiempo-label">SLA resolución</span>
+            <span className="msp-tiempo-val">
+              {resolInfo.slaMin ?? "—"} min
+            </span>
+          </div>
+          <div className="msp-tiempo-row">
+            <span className="msp-tiempo-label">Resolución estimada</span>
+            <span className="msp-tiempo-val">{resolucionEstimada}</span>
+          </div>
           {d.tiempoAtencionMin != null && (
             <div className="msp-tiempo-row">
               <span className="msp-tiempo-label">Tiempo de atención</span>
@@ -584,12 +764,6 @@ function TabInfoGeneral({ d }) {
               </span>
             </div>
           )}
-          <div className="msp-tiempo-row">
-            <span className="msp-tiempo-label">Resolución estimada</span>
-            <span className="msp-tiempo-val">
-              {fmtFecha(d.fechaLimiteResol, true)}
-            </span>
-          </div>
         </div>
       </div>
     </div>
@@ -597,7 +771,7 @@ function TabInfoGeneral({ d }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB: Evidencias
+   TAB: Evidencias — sin cambios funcionales
    ═══════════════════════════════════════════════════════════════ */
 function TabEvidencias({ archivos, ticketId, onArchivoSubido }) {
   const [lightbox, setLightbox] = useState(null);
@@ -747,11 +921,11 @@ function TabEvidencias({ archivos, ticketId, onArchivoSubido }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB: SLA
+   TAB: SLA — misma lógica que Sistemas TI
    ═══════════════════════════════════════════════════════════════ */
 function TabSLA({ d }) {
   const slaResp = getSlaInfo(d.fechaLimiteResp);
-  const slaResol = getSlaInfo(d.fechaLimiteResol);
+  const resolInfo = getSlaResolucionInfo(d);
   const r = 36,
     circ = 2 * Math.PI * r;
 
@@ -782,44 +956,129 @@ function TabSLA({ d }) {
           />
         </svg>
         <div className="msp-sla-ring-center">
-          <span style={{ color: info.color, fontWeight: 700, fontSize: 13 }}>
+          <span
+            style={{
+              color: info.color,
+              fontWeight: 700,
+              fontSize: info.pausado ? 11 : 13,
+              lineHeight: 1.2,
+            }}
+          >
             {info.texto}
           </span>
           <span style={{ fontSize: 9, color: "var(--text-faint)" }}>
-            restante
+            {info.pausado ? "⏸ pausa" : "restante"}
           </span>
         </div>
       </div>
     );
   }
 
+  const estadoLabel = (i) =>
+    !i.iniciado
+      ? "Sin iniciar"
+      : i.pausado
+        ? "En pausa"
+        : i.concluido
+          ? i.min >= 0
+            ? "En tiempo"
+            : "Vencido"
+          : i.min == null
+            ? "—"
+            : i.min < 0
+              ? "Vencida"
+              : i.min < 60
+                ? "Crítico"
+                : i.min < 180
+                  ? "En riesgo"
+                  : "En tiempo";
+
+  const estadoBg = (i) =>
+    i.pausado
+      ? "rgba(246,193,119,0.12)"
+      : !i.iniciado
+        ? "rgba(148,163,184,0.1)"
+        : i.min == null || i.min < 0 || i.min < 60
+          ? "rgba(243,139,168,0.12)"
+          : i.min < 180
+            ? "rgba(246,193,119,0.12)"
+            : "rgba(76,201,166,0.12)";
+
   return (
     <div className="msp-tab-content">
       <div className="msp-sla-content">
         <div className="msp-sla-bloques">
-          {[
-            {
-              title: "Primera respuesta",
-              info: slaResp,
-              fecha: d.fechaLimiteResp,
-              hrs: d.slaRespuestaHrs,
-            },
-            {
-              title: "Resolución",
-              info: slaResol,
-              fecha: d.fechaLimiteResol,
-              hrs: d.slaResolucionHrs,
-            },
-          ].map((blk, i) => (
-            <div key={i} className="msp-sla-bloque">
-              <div className="msp-sla-bloque-title">{blk.title}</div>
+          {/* Primera respuesta */}
+          <div className="msp-sla-bloque">
+            <div className="msp-sla-bloque-title">Primera respuesta</div>
+            <div className="msp-sla-bloque-inner">
+              <Ring info={slaResp} />
+              <div className="msp-sla-bloque-rows">
+                <div className="msp-tiempo-row">
+                  <span className="msp-tiempo-label">Comprometida</span>
+                  <span className="msp-tiempo-val">
+                    {fmtFecha(d.fechaLimiteResp, true)}
+                  </span>
+                </div>
+                <div className="msp-tiempo-row">
+                  <span className="msp-tiempo-label">Tiempo restante</span>
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color: slaResp.color,
+                      fontSize: 12,
+                    }}
+                  >
+                    {slaResp.texto}
+                  </span>
+                </div>
+                <div className="msp-tiempo-row">
+                  <span className="msp-tiempo-label">SLA</span>
+                  <span className="msp-tiempo-val">
+                    {d.slaRespuestaMin ?? "—"} min
+                  </span>
+                </div>
+                <div className="msp-tiempo-row">
+                  <span className="msp-tiempo-label">Estado</span>
+                  <span
+                    className="msp-chip"
+                    style={{
+                      background: estadoBg(slaResp),
+                      color: slaResp.color,
+                      border: `1px solid ${slaResp.color}30`,
+                      fontSize: 11,
+                      padding: "2px 8px",
+                      borderRadius: 20,
+                    }}
+                  >
+                    {estadoLabel(slaResp)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Resolución */}
+          <div className="msp-sla-bloque">
+            <div className="msp-sla-bloque-title">Resolución</div>
+            {!resolInfo.iniciado ? (
+              <div className="msp-tac-nd">
+                <span>—</span>
+                <small>
+                  El SLA de resolución comienza cuando el ticket pase a{" "}
+                  <strong>En proceso</strong>.<br />
+                  SLA configurado:{" "}
+                  <strong>{resolInfo.slaMin ?? "—"} min</strong>
+                </small>
+              </div>
+            ) : (
               <div className="msp-sla-bloque-inner">
-                <Ring info={blk.info} />
+                <Ring info={resolInfo} />
                 <div className="msp-sla-bloque-rows">
                   <div className="msp-tiempo-row">
-                    <span className="msp-tiempo-label">Comprometida</span>
+                    <span className="msp-tiempo-label">Inicio</span>
                     <span className="msp-tiempo-val">
-                      {fmtFecha(blk.fecha, true)}
+                      {fmtFecha(d.fechaInicioResolucion, true)}
                     </span>
                   </div>
                   <div className="msp-tiempo-row">
@@ -827,23 +1086,50 @@ function TabSLA({ d }) {
                     <span
                       style={{
                         fontWeight: 600,
-                        color: blk.info.color,
+                        color: resolInfo.color,
                         fontSize: 12,
                       }}
                     >
-                      {blk.info.texto}
+                      {resolInfo.texto}
+                      {resolInfo.pausado ? " ⏸" : ""}
                     </span>
                   </div>
-                  {blk.hrs && (
+                  <div className="msp-tiempo-row">
+                    <span className="msp-tiempo-label">SLA</span>
+                    <span className="msp-tiempo-val">
+                      {resolInfo.slaMin ?? "—"} min
+                    </span>
+                  </div>
+                  {resolInfo.concluido && (
                     <div className="msp-tiempo-row">
-                      <span className="msp-tiempo-label">SLA comprometido</span>
-                      <span className="msp-tiempo-val">{blk.hrs}h</span>
+                      <span className="msp-tiempo-label">Tiempo real</span>
+                      <span className="msp-tiempo-val">
+                        {fmtTiempo(resolInfo.tiempoReal)}
+                      </span>
                     </div>
                   )}
+                  <div className="msp-tiempo-row">
+                    <span className="msp-tiempo-label">Estado</span>
+                    <span
+                      className="msp-chip"
+                      style={{
+                        background: estadoBg(resolInfo),
+                        color: resolInfo.color,
+                        border: `1px solid ${resolInfo.color}30`,
+                        fontSize: 11,
+                        padding: "2px 8px",
+                        borderRadius: 20,
+                      }}
+                    >
+                      {estadoLabel(resolInfo)}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            )}
+          </div>
+
+          {/* Tiempo de atención */}
           <div className="msp-sla-bloque">
             <div className="msp-sla-bloque-title">Tiempo de atención</div>
             {d.tiempoAtencionMin != null ? (
@@ -864,18 +1150,16 @@ function TabSLA({ d }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB: Comentarios
+   TAB: Comentarios — sin cambios
    ═══════════════════════════════════════════════════════════════ */
 function TabComentarios({ d, ticketId, user, onNuevoComentario }) {
-  const [texto, setTexto] = useState("");
-  const [enviando, setEnviando] = useState(false);
+  const [texto, setTexto] = useState(""),
+    [enviando, setEnviando] = useState(false);
   const ref = useRef(null);
   const cerrado = [4, 5].includes(d.idEstatus);
-
   useEffect(() => {
     if (ref.current) ref.current.scrollTop = ref.current.scrollHeight;
   }, [d.comentarios]);
-
   async function enviar() {
     if (!texto.trim() || enviando) return;
     setEnviando(true);
@@ -901,7 +1185,6 @@ function TabComentarios({ d, ticketId, user, onNuevoComentario }) {
       enviar();
     }
   }
-
   return (
     <div className="msp-tab-content">
       <div className="msp-conv-content">
@@ -980,7 +1263,7 @@ function TabComentarios({ d, ticketId, user, onNuevoComentario }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Panel expandido
+   Panel expandido — sin cambios en permisos/acciones
    ═══════════════════════════════════════════════════════════════ */
 function DetalleExpandido({
   id,
@@ -988,6 +1271,7 @@ function DetalleExpandido({
   initialTab,
   onAccionCancelar,
   onRefresh,
+  refreshTick,
 }) {
   const [detalle, setDetalle] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -1019,7 +1303,7 @@ function DetalleExpandido({
 
   useEffect(() => {
     cargar();
-  }, [cargar]);
+  }, [cargar, refreshTick]);
 
   function onNuevoComentario(c) {
     setDetalle((p) => ({ ...p, comentarios: [...(p.comentarios || []), c] }));
@@ -1043,7 +1327,6 @@ function DetalleExpandido({
       setCerrando(false);
     }
   }
-
   async function handleReabrir() {
     setReabriendo(true);
     try {
@@ -1060,7 +1343,6 @@ function DetalleExpandido({
       setReabriendo(false);
     }
   }
-
   function puedeReabrir() {
     if (!detalle || detalle.idEstatus !== 4) return false;
     if (!detalle.fechaResolucion) return false;
@@ -1127,7 +1409,6 @@ function DetalleExpandido({
               </button>
             ))}
           </div>
-
           {tab === "info" && <TabInfoGeneral d={detalle} />}
           {tab === "evidencias" && (
             <TabEvidencias
@@ -1145,7 +1426,6 @@ function DetalleExpandido({
               onNuevoComentario={onNuevoComentario}
             />
           )}
-
           <div className="msp-detail-actions">
             <span className="msp-detail-actions-label">Acciones</span>
             <button
@@ -1273,6 +1553,7 @@ const ESTATUS_INC_OPTS = [
   { value: 3, label: "Resuelto" },
   { value: 4, label: "Cerrado" },
   { value: 5, label: "Cancelado" },
+  { value: 6, label: "En pausa" },
 ];
 const PRIORIDAD_OPTS = [
   { value: "", label: "Prioridad: Todas" },
@@ -1297,7 +1578,6 @@ export default function MisSolicitudesPage() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-
   const [mainTab, setMainTab] = useState("incidencias");
   const [kpis, setKpis] = useState(null);
   const [kpisHw, setKpisHw] = useState(null);
@@ -1306,23 +1586,31 @@ export default function MisSolicitudesPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [pendingTab, setPendingTab] = useState(null);
   const [buscar, setBuscar] = useState("");
+
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  // Polling silencioso cada 20s
+  const pollingRef = useRef(null);
+  const expandedIdRef = useRef(null);
+  expandedIdRef.current = expandedId;
   const [filtroEstatus, setFiltroEstatus] = useState("");
   const [filtroPrioridad, setFiltroPrioridad] = useState("");
 
-  /* ── Navegación inteligente desde notificaciones ── */
   useEffect(() => {
-    const folio = searchParams.get("folio");
-    const tab = searchParams.get("tab");
+    const folio = searchParams.get("folio"),
+      tab = searchParams.get("tab");
     if (!folio || !solicitudes.length) return;
     const found = solicitudes.find((s) => s.folio === folio);
     if (found) {
       setExpandedId(found.idSolicitud);
       if (tab) setPendingTab(tab);
-      setTimeout(() => {
-        document
-          .getElementById(`row-${found.idSolicitud}`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 300);
+      setTimeout(
+        () =>
+          document
+            .getElementById(`row-${found.idSolicitud}`)
+            ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+        300,
+      );
     }
   }, [searchParams, solicitudes]);
 
@@ -1365,6 +1653,30 @@ export default function MisSolicitudesPage() {
   useEffect(() => {
     fetchLista();
   }, [fetchLista]);
+
+  // Polling silencioso: actualiza grid y detalle abierto sin loader
+  useEffect(() => {
+    if (mainTab !== "incidencias") return;
+    pollingRef.current = setInterval(async () => {
+      // Refrescar lista silenciosamente
+      const p = new URLSearchParams();
+      if (filtroEstatus) p.set("estatus", filtroEstatus);
+      if (filtroPrioridad) p.set("prioridad", filtroPrioridad);
+      if (buscar.trim()) p.set("buscar", buscar.trim());
+      try {
+        const r = await fetch(`${API}/api/solicitudes-usuario?${p}`, {
+          headers: authH(),
+        });
+        const data = await r.json();
+        if (Array.isArray(data)) setSolicitudes(data);
+      } catch {}
+      // Si hay detalle abierto, incrementar tick para forzar recarga
+      if (expandedIdRef.current) {
+        setRefreshTick((t) => t + 1);
+      }
+    }, 20000);
+    return () => clearInterval(pollingRef.current);
+  }, [mainTab, filtroEstatus, filtroPrioridad, buscar]);
 
   function switchTab(key) {
     setMainTab(key);
@@ -1545,7 +1857,6 @@ export default function MisSolicitudesPage() {
 
         {/* Tabla card */}
         <div className="msp-table-card">
-          {/* Tabs principales */}
           <div className="msp-main-tabs">
             {MAIN_TABS.map((t) => (
               <button
@@ -1580,7 +1891,6 @@ export default function MisSolicitudesPage() {
             ))}
           </div>
 
-          {/* Toolbar */}
           <div className="msp-toolbar">
             <div className="msp-search-wrap">
               <i className="ti ti-search msp-search-icon" />
@@ -1640,18 +1950,14 @@ export default function MisSolicitudesPage() {
             )}
           </div>
 
-          {/* Tab hardware */}
           {mainTab === "hardware" && (
             <HardwareMisSolicitudes
               buscar={buscar}
               filtroEstatus={filtroEstatus}
             />
           )}
-
-          {/* Tab software — Mis desarrollos */}
           {mainTab === "software" && <MisDesarrollosPage embebido />}
 
-          {/* Tab incidencias */}
           {mainTab === "incidencias" && (
             <div className="msp-table-wrap">
               <table className="msp-table">
@@ -1702,8 +2008,54 @@ export default function MisSolicitudesPage() {
                   {!loading &&
                     solicitudes.map((s) => {
                       const isExpanded = expandedId === s.idSolicitud;
-                      const sla = getSlaInfo(s.fechaLimiteResp);
                       const resuelto = [3, 4, 5].includes(s.idEstatus);
+                      const enPausa = s.idEstatus === 6;
+
+                      // SLA restante: en proceso → resolución. Resto → primera respuesta.
+                      let slaDisplay;
+                      if (resuelto) {
+                        slaDisplay = (
+                          <span className="msp-sla ok">
+                            <i className="ti ti-circle-check" />
+                            Atendido
+                          </span>
+                        );
+                      } else if (enPausa) {
+                        slaDisplay = (
+                          <span
+                            className="msp-sla"
+                            style={{ color: "#f6c177" }}
+                          >
+                            ⏸ En pausa
+                          </span>
+                        );
+                      } else if (s.idEstatus === 2 && s.fechaInicioResolucion) {
+                        const ri = getSlaResolucionInfo(s);
+                        slaDisplay = (
+                          <span
+                            className={`msp-sla ${ri.min != null && ri.min < 0 ? "danger" : ri.min != null && ri.min < 60 ? "warn" : "ok"}`}
+                            style={{ color: ri.color }}
+                          >
+                            {ri.texto}
+                          </span>
+                        );
+                      } else {
+                        const sla = getSlaInfo(s.fechaLimiteResp);
+                        slaDisplay = (
+                          <span
+                            className={`msp-sla ${sla.cls}`}
+                            style={{ color: sla.color }}
+                          >
+                            {sla.cls !== "none" && (
+                              <i
+                                className={`ti ${sla.cls === "danger" ? "ti-trending-up" : "ti-clock"}`}
+                              />
+                            )}
+                            {sla.texto}
+                          </span>
+                        );
+                      }
+
                       return [
                         <tr
                           key={s.idSolicitud}
@@ -1771,26 +2123,7 @@ export default function MisSolicitudesPage() {
                               <span className="msp-no-asign">Sin asignar</span>
                             )}
                           </td>
-                          <td>
-                            {resuelto ? (
-                              <span className="msp-sla ok">
-                                <i className="ti ti-circle-check" />
-                                Atendido
-                              </span>
-                            ) : (
-                              <span
-                                className={`msp-sla ${sla.cls}`}
-                                style={{ color: sla.color }}
-                              >
-                                {sla.cls !== "none" && (
-                                  <i
-                                    className={`ti ${sla.cls === "danger" ? "ti-trending-up" : "ti-clock"}`}
-                                  />
-                                )}
-                                {sla.texto}
-                              </span>
-                            )}
-                          </td>
+                          <td>{slaDisplay}</td>
                           <td className="msp-fecha">
                             {fmtFecha(s.fechaCreacion, true)}
                           </td>
@@ -1798,7 +2131,6 @@ export default function MisSolicitudesPage() {
                             {fmtTiempo(s.tiempoAtencionMin)}
                           </td>
                         </tr>,
-
                         isExpanded && (
                           <tr
                             key={`exp-${s.idSolicitud}`}
@@ -1810,6 +2142,7 @@ export default function MisSolicitudesPage() {
                                 user={user}
                                 initialTab={pendingTab}
                                 onAccionCancelar={cancelarSolicitud}
+                                refreshTick={refreshTick}
                                 onRefresh={() => {
                                   fetchLista();
                                   cargarKpis();

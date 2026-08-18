@@ -12,18 +12,18 @@ import LoginPage from "./pages/LoginPage";
 import MesaDeServicioPage from "./pages/mesaServicio/paginaPrincipal/MesaDeServicioPage";
 import HardwarePage from "./pages/mesaServicio/hardware/HardwarePage";
 import HardwareSolicitudesPage from "./pages/mesaServicio/hardware/HardwareSolicitudesPage";
-//import ReporteIncidentePage from "./pages/mesaServicio/reporteIncidenciasUsuario/ReporteIncidentePage";
 import PageLoader from "./components/PageLoader";
-//import SolicitudPage from "./pages/mesaServicio/atencionIncidencias/solicitudServicio/SolicitudPage";
 import SolicitudPage from "./pages/mesaServicio/solicitudServicio/SolicitudPage";
 import MisSolicitudesPage from "./pages/mesaServicio/solicitudesUsuario/MisSolicitudesPage";
-//import MesaAyudaAdminPage from "./pages/mesaServicio/solicitudServicio/MesaAyudaAdminPage";
 import MesaAyudaAdminPage from "./pages/mesaServicio/atencionIncidencias/AtencionIncidenciasPage";
 import MesaDeServicioAdminPage from "./pages/mesaServicio/MesaDeServicioAdminPage";
 import NuevoDesarrolloPage from "./pages/mesaServicio/desarrolloSoftware/NuevoDesarrolloPage";
 import MisDesarrollosPage from "./pages/mesaServicio/solicitudesUsuario/MisDesarrollosPage";
-
+import BlogAdminPage from "./pages/blog/BlogAdminPage";
+import FacturasCedisPage from "./pages/cedis/FacturasCedisPage";
+import BlogPage from "./pages/blog/BlogPage";
 import UsuariosPage from "./pages/admin/UsuariosPage";
+import VisorEjecutivoPage from "./pages/VisorEjecutivoPage";
 
 import "./App.css";
 
@@ -55,7 +55,15 @@ function AppLayout() {
               path="/cultura-digital"
               element={
                 <PageLoader>
-                  <CulturaDigitalPage />
+                  <BlogPage />{" "}
+                </PageLoader>
+              }
+            />
+            <Route
+              path="/cultura-digital/admin"
+              element={
+                <PageLoader>
+                  <BlogAdminPage />{" "}
                 </PageLoader>
               }
             />
@@ -131,6 +139,14 @@ function AppLayout() {
             />
 
             <Route
+              path="/cedis/facturas"
+              element={
+                <ProtectedRoute modulo="escaner">
+                  <FacturasCedisPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/configuracion/usuarios"
               element={
                 <PageLoader>
@@ -146,6 +162,8 @@ function AppLayout() {
               path="/mesa-de-servicio/mis-desarrollos"
               element={<MisDesarrollosPage />}
             />
+
+            <Route path="/visor-ti" element={<VisorEjecutivoPage />} />
           </Routes>
         </main>
         <Footer />

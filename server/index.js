@@ -36,6 +36,7 @@ app.use(
         "http://192.168.16.198:3550",
         "http://201.151.218.138",
         "http://201.151.218.138:3550",
+        "https://commence-sank-swinger.ngrok-free.dev",
       ];
 
       // También permitir cualquier puerto de las IPs conocidas
@@ -57,8 +58,8 @@ app.use(
     credentials: true,
   }),
 );
-
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "../client/public")));
 
 app.use(
@@ -77,6 +78,11 @@ app.use(
       ? process.env.UPLOADS_DIR
       : path.join(__dirname, "../uploads"),
   ),
+);
+
+app.use(
+  "/uploads/blog",
+  express.static(path.join(__dirname, "../uploads/blog")),
 );
 
 // AGREGAR ESTA LÍNEA — sirve también desde server/uploads/
@@ -113,6 +119,24 @@ app.use("/api/usuarios", usuariosRouter);
 
 const solicitudesDesarrollo = require("./routes/solicitudesDesarrollo.routes");
 app.use("/api/solicitudes-desarrollo", solicitudesDesarrollo);
+
+const homeRoutes = require("./routes/home.routes");
+app.use("/api/home", homeRoutes);
+
+const cedisRoutes = require("./routes/cedis.routes");
+app.use("/api/cedis", cedisRoutes);
+
+// si están en subcarpetas:
+app.use("/api/blog", require("./routes/blog.routes"));
+app.use("/api/blog", require("./routes/blog.trivia.routes"));
+
+app.use("/api/permisos", require("./routes/permisos.routes"));
+
+const perfilRoutes = require("./routes/perfil.routes");
+app.use("/api/perfil", perfilRoutes);
+
+const ejecutivoRoutes = require("./routes/ejecutivo.routes");
+app.use("/api/ejecutivo", ejecutivoRoutes);
 
 app.get("/", (req, res) => {
   res.send("API FABPSA funcionando en intranet");

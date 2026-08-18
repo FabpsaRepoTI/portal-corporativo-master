@@ -88,7 +88,7 @@ function getServicioIcono(nombre, iconoBD) {
 // Convierte horas a minutos para mostrar en UI
 function hrsAMin(hrs) {
   if (!hrs && hrs !== 0) return null;
-  return Math.round(parseFloat(hrs) * 60);
+  return Math.round(parseFloat(hrs));
 }
 
 function getSlaInfo(fechaLimite) {
@@ -120,14 +120,14 @@ function getSlaResolucionInfo(sol) {
   const {
     idEstatus,
     fechaInicioResolucion,
-    slaResolucionHrs,
+    slaResolucionMin,
     tiempoTotalPausaMin = 0,
     fechaUltimaPausa,
     fechaResolucion,
     tiempoAtencionMin,
   } = sol;
 
-  const slaMin = hrsAMin(slaResolucionHrs);
+  const slaMin = slaResolucionMin ?? null; // ya viene en minutos desde cat_servicioTI
 
   // Antes de "En proceso": no iniciado
   if (!fechaInicioResolucion) {
@@ -172,7 +172,7 @@ function getSlaResolucionInfo(sol) {
       pausado: true,
       slaMin,
       consumidoMin: Math.max(0, consumidoMin),
-      texto: `En pausa · ${Math.max(0, restante)} min restantes`,
+      texto: `${Math.max(0, restante)} min`,
       color: "var(--warning)",
       pct: Math.min(100, (Math.max(0, consumidoMin) / (slaMin || 1)) * 100),
       min: restante,
@@ -457,7 +457,7 @@ function TabInfoGeneral({ sol, onRecargar }) {
             </div>
             <div className="mha-sla-row-item">
               <span>SLA primera respuesta</span>
-              <strong>{hrsAMin(sol.slaRespuestaHrs) ?? "—"} min</strong>
+              <strong>{sol.slaRespuestaMin ?? "—"} min</strong>
             </div>
             <div className="mha-sla-row-item">
               <span>T. restante respuesta</span>
@@ -781,11 +781,18 @@ function TabSLA({ sol }) {
           />
         </svg>
         <div className="mha-sla-ring-center">
-          <span style={{ color: info.color, fontWeight: 600, fontSize: 15 }}>
+          <span
+            style={{
+              color: info.color,
+              fontWeight: 600,
+              fontSize: info.pausado ? 13 : 15,
+              lineHeight: 1.2,
+            }}
+          >
             {info.texto}
           </span>
           <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
-            restante
+            {info.pausado ? "⏸ pausa" : "restante"}
           </span>
         </div>
       </div>
@@ -831,7 +838,7 @@ function TabSLA({ sol }) {
             <div className="mha-sla-row-item">
               <span>SLA</span>
               {/* En minutos */}
-              <strong>{hrsAMin(sol.slaRespuestaHrs) ?? "—"} min</strong>
+              <strong>{sol.slaRespuestaMin ?? "—"} min</strong>
             </div>
             <div className="mha-sla-row-item">
               <span>Estado</span>
@@ -1439,63 +1446,83 @@ function BarraAcciones({ sol, onAccion }) {
     );
 
   const sinResponsable = !sol.tecnicoAsignado;
+  const enPausa = sol.idEstatus === 6;
   const stop = (fn) => (e) => {
     e.stopPropagation();
     fn();
   };
-  const tooltip = sinResponsable
-    ? "Asigna un responsable antes de realizar acciones sobre este ticket."
-    : "";
+
+  // Sin responsable: solo Asignarme + Transferir (para asignar a alguien más)
+  if (sinResponsable) {
+    return (
+      <div className="mha-action-bar">
+        <span className="mha-action-label">Acciones rápidas</span>
+        <button
+          className="mha-action-btn mha-action-btn--primary"
+          onClick={stop(() => onAccion("asignar"))}
+        >
+          <i className="ti ti-user-plus" /> Asignarme el incidente
+        </button>
+        <button
+          className="mha-action-btn mha-action-btn--outline"
+          onClick={stop(() => onAccion("transferir"))}
+        >
+          <i className="ti ti-transfer" /> Asignar a otro ingeniero{" "}
+          <i className="ti ti-chevron-down" />
+        </button>
+        <span
+          style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 4 }}
+        >
+          Asigna un responsable para habilitar el resto de acciones.
+        </span>
+      </div>
+    );
+  }
+
+  // En pausa: solo Reanudar
+  if (enPausa) {
+    return (
+      <div className="mha-action-bar">
+        <span className="mha-action-label">Ticket en pausa</span>
+        <button
+          className="mha-action-btn mha-action-btn--primary"
+          onClick={stop(() => onAccion("reanudar"))}
+        >
+          <i className="ti ti-player-play" /> Reanudar
+        </button>
+        <span style={{ fontSize: 11, color: "var(--warning)", marginLeft: 4 }}>
+          El SLA está pausado. Reanuda el ticket para continuar.
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="mha-action-bar">
       <span className="mha-action-label">Acciones rápidas</span>
-
-      {/* Asignar siempre disponible */}
       <button
         className="mha-action-btn mha-action-btn--primary"
         onClick={stop(() => onAccion("asignar"))}
       >
         <i className="ti ti-user-plus" /> Asignarme el incidente
       </button>
-
-      {/* El resto requiere responsable */}
       <button
         className="mha-action-btn mha-action-btn--outline"
-        title={tooltip}
-        disabled={sinResponsable}
         onClick={stop(() => onAccion("estatus"))}
       >
         <i className="ti ti-refresh" /> Cambiar estado{" "}
         <i className="ti ti-chevron-down" />
       </button>
-
-      {/* Pausa / Reanudar según estatus */}
       {sol.idEstatus === 2 && (
         <button
           className="mha-action-btn mha-action-btn--outline"
-          title={tooltip}
-          disabled={sinResponsable}
           onClick={stop(() => onAccion("pausar"))}
         >
           <i className="ti ti-player-pause" /> Pausar
         </button>
       )}
-      {sol.idEstatus === 6 && (
-        <button
-          className="mha-action-btn mha-action-btn--outline"
-          title={tooltip}
-          disabled={sinResponsable}
-          onClick={stop(() => onAccion("reanudar"))}
-        >
-          <i className="ti ti-player-play" /> Reanudar
-        </button>
-      )}
-
       <button
         className="mha-action-btn mha-action-btn--outline"
-        title={tooltip}
-        disabled={sinResponsable}
         onClick={stop(() => onAccion("prioridad"))}
       >
         <i className="ti ti-flag" /> Cambiar prioridad{" "}
@@ -1503,8 +1530,6 @@ function BarraAcciones({ sol, onAccion }) {
       </button>
       <button
         className="mha-action-btn mha-action-btn--outline"
-        title={tooltip}
-        disabled={sinResponsable}
         onClick={stop(() => onAccion("transferir"))}
       >
         <i className="ti ti-transfer" /> Transferir incidente{" "}
@@ -1512,8 +1537,6 @@ function BarraAcciones({ sol, onAccion }) {
       </button>
       <button
         className="mha-action-btn mha-action-btn--outline"
-        title={tooltip}
-        disabled={sinResponsable}
         onClick={stop(() => onAccion("escalar"))}
       >
         <i className="ti ti-arrow-up-circle" /> Escalar incidente{" "}
@@ -1521,8 +1544,6 @@ function BarraAcciones({ sol, onAccion }) {
       </button>
       <button
         className="mha-action-btn mha-action-btn--green"
-        title={tooltip}
-        disabled={sinResponsable}
         onClick={stop(() => onAccion("resolver"))}
       >
         <i className="ti ti-circle-check" /> Marcar como resuelto
@@ -1659,7 +1680,10 @@ function MobileCard({
   onNuevoComentario,
   onRecargar,
 }) {
-  const { texto: slaTxt, color: slaColor } = getSlaInfo(s.fechaLimiteResp);
+  // En proceso: SLA resolución. Resto: primera respuesta.
+  const slaGridInfo =
+    s.idEstatus === 2 ? getSlaResolucionInfo(s) : getSlaInfo(s.fechaLimiteResp);
+  const { texto: slaTxt, color: slaColor } = slaGridInfo;
   const icono = getServicioIcono(s.servicio, s.servicioIcono);
   const bloqueado = ticketBloqueado(s);
   const sinResponsable = !s.tecnicoAsignado;
@@ -1900,7 +1924,7 @@ export default function MesaAyudaAdminPage() {
     const id = sol?.idSolicitud;
     if (!id) return;
 
-    // Asignar: siempre permitido
+    // Asignar (propio) y transferir (a otro): siempre permitidos, no requieren responsable previo
     if (tipo === "asignar") {
       await apiFetch(`/api/mesa-admin/solicitudes/${id}/asignar`, {
         method: "PUT",
@@ -1910,8 +1934,12 @@ export default function MesaAyudaAdminPage() {
       recargarDetalle(id);
       return;
     }
+    if (tipo === "transferir") {
+      setModal({ tipo: "transferir", sol });
+      return;
+    }
 
-    // Para el resto: validar responsable en frontend también
+    // Para el resto de acciones operativas: validar responsable
     if (!sol.tecnicoAsignado) {
       mostrarToast(
         "error",
@@ -2340,9 +2368,13 @@ export default function MesaAyudaAdminPage() {
             )}
             {!loading &&
               solicitudes.map((s) => {
-                const { texto: slaTxt, color: slaColor } = getSlaInfo(
-                  s.fechaLimiteResp,
-                );
+                // En proceso (2): mostrar SLA de resolución. Resto: primera respuesta.
+                const slaGridInfo =
+                  s.idEstatus === 2
+                    ? getSlaResolucionInfo(s)
+                    : getSlaInfo(s.fechaLimiteResp);
+                const slaTxt = slaGridInfo.texto;
+                const slaColor = slaGridInfo.color;
                 const isExp = expandido === s.idSolicitud,
                   det = detalles[s.idSolicitud];
                 const icono = getServicioIcono(s.servicio, s.servicioIcono),

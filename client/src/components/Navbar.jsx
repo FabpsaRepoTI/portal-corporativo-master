@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import { useAuth } from "../hooks/useAuth";
 import NotificationBell from "./NotificationBell";
+import ModalMiPerfil from "./ModalMiPerfil";
 
 export default function Navbar() {
   const { theme, toggle } = useTheme();
@@ -28,12 +29,18 @@ export default function Navbar() {
   const [city, setCity] = useState("Ubicación");
   const [neighborhood, setNeighborhood] = useState("");
   const [weatherCode, setWeatherCode] = useState(null);
+  const [perfilOpen, setPerfilOpen] = useState(false);
 
   const dropdownRef = useRef(null);
 
   function handleLogout() {
     logout();
     navigate("/login");
+  }
+
+  function handleAbrirPerfil() {
+    setMenuOpen(false); // cierra el dropdown
+    setPerfilOpen(true); // abre el modal
   }
 
   /* ── Scroll ── */
@@ -124,208 +131,219 @@ export default function Navbar() {
     usd !== null ? (Math.floor(usd * 100) / 100).toFixed(2) : "—";
 
   return (
-    <nav
-      className={`navbar ${scrolled ? "navbar--scrolled" : ""} navbar--${theme}`}
-    >
-      {/* ── LEFT (solo móvil) ── */}
-      <div className="navbar-left">
-        <button
-          className="nb-hamburger"
-          aria-label="Abrir menú"
-          onClick={() =>
-            document.dispatchEvent(new CustomEvent("sidebar:toggle"))
-          }
-        >
-          <i className="ti ti-menu-2" />
-        </button>
-      </div>
-      {/* ── RIGHT ── */}
-      <div className="navbar-right">
-        {/* Clima */}
-        <div
-          className="nb-widget nb-widget--weather"
-          title={`${city}${neighborhood ? ` · ${neighborhood}` : ""}`}
-        >
-          <i
-            className={`${weatherIcon} nb-widget-icon nb-widget-icon--weather`}
-            aria-hidden="true"
-          />
-          <div className="nb-widget-body">
-            <span className="nb-widget-val">{temp ?? "—"}°</span>
-            <span className="nb-widget-sub">{city}</span>
-          </div>
-        </div>
-
-        <span className="nb-divider" aria-hidden="true" />
-
-        {/* USD/MXN */}
-        <div
-          className="nb-widget nb-widget--usd"
-          title="Tipo de cambio USD/MXN"
-        >
-          <span
-            className="nb-widget-icon nb-widget-icon--usd"
-            aria-hidden="true"
-          >
-            $
-          </span>
-          <div className="nb-widget-body">
-            <span className="nb-widget-val">
-              {usdDisplay}
-              {trend && (
-                <span
-                  className={`nb-trend nb-trend--${trend}`}
-                  aria-label={trend === "up" ? "al alza" : "a la baja"}
-                >
-                  {trend === "up" ? "▲" : "▼"}
-                </span>
-              )}
-            </span>
-            <span className="nb-widget-sub">USD/MXN</span>
-          </div>
-        </div>
-
-        <span className="nb-divider" aria-hidden="true" />
-
-        {/* Toggle dark/light */}
-        <button
-          className="nb-theme-toggle"
-          onClick={() => toggle(theme === "dark" ? "light" : "dark")}
-          title={
-            theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"
-          }
-          aria-label={
-            theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"
-          }
-        >
-          <span className="nb-theme-track">
-            <span className="nb-theme-thumb">
-              {theme === "dark" ? (
-                <i className="ti ti-moon" aria-hidden="true" />
-              ) : (
-                <i className="ti ti-sun" aria-hidden="true" />
-              )}
-            </span>
-          </span>
-        </button>
-
-        <span className="nb-divider" aria-hidden="true" />
-
-        {/* Campana */}
-        <NotificationBell />
-
-        <span className="nb-divider" aria-hidden="true" />
-
-        {/* Perfil */}
-        <div className="nb-profile-wrapper" ref={dropdownRef}>
+    <>
+      <nav
+        className={`navbar ${scrolled ? "navbar--scrolled" : ""} navbar--${theme}`}
+      >
+        {/* ── LEFT (solo móvil) ── */}
+        <div className="navbar-left">
           <button
-            className={`nb-profile-trigger ${menuOpen ? "nb-profile-trigger--open" : ""}`}
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-expanded={menuOpen}
-            aria-haspopup="true"
+            className="nb-hamburger"
+            aria-label="Abrir menú"
+            onClick={() =>
+              document.dispatchEvent(new CustomEvent("sidebar:toggle"))
+            }
           >
-            {user?.picture ? (
-              <img
-                src={user.picture}
-                alt={user.name}
-                className="nb-avatar nb-avatar--img"
-              />
-            ) : (
-              <div className="nb-avatar nb-avatar--initials">{initials}</div>
-            )}
-            <div className="nb-profile-info">
-              <span className="nb-profile-name">
-                {user?.name?.split(" ")[0] ?? "Usuario"}&nbsp;
-                {user?.name?.split(" ").slice(-1)[0]?.[0] ?? ""}.
-              </span>
-              <span className="nb-profile-dept">
-                {user?.area || user?.role || "Colaborador"}
-              </span>
-            </div>
+            <i className="ti ti-menu-2" />
+          </button>
+        </div>
+
+        {/* ── RIGHT ── */}
+        <div className="navbar-right">
+          {/* Clima */}
+          <div
+            className="nb-widget nb-widget--weather"
+            title={`${city}${neighborhood ? ` · ${neighborhood}` : ""}`}
+          >
             <i
-              className="ti ti-chevron-down nb-profile-chevron"
+              className={`${weatherIcon} nb-widget-icon nb-widget-icon--weather`}
               aria-hidden="true"
             />
+            <div className="nb-widget-body">
+              <span className="nb-widget-val">{temp ?? "—"}°</span>
+              <span className="nb-widget-sub">{city}</span>
+            </div>
+          </div>
+
+          <span className="nb-divider" aria-hidden="true" />
+
+          {/* USD/MXN */}
+          <div
+            className="nb-widget nb-widget--usd"
+            title="Tipo de cambio USD/MXN"
+          >
+            <span
+              className="nb-widget-icon nb-widget-icon--usd"
+              aria-hidden="true"
+            >
+              $
+            </span>
+            <div className="nb-widget-body">
+              <span className="nb-widget-val">
+                {usdDisplay}
+                {trend && (
+                  <span
+                    className={`nb-trend nb-trend--${trend}`}
+                    aria-label={trend === "up" ? "al alza" : "a la baja"}
+                  >
+                    {trend === "up" ? "▲" : "▼"}
+                  </span>
+                )}
+              </span>
+              <span className="nb-widget-sub">USD/MXN</span>
+            </div>
+          </div>
+
+          <span className="nb-divider" aria-hidden="true" />
+
+          {/* Toggle dark/light */}
+          <button
+            className="nb-theme-toggle"
+            onClick={() => toggle(theme === "dark" ? "light" : "dark")}
+            title={
+              theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"
+            }
+            aria-label={
+              theme === "dark" ? "Activar modo claro" : "Activar modo oscuro"
+            }
+          >
+            <span className="nb-theme-track">
+              <span className="nb-theme-thumb">
+                {theme === "dark" ? (
+                  <i className="ti ti-moon" aria-hidden="true" />
+                ) : (
+                  <i className="ti ti-sun" aria-hidden="true" />
+                )}
+              </span>
+            </span>
           </button>
 
-          {menuOpen && (
-            <div className="nb-dropdown" role="menu">
-              {/* Cabecera */}
-              <div className="nb-dd-header">
-                {user?.picture ? (
-                  <img
-                    src={user.picture}
-                    alt={user.name}
-                    className="nb-dd-avatar nb-dd-avatar--img"
-                  />
-                ) : (
-                  <div className="nb-dd-avatar nb-dd-avatar--initials">
-                    {initials}
-                  </div>
-                )}
-                <div className="nb-dd-name">{user?.name ?? "Usuario"}</div>
-                <div className="nb-dd-meta">
-                  <span className="nb-dd-dept">
-                    {user?.area || user?.role || "Colaborador"}
-                  </span>
-                  {user?.sitio && (
-                    <span className="nb-dd-badge">{user.sitio}</span>
-                  )}
-                </div>
+          <span className="nb-divider" aria-hidden="true" />
+
+          {/* Campana */}
+          <NotificationBell />
+
+          <span className="nb-divider" aria-hidden="true" />
+
+          {/* Perfil */}
+          <div className="nb-profile-wrapper" ref={dropdownRef}>
+            <button
+              className={`nb-profile-trigger ${menuOpen ? "nb-profile-trigger--open" : ""}`}
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-expanded={menuOpen}
+              aria-haspopup="true"
+            >
+              {user?.picture ? (
+                <img
+                  src={user.picture}
+                  alt={user.name}
+                  className="nb-avatar nb-avatar--img"
+                />
+              ) : (
+                <div className="nb-avatar nb-avatar--initials">{initials}</div>
+              )}
+              <div className="nb-profile-info">
+                <span className="nb-profile-name">
+                  {user?.name?.split(" ")[0] ?? "Usuario"}&nbsp;
+                  {user?.name?.split(" ").slice(-1)[0]?.[0] ?? ""}.
+                </span>
+                <span className="nb-profile-dept">
+                  {user?.area || user?.role || "Colaborador"}
+                </span>
               </div>
+              <i
+                className="ti ti-chevron-down nb-profile-chevron"
+                aria-hidden="true"
+              />
+            </button>
 
-              {/* Items */}
-              <div className="nb-dd-menu">
-                <button className="nb-dd-item" role="menuitem">
-                  <i
-                    className="ti ti-user nb-dd-item-icon"
-                    aria-hidden="true"
-                  />
-                  <span>Mi perfil</span>
-                </button>
-                <button className="nb-dd-item" role="menuitem">
-                  <i
-                    className="ti ti-settings nb-dd-item-icon"
-                    aria-hidden="true"
-                  />
-                  <span>Configuración</span>
-                </button>
+            {menuOpen && (
+              <div className="nb-dropdown" role="menu">
+                {/* Cabecera */}
+                <div className="nb-dd-header">
+                  {user?.picture ? (
+                    <img
+                      src={user.picture}
+                      alt={user.name}
+                      className="nb-dd-avatar nb-dd-avatar--img"
+                    />
+                  ) : (
+                    <div className="nb-dd-avatar nb-dd-avatar--initials">
+                      {initials}
+                    </div>
+                  )}
+                  <div className="nb-dd-name">{user?.name ?? "Usuario"}</div>
+                  <div className="nb-dd-meta">
+                    <span className="nb-dd-dept">
+                      {user?.area || user?.role || "Colaborador"}
+                    </span>
+                    {user?.sitio && (
+                      <span className="nb-dd-badge">{user.sitio}</span>
+                    )}
+                  </div>
+                </div>
 
-                {/* Solo visible para área SISTEMAS */}
-                {user?.area === "SISTEMAS" && (
+                {/* Items */}
+                <div className="nb-dd-menu">
                   <button
                     className="nb-dd-item"
                     role="menuitem"
-                    onClick={() => {
-                      navigate("/configuracion/usuarios");
-                      setMenuOpen(false);
-                    }}
+                    onClick={handleAbrirPerfil}
                   >
                     <i
-                      className="ti ti-users nb-dd-item-icon"
+                      className="ti ti-user-circle nb-dd-item-icon"
                       aria-hidden="true"
                     />
-                    <span>Usuarios</span>
+                    <span>Mi perfil</span>
                   </button>
-                )}
 
-                <div className="nb-dd-sep" role="separator" />
-                <button
-                  className="nb-dd-item nb-dd-item--danger"
-                  role="menuitem"
-                  onClick={handleLogout}
-                >
-                  <i
-                    className="ti ti-logout nb-dd-item-icon"
-                    aria-hidden="true"
-                  />
-                  <span>Cerrar sesión</span>
-                </button>
+                  <button className="nb-dd-item" role="menuitem">
+                    <i
+                      className="ti ti-settings nb-dd-item-icon"
+                      aria-hidden="true"
+                    />
+                    <span>Configuración</span>
+                  </button>
+
+                  {/* Solo visible para área SISTEMAS */}
+                  {user?.area === "SISTEMAS" && (
+                    <button
+                      className="nb-dd-item"
+                      role="menuitem"
+                      onClick={() => {
+                        navigate("/configuracion/usuarios");
+                        setMenuOpen(false);
+                      }}
+                    >
+                      <i
+                        className="ti ti-users nb-dd-item-icon"
+                        aria-hidden="true"
+                      />
+                      <span>Usuarios</span>
+                    </button>
+                  )}
+
+                  <div className="nb-dd-sep" role="separator" />
+                  <button
+                    className="nb-dd-item nb-dd-item--danger"
+                    role="menuitem"
+                    onClick={handleLogout}
+                  >
+                    <i
+                      className="ti ti-logout nb-dd-item-icon"
+                      aria-hidden="true"
+                    />
+                    <span>Cerrar sesión</span>
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Modal Mi Perfil — fuera del <nav> para evitar z-index issues */}
+      {perfilOpen && <ModalMiPerfil onClose={() => setPerfilOpen(false)} />}
+    </>
   );
 }

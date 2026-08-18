@@ -1186,3 +1186,59 @@
   text-overflow: ellipsis;
   max-width: 120px;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PATCH — Grid anidado altura fija + scroll interno
+   Agrega al final de AtencionIncidenciasPage.css
+   ═══════════════════════════════════════════════════════════════ */
+
+/* El panel expandido no deforma la tabla — altura máxima + scroll */
+.mha-expand-panel {
+  max-height: 520px;
+  display: flex;
+  flex-direction: column;
+}
+
+.mha-expand-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding: 16px;
+}
+
+/* Scrollbar discreta dentro del panel */
+.mha-expand-content::-webkit-scrollbar {
+  width: 5px;
+}
+.mha-expand-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+.mha-expand-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+/* BarraAcciones siempre visible al fondo del panel */
+.mha-action-bar {
+  flex-shrink: 0;
+}
+
+/* Botones deshabilitados — aspecto visual claro */
+.mha-action-btn:disabled,
+.mha-quick-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Estado en pausa en la columna SLA del grid */
+.mha-sla-pausa {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: rgba(246, 193, 119, 0.12);
+  color: #f6c177;
+}

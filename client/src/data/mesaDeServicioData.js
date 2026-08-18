@@ -393,13 +393,13 @@ export const QUICK_SISTEMAS = [
   },
 
   {
-    label: "Solicitudes de desarrollo",
-    desc: "Revisar peticiones de software",
-    icon: "ti-code",
-    color: "#f97316",
-    colorBg: "rgba(249,115,22,0.12)",
+    label: "Panel de Operación TI",
+    desc: "Monitoreo y estado de incidencias",
+    icon: "ti-layout-dashboard",
+    color: "#4cc9a6",
+    colorBg: "rgba(76,201,166,0.12)",
     type: "route",
-    route: "/mesa-de-servicio/hardware/solicitudesDesarrollo",
+    route: "/visor-ti",
   },
   {
     label: "Mis solicitudes",

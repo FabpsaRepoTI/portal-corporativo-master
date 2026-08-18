@@ -20,8 +20,13 @@ function verifyToken(req, res, next) {
   }
 }
 
-module.exports = { verifyToken, JWT_SECRET };
+function requireAdmin(req, res, next) {
+  if (!req.user?.priv_admin) {
+    return res
+      .status(403)
+      .json({ error: "Se requieren privilegios de administrador." });
+  }
+  next();
+}
 
-
-
-
+module.exports = { verifyToken, requireAdmin, JWT_SECRET };
