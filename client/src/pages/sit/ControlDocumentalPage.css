@@ -1,0 +1,139 @@
+/* Centro de control documental — mismo lenguaje que Mesa de Servicio */
+.ctl-aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, #f59e0b 6%, var(--bg-surface));
+  font-size: 13px;
+  color: var(--text-body);
+}
+.ctl-aviso i { color: #d97706; font-size: 17px; margin-top: 1px; }
+.ctl-aviso strong { color: var(--text-h); }
+
+.ctl-resumen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin: 16px 0 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.ctl-resumen strong { color: var(--text-h); font-size: 15px; margin-right: 4px; font-variant-numeric: tabular-nums; }
+.ctl-resumen--suspendido strong { color: #d97706; }
+.ctl-resumen--revocado strong { color: var(--sit-rojo, #ef4444); }
+
+.ctl-tabs { width: fit-content; margin-top: 16px; }
+.ctl-tabs .sit-art__tab { display: inline-flex; align-items: center; gap: 6px; }
+
+.ctl-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 16px 0 12px;
+}
+.ctl-filtros .sit-art__buscar { flex: 1; min-width: 240px; }
+.ctl-select { width: auto; min-width: 170px; }
+
+.ctl-permisos { display: inline-flex; gap: 8px; font-size: 16px; color: var(--text-faint); }
+.ctl-permisos .is-on { color: var(--primary); }
+
+.ctl-estado {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.ctl-estado--activo { color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, transparent); }
+.ctl-estado--suspendido { color: #b45309; background: color-mix(in srgb, #f59e0b 14%, transparent); }
+.ctl-estado--revocado { color: #dc2626; background: color-mix(in srgb, #ef4444 12%, transparent); }
+.ctl-estado--pendiente { color: var(--text-muted); background: var(--bg-elevated); border: 1px solid var(--border); }
+
+.ctl-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--text-muted);
+}
+.ctl-tag--pendiente { color: #b45309; border-color: color-mix(in srgb, #f59e0b 40%, var(--border)); }
+
+.ctl-acciones { display: inline-flex; gap: 4px; justify-content: flex-end; }
+.ctl-acciones .sit-btn--sm { padding: 5px 8px; }
+
+.ctl-centro { text-align: center !important; }
+.ctl-si { color: var(--primary); }
+.ctl-no { color: var(--text-faint); }
+
+.ctl-nota { margin: 14px 0 10px; font-size: 12.5px; color: var(--text-muted); }
+.ctl-nota code { font-size: 12px; }
+
+.ctl-confirmar {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  font-size: 13px;
+  color: var(--text-body);
+}
+.ctl-confirmar--peligro { background: color-mix(in srgb, #ef4444 8%, var(--bg-surface)); color: var(--text-h); }
+.ctl-btn-peligro,
+.ctl-btn-peligro:hover:not(:disabled) {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+}
+
+.ctl-candidatos {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.ctl-candidatos button,
+.ctl-elegido span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.ctl-candidatos button {
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-h);
+  text-align: left;
+  cursor: pointer;
+}
+.ctl-candidatos button:hover { background: var(--bg-hover); }
+.ctl-candidatos small,
+.ctl-elegido small { font-size: 11.5px; color: var(--text-muted); }
+.ctl-elegido {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-accent);
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.ctl-efectivos { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; font-size: 13px; color: var(--text-body); }
+.ctl-efectivos i { margin-right: 6px; }
+

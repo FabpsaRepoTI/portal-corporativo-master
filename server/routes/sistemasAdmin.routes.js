@@ -203,4 +203,36 @@ router.post("/hardware/rechazar", async (req, res) => {
   }
 });
 
+// ─── AGREGAR en sistemasAdmin.routes.js ANTES del module.exports ─────────────
+
+// GET /api/admin/hardware/:id/comentarios
+// Carga el hilo completo de una solicitud — sin restricción de loginUsuario
+router.get("/hardware/:id/comentarios", async (req, res) => {
+  const id = parseInt(req.params.id);
+  try {
+    const db = await getPool();
+
+    const folioRes = await db
+      .request()
+      .input("id", sql.Int, id)
+      .query(`SELECT folio FROM solicitudHardware WHERE idSolicitud = @id`);
+
+    if (!folioRes.recordset.length)
+      return res.status(404).json({ error: "Solicitud no encontrada" });
+
+    const folio = folioRes.recordset[0].folio;
+
+    const result = await db.request().input("folio", sql.VarChar, folio).query(`
+        SELECT id, folio, login, nombre, rol, mensaje, esEvento, fechaCreacion
+        FROM solicitudHardwareComentarios
+        WHERE folio = @folio
+        ORDER BY fechaCreacion ASC
+      `);
+
+    res.json(result.recordset);
+  } catch (err) {
+    console.error("getComentariosTI:", err);
+    res.status(500).json({ error: "Error al obtener comentarios" });
+  }
+});
 module.exports = router;

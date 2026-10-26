@@ -1,0 +1,13 @@
+import {useEffect,useRef,useState} from 'react';
+import {createPortal} from 'react-dom';
+export function TraceDialog({title,onClose,children}) {
+ const ref=useRef(null);
+ useEffect(()=>{const before=document.activeElement,overflow=document.body.style.overflow;document.body.style.overflow='hidden';ref.current?.focus();const handler=e=>{if(e.key==='Escape')onClose();if(e.key==='Tab'){const items=[...ref.current.querySelectorAll('button,a[href],iframe,[tabindex="0"]')];const first=items[0],last=items.at(-1);if(e.shiftKey&&(document.activeElement===first||document.activeElement===ref.current)){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};document.addEventListener('keydown',handler);return()=>{document.body.style.overflow=overflow;document.removeEventListener('keydown',handler);before?.focus();};},[onClose]);
+ return createPortal(<div className="cf-overlay"><section className="cf-document-dialog" role="dialog" aria-modal="true" aria-label={title} ref={ref} tabIndex={-1}><header><h3>{title}</h3><button onClick={onClose} aria-label="Cerrar visor">×</button></header>{children}</section></div>,document.body);
+}
+function fileUrl(value){try{const u=new URL(value,window.location.origin);return ['http:','https:'].includes(u.protocol)?u.href:null;}catch{return null;}}
+export function EvidenceGallery({files}) {
+ const [selected,setSelected]=useState(null);
+ const kind=f=>/^image\//.test(f.mimeType||'')||/\.(png|jpe?g|webp|gif)$/i.test(f.nombreArchivo||'')?'image':f.mimeType==='application/pdf'||/\.pdf$/i.test(f.nombreArchivo||'')?'pdf':'file';
+ return <><div className="cf-files">{files.map(f=>{const url=fileUrl(f.rutaServidor),type=kind(f);return <article className="cf-file" key={f.idArchivo}>{type==='file'?<a href={url||undefined} download={f.nombreArchivo} target="_blank" rel="noreferrer"><span className="cf-file-symbol">↓</span><strong>{f.nombreArchivo}</strong><small>Descargar archivo</small></a>:<button disabled={!url} onClick={()=>setSelected({...f,url,type})}>{type==='image'?<img loading="lazy" src={url} alt={f.nombreArchivo}/>:<span className="cf-file-symbol">PDF</span>}<strong>{f.nombreArchivo}</strong><small>{type==='image'?'Ampliar imagen':'Abrir documento'}</small></button>}</article>;})}</div>{selected&&<TraceDialog title={selected.nombreArchivo} onClose={()=>setSelected(null)}>{selected.type==='image'?<img className="cf-preview-image" src={selected.url} alt={selected.nombreArchivo}/>:<iframe className="cf-preview-pdf" title={selected.nombreArchivo} src={selected.url}/>}<a href={selected.url} target="_blank" rel="noreferrer" download={selected.nombreArchivo}>Abrir o descargar original</a></TraceDialog>}</>;
+}

@@ -1022,3 +1022,441 @@
 
 /* Solicitud page */
 /* src/pages/mesa-de-servicio/SolicitudPage.css */
+
+/* ── Composición de portada según referencia 2026 ───────────────────── */
+@media (min-width: 861px) {
+  .mds3-root {
+    gap: 14px;
+    max-width: 1420px;
+    min-height: calc(100vh - 58px);
+    padding: 18px 30px 14px;
+  }
+
+  .mds3-page-hero {
+    gap: 7px;
+  }
+
+  .mds3-back-btn {
+    padding: 0;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .mds3-page-hero-text {
+    gap: 1px;
+  }
+
+  .mds3-page-eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .mds3-page-title {
+    font-size: 35px;
+  }
+
+  .mds3-page-title-name {
+    font-style: normal;
+  }
+
+  .mds3-page-sub {
+    font-size: 16px;
+    line-height: 1.25;
+  }
+
+  .mds3-cards-row {
+    grid-template-columns: 1.08fr 0.92fr;
+    gap: 22px;
+  }
+
+  .mds3-incident-card,
+  .mds3-quick-card,
+  .mds3-missol-card {
+    min-height: 224px;
+    height: 224px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 14px;
+    background: var(--bg-surface, #fff);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+  }
+
+  .mds3-incident-card {
+    flex-direction: row;
+    align-items: center;
+    gap: 28px;
+    padding: 27px 38px;
+    background:
+      radial-gradient(circle at 93% 108%, rgba(76, 201, 166, 0.12) 0 25%, transparent 25.5%),
+      radial-gradient(circle at 94% 110%, transparent 0 34%, rgba(76, 201, 166, 0.1) 34.5% 35%, transparent 35.5%),
+      linear-gradient(112deg, rgba(76, 201, 166, 0.09), rgba(255, 255, 255, 0.97) 64%);
+  }
+
+  .mds3-incident-card::before {
+    width: 4px;
+    background: #10b981;
+    border-radius: 14px 0 0 14px;
+  }
+
+  .mds3-incident-deco,
+  .mds3-incident-icon-ring {
+    display: none;
+  }
+
+  .mds3-incident-icon-wrap {
+    width: 58px;
+    height: 58px;
+  }
+
+  .mds3-incident-icon-circle {
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.28);
+    color: #0aae7c;
+    font-size: 28px;
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.035);
+  }
+
+  .mds3-incident-body {
+    flex: 0 1 auto;
+    gap: 7px;
+  }
+
+  .mds3-incident-title {
+    color: var(--text-h, #0f2346);
+    font-size: 21px;
+  }
+
+  .mds3-incident-sub {
+    color: var(--text-muted, #64748b);
+    font-size: 13.5px;
+    line-height: 1.55;
+  }
+
+  .mds3-incident-btn {
+    align-self: flex-start;
+    margin-top: 7px;
+    padding: 11px 18px;
+    border: 0;
+    border-radius: 7px;
+    background: linear-gradient(180deg, #16b98a, #00a878);
+    color: #fff;
+    box-shadow: 0 7px 15px rgba(16, 185, 129, 0.2);
+  }
+
+  .mds3-quick-card {
+    padding: 17px 25px 12px;
+    overflow: hidden;
+  }
+
+  .mds3-quick-card::before,
+  .mds3-quick-card-glow,
+  .mds3-quick-card-eyebrow-line {
+    display: none;
+  }
+
+  .mds3-quick-card-header {
+    padding: 0 0 7px;
+  }
+
+  .mds3-quick-card-eyebrow {
+    color: var(--text-h, #0f2346);
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  .mds3-quick-list {
+    gap: 0;
+  }
+
+  .mds3-quick-item {
+    min-height: 55px;
+    padding: 8px 4px;
+    border-top: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 0;
+  }
+
+  .mds3-quick-item:first-child {
+    border-top: 0;
+  }
+
+  .mds3-quick-ico {
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    font-size: 21px;
+  }
+
+  .mds3-quick-label {
+    font-size: 14px;
+  }
+
+  .mds3-quick-desc {
+    font-size: 12px;
+  }
+
+  .mds3-missol-card {
+    padding: 27px 31px;
+    overflow: hidden;
+  }
+
+  .mds3-missol-card::before {
+    display: none;
+  }
+
+  .mds3-missol-icon-wrap {
+    width: 54px;
+    height: 54px;
+    color: #7c3aed;
+    background: rgba(124, 58, 237, 0.09);
+    border: 1px solid rgba(124, 58, 237, 0.12);
+    font-size: 25px;
+  }
+
+  .mds3-missol-body {
+    gap: 4px;
+  }
+
+  .mds3-missol-title {
+    font-size: 21px;
+  }
+
+  .mds3-missol-desc {
+    max-width: 310px;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .mds3-missol-ilu {
+    right: 24px;
+    bottom: -7px;
+    width: 150px;
+    height: 165px;
+    opacity: 0.38;
+  }
+
+  .mds3-missol-btn {
+    margin-top: 12px;
+    padding: 9px 16px;
+    border: 1px solid #1e3a8a;
+    border-radius: 7px;
+    background: #fff;
+    color: #17346f;
+    font-size: 13px;
+  }
+
+  .mds3-section-heading {
+    margin-top: 0;
+  }
+
+  .mds3-section-label {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.15;
+  }
+
+  .mds3-section-subtitle {
+    margin-top: 2px;
+    color: var(--text-muted, #64748b);
+    font-size: 12.5px;
+  }
+
+  .mds3-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 11px 18px;
+  }
+
+  .mds3-svc {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr) 18px;
+    grid-template-rows: auto auto;
+    column-gap: 17px;
+    min-height: 91px;
+    padding: 16px 18px;
+    border-radius: 12px;
+    text-align: left;
+  }
+
+  .mds3-svc-top {
+    display: contents;
+  }
+
+  .mds3-svc-ico {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    width: 58px;
+    height: 58px;
+    border-radius: 12px;
+    font-size: 28px;
+  }
+
+  .mds3-svc-arrow {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: center;
+    font-size: 18px;
+  }
+
+  .mds3-svc-label {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: end;
+    margin: 0 0 2px;
+    font-size: 14px;
+  }
+
+  .mds3-svc-desc {
+    grid-column: 2;
+    grid-row: 2;
+    margin: 0;
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+
+  .mds3-meta-strip {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    min-height: 44px;
+    margin-top: 2px;
+    padding: 0 60px;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    border-radius: 10px;
+  }
+
+  .mds3-meta-item {
+    justify-content: center;
+    padding: 0;
+    font-size: 13px;
+  }
+
+  .mds3-meta-item i {
+    color: #08aa79;
+    font-size: 20px;
+    opacity: 1;
+  }
+
+  .mds3-meta-sep {
+    height: 22px;
+    align-self: center;
+  }
+}
+
+@media (min-width: 861px) and (max-height: 820px) {
+  .mds3-root {
+    gap: 10px;
+    padding-top: 12px;
+    padding-bottom: 10px;
+  }
+
+  .mds3-incident-card,
+  .mds3-quick-card,
+  .mds3-missol-card {
+    height: 196px;
+    min-height: 196px;
+  }
+
+  .mds3-svc {
+    min-height: 78px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .mds3-meta-strip {
+    min-height: 38px;
+  }
+}
+
+/* Pulido de interacción y densidad de la portada */
+@media (min-width: 861px) {
+  .mds3-root {
+    min-height: calc(100vh - 105px);
+    justify-content: center;
+  }
+
+  .mds3-incident-btn:hover,
+  .mds3-incident-btn:focus-visible {
+    background: linear-gradient(180deg, #10b981 0%, #009f72 100%);
+    color: #fff;
+    border-color: transparent;
+    box-shadow: 0 9px 20px rgba(16, 185, 129, 0.28);
+    transform: translateY(-1px);
+  }
+
+  .mds3-incident-btn:hover i,
+  .mds3-incident-btn:focus-visible i {
+    color: currentColor;
+  }
+
+  .mds3-quick-card {
+    padding-top: 15px;
+    padding-bottom: 10px;
+  }
+
+  .mds3-quick-card-header {
+    padding-bottom: 4px;
+  }
+
+  .mds3-quick-list {
+    min-height: 0;
+  }
+
+  .mds3-quick-item {
+    min-height: 51px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+  }
+
+  .mds3-quick-ico {
+    width: 38px;
+    height: 38px;
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  .mds3-quick-label,
+  .mds3-quick-desc {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .mds3-quick-label {
+    line-height: 1.2;
+  }
+
+  .mds3-quick-desc {
+    margin-top: 2px;
+    line-height: 1.25;
+  }
+
+  .mds3-quick-arrow {
+    flex: 0 0 auto;
+  }
+}
+
+@media (min-width: 861px) and (max-height: 820px) {
+  .mds3-root {
+    min-height: calc(100vh - 92px);
+  }
+
+  .mds3-quick-card {
+    padding-top: 10px;
+    padding-bottom: 7px;
+  }
+
+  .mds3-quick-card-header {
+    padding-bottom: 1px;
+  }
+
+  .mds3-quick-item {
+    min-height: 45px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+
+  .mds3-quick-ico {
+    width: 34px;
+    height: 34px;
+    font-size: 18px;
+  }
+}

@@ -76,7 +76,6 @@ router.put("/ediciones/:id/activar", soloAdmin, async (req, res) => {
   }
 });
 
-// DELETE /api/blog/ediciones/:id  [admin]
 router.delete("/ediciones/:id", soloAdmin, async (req, res) => {
   try {
     await svc.eliminarEdicion(req.params.id);
@@ -87,9 +86,22 @@ router.delete("/ediciones/:id", soloAdmin, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
-//  ARTÍCULOS — lectura pública
+//  ARTÍCULOS — rutas estáticas PRIMERO (antes de /:id)
 // ═══════════════════════════════════════════════════════════
 
+// GET /api/blog/articulos/estado?idEdicion=1
+// IMPORTANTE: debe ir ANTES de /articulos/:id
+router.get("/articulos/estado", async (req, res) => {
+  try {
+    const { idEdicion } = req.query;
+    if (!idEdicion) return res.status(400).json({ error: "Falta idEdicion" });
+    res.json(await svc.getEstadoArticulos(idEdicion, req.user.login));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/blog/articulos
 router.get("/articulos", async (req, res) => {
   try {
     const { idEdicion } = req.query;
@@ -100,11 +112,21 @@ router.get("/articulos", async (req, res) => {
   }
 });
 
+// GET /api/blog/articulos/:id  ← dinámica, va después
 router.get("/articulos/:id", async (req, res) => {
   try {
     const art = await svc.getArticuloDetalle(req.params.id, req.user.login);
     if (!art) return res.status(404).json({ error: "No encontrado" });
     res.json(art);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET /api/blog/articulos/:id/reacciones
+router.get("/articulos/:id/reacciones", async (req, res) => {
+  try {
+    res.json(await svc.getReaccionesArticulo(req.params.id, req.user.login));
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -119,7 +141,7 @@ router.get("/archivo", async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
-//  ARTÍCULOS — administración  [admin]
+//  ARTÍCULOS — administración [admin]
 // ═══════════════════════════════════════════════════════════
 
 router.get("/admin/articulos", soloAdmin, async (req, res) => {
@@ -132,7 +154,7 @@ router.get("/admin/articulos", soloAdmin, async (req, res) => {
   }
 });
 
-// IMPORTANTE: esta ruta debe ir ANTES de /admin/articulos/:id
+// IMPORTANTE: antes de /admin/articulos/:id
 router.get("/admin/articulos/:id/detalle", soloAdmin, async (req, res) => {
   try {
     const art = await svc.getArticuloDetalleAdmin(req.params.id);
@@ -206,12 +228,32 @@ router.put("/admin/articulos/:id/publicar", soloAdmin, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
-//  LIKES
+//  LIKES (compatibilidad hacia atrás)
 // ═══════════════════════════════════════════════════════════
 
 router.post("/articulos/:id/like", async (req, res) => {
   try {
     res.json(await svc.toggleLike(req.params.id, req.user.login));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  REACCIONES A ARTÍCULOS
+// ═══════════════════════════════════════════════════════════
+
+router.post("/articulos/:id/reaccionar", async (req, res) => {
+  try {
+    const { tipo } = req.body;
+    if (!["like", "love", "interest"].includes(tipo))
+      return res.status(400).json({ error: "Tipo inválido" });
+    const result = await svc.reaccionarArticulo(
+      req.params.id,
+      req.user.login,
+      tipo,
+    );
+    res.json(result);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -247,6 +289,80 @@ router.put("/admin/comentarios/:id/moderar", soloAdmin, async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════
+//  REACCIONES EN COMENTARIOS
+// ═══════════════════════════════════════════════════════════
+
+router.post("/comentarios/:id/reaccionar", async (req, res) => {
+  try {
+    const { tipo } = req.body;
+    if (!["like", "love"].includes(tipo))
+      return res.status(400).json({ error: "Tipo inválido" });
+    const result = await svc.reaccionarComentario(
+      req.params.id,
+      req.user.login,
+      tipo,
+    );
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  RESPUESTAS A COMENTARIOS
+// ═══════════════════════════════════════════════════════════
+
+router.post("/comentarios/:id/responder", async (req, res) => {
+  try {
+    const { respuesta } = req.body;
+    if (!respuesta?.trim())
+      return res.status(400).json({ error: "Respuesta vacía" });
+    const data = await svc.responderComentario(
+      req.params.id,
+      req.user.login,
+      respuesta,
+    );
+    res.status(201).json(data);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  ARTÍCULOS GUARDADOS
+// ═══════════════════════════════════════════════════════════
+
+router.post("/articulos/:id/guardar", async (req, res) => {
+  try {
+    res.json(await svc.toggleGuardado(req.params.id, req.user.login));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.get("/guardados", async (req, res) => {
+  try {
+    res.json(await svc.getArticulosGuardados(req.user.login));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+//  PARTICIPACIÓN
+// ═══════════════════════════════════════════════════════════
+
+router.get("/participacion", async (req, res) => {
+  try {
+    const { idEdicion } = req.query;
+    if (!idEdicion) return res.status(400).json({ error: "Falta idEdicion" });
+    res.json(await svc.getParticipacion(idEdicion));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
 //  ENCUESTAS
 // ═══════════════════════════════════════════════════════════
 
@@ -269,11 +385,9 @@ router.post("/admin/encuestas", soloAdmin, async (req, res) => {
       !Array.isArray(opciones) ||
       opciones.length < 2
     )
-      return res
-        .status(400)
-        .json({
-          error: "Se requieren idEdicion, pregunta y mínimo 2 opciones",
-        });
+      return res.status(400).json({
+        error: "Se requieren idEdicion, pregunta y mínimo 2 opciones",
+      });
     const id = await svc.crearEncuesta(idEdicion, pregunta, opciones);
     res.status(201).json({ idEncuesta: id });
   } catch (e) {

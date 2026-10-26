@@ -234,102 +234,6 @@ export const BADGE_COLORS = {
   ACC: { bg: "rgba(245,158,11,0.12)", color: "#F59E0B", border: "#F59E0B" },
 };
 
-export const POPULARES = [
-  { label: "Office 365", color: "#D83B01" },
-  { label: "Teams", color: "#6264A7" },
-  { label: "Internet", color: "#4285F4" },
-  { label: "Telefonía", color: "#00897B" },
-  { label: "Multivisión", color: "#E50914" },
-  { label: "Impresoras", color: "#0096D6" },
-  { label: "Correo", color: "#0078D4" },
-  { label: "Seguridad", color: "#00A651" },
-  { label: "Aplicaciones", color: "#7c8cf8" },
-];
-
-export const ANUNCIOS = [
-  {
-    tipo: "Mantenimiento programado",
-    tipoColor: "#7c8cf8",
-    tipoBg: "rgba(124,140,248,0.12)",
-    tipoIcon: "ti-tool",
-    titulo: "Actualización de servidores",
-    desc: "18 de mayo, 10:00 PM – 2:00 AM",
-  },
-  {
-    tipo: "Nuevo servicio",
-    tipoColor: "#F59E0B",
-    tipoBg: "rgba(245,158,11,0.12)",
-    tipoIcon: "ti-sparkles",
-    titulo: "Nuevo portal de solicitudes",
-    desc: "Conoce las nuevas funcionalidades",
-  },
-];
-
-/* SOLICITUD PAGE */
-/*export const SERVICIOS_GRID = [
-  {
-    id: "hardware",
-    icon: "ti-device-laptop",
-    label: "Hardware y periféricos",
-    descripcion: "Solicitud de nuevos equipos, accesorios y periféricos.",
-    color: "#10b981",
-    colorBg: "rgba(16,185,129,0.12)",
-    badge: "Popular",
-    action: "navigate",
-    route: "/mesa-de-servicio/hardware",
-  },
-  {
-    id: "software",
-    icon: "ti-layout-grid-add",
-    label: "Software y aplicaciones",
-    descripcion:
-      "Instalación, actualización, configuración o desinstalación de software autorizado por la empresa.",
-    color: "#7c3aed",
-    colorBg: "rgba(124,58,237,0.12)",
-    action: "slug",
-  },
-  {
-    id: "accesos",
-    icon: "ti-lock",
-    label: "Accesos y cuentas de usuario",
-    descripcion:
-      "Altas, bajas y modificaciones de usuario en correo electrónico.",
-    color: "#f97316",
-    colorBg: "rgba(249,115,22,0.12)",
-    action: "slug",
-  },
-  {
-    id: "consultas",
-    icon: "ti-message-circle",
-    label: "Servicios generales TI",
-    descripcion:
-      "Asesoría o servicios relacionados con el uso de las herramientas tecnológicas de la empresa.",
-    color: "#0d9488",
-    colorBg: "rgba(13,148,136,0.12)",
-    action: "slug",
-  },
-  {
-    id: "desarrollo",
-    icon: "ti-code",
-    label: "Desarrollo de software",
-    descripcion: "Solicita desarrollo, mejoras o mantenimiento de sistemas.",
-    color: "#f59e0b",
-    colorBg: "rgba(245,158,11,0.12)",
-    badge: "Nuevo",
-    action: "slug",
-  },
-  {
-    id: "seguridad",
-    icon: "ti-shield-lock",
-    label: "Seguridad informática",
-    descripcion:
-      "Desbloqueo o autorización de sitios web, revisión de archivos bloqueados por el antivirus o permisos de navegación.",
-    color: "#ef4444",
-    colorBg: "rgba(239,68,68,0.12)",
-    action: "slug",
-  },
-];*/
-
 export const SERVICIOS_GRID = [
   {
     nombre: "Hardware y periféricos",
@@ -341,7 +245,7 @@ export const SERVICIOS_GRID = [
   },
   {
     nombre: "Software y aplicaciones",
-    desc: "Instalación, actualización, configuración o desinstalación de software autorizado.",
+    desc: "Instalación, actualización, configuración o acceso a una aplicación puntual.",
     icon: "ti-layout-grid-add",
     color: "#7c3aed",
     colorBg: "rgba(124,58,237,0.12)",
@@ -357,7 +261,7 @@ export const SERVICIOS_GRID = [
   },
   {
     nombre: "Servicios generales TI",
-    desc: "Asesoría o servicios relacionados con el uso de las herramientas tecnológicas.",
+    desc: "Asesoría en el uso de una app, cambios de precios, ingreso de mercancía, listas de correo y otros trámites.",
     icon: "ti-message-circle",
     color: "#0d9488",
     colorBg: "rgba(13,148,136,0.12)",
@@ -365,7 +269,7 @@ export const SERVICIOS_GRID = [
   },
   {
     nombre: "Desarrollo de software",
-    desc: "Solicita desarrollo, mejoras o mantenimiento de sistemas.",
+    desc: "Solicitudes de nuevos desarrollos o mejoras a sistemas existentes.",
     icon: "ti-code",
     color: "#f59e0b",
     colorBg: "rgba(245,158,11,0.12)",

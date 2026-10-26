@@ -1,159 +1,64 @@
-// src/pages/cedis/FacturasCedisPage.jsx
-import { useState, useContext } from "react";
-import { AuthContext } from "../../context/AuthContext";
-import ScannerView from "./ScannerView";
-import ResultSheet from "./ResultSheet";
-import FacturasList from "./FacturasList";
-import HistoricoView from "./HistoricoView";
-import "./FacturasCedis.css";
-
-const TABS = [
-  { id: "scan", label: "Escanear" },
-  { id: "hoy", label: "Hoy" },
-  { id: "hist", label: "Histórico" },
-];
-
-export default function FacturasCedisPage() {
-  const { name } = useContext(AuthContext);
-  const [tab, setTab] = useState("scan");
-  const [scanOpen, setScanOpen] = useState(false);
-  const [resultado, setResultado] = useState(null); // resultado del último scan
-
-  // Callback que recibe ScannerView cuando detecta y el backend responde
-  function handleScanResult(result) {
-    setScanOpen(false);
-    setResultado(result);
-  }
-
-  function handleScanNext() {
-    setResultado(null);
-    setScanOpen(true);
-  }
-
-  function handleClose() {
-    setResultado(null);
-  }
-
-  const initials = name
-    ? name
-        .split(" ")
-        .slice(0, 2)
-        .map((p) => p[0])
-        .join("")
-        .toUpperCase()
-    : "US";
-
-  return (
-    <div className="cedis-root">
-      {/* ── HEADER ── */}
-      <header className="cedis-header">
-        <div className="cedis-header-left">
-          <span className="cedis-eyebrow">CEDIS · FABPSA</span>
-          <span className="cedis-title">Facturas</span>
-        </div>
-        <div className="cedis-avatar">{initials}</div>
-      </header>
-
-      {/* ── TABS ── */}
-      <nav className="cedis-tabs">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            className={`cedis-tab${tab === t.id ? " active" : ""}`}
-            onClick={() => setTab(t.id)}
-          >
-            {t.label}
-          </button>
-        ))}
-      </nav>
-
-      {/* ── CONTENIDO ── */}
-      <main className="cedis-main">
-        {tab === "scan" && (
-          <ScanTab
-            onOpenScanner={() => setScanOpen(true)}
-            ultimoResultado={resultado}
-          />
-        )}
-
-        {tab === "hoy" && <FacturasList />}
-
-        {tab === "hist" && <HistoricoView />}
-      </main>
-
-      {/* ── SCANNER (fullscreen) ── */}
-      {scanOpen && (
-        <ScannerView
-          onResult={handleScanResult}
-          onClose={() => setScanOpen(false)}
-        />
-      )}
-
-      {/* ── RESULTADO (bottom sheet) ── */}
-      {resultado && (
-        <ResultSheet
-          resultado={resultado}
-          onNext={handleScanNext}
-          onClose={handleClose}
-        />
-      )}
-    </div>
-  );
-}
-
-// ── Tab de escaneo ──────────────────────────────────────────────────────────
-function ScanTab({ onOpenScanner, ultimoResultado }) {
-  return (
-    <div className="cedis-scan-pad">
-      {/* Botón principal */}
-      <button className="cedis-scan-btn" onClick={onOpenScanner}>
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-          <circle cx="12" cy="13" r="4" />
-        </svg>
-        Escanear factura
-      </button>
-
-      {/* Último resultado */}
-      {ultimoResultado && (
-        <div className="cedis-last-wrap">
-          <p className="cedis-sec-lbl">Último escaneo</p>
-          <LastScanCard resultado={ultimoResultado} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function LastScanCard({ resultado }) {
-  const { status, factura } = resultado;
-
-  const map = {
-    SCANNED: { cls: "green", icon: "✓", label: "Surtida" },
-    ALREADY_SCANNED: { cls: "amber", icon: "!", label: "Ya surtida" },
-    CANCELLED: { cls: "red", icon: "✕", label: "Cancelada" },
-    NOT_FOUND: { cls: "red", icon: "?", label: "No encontrada" },
-  };
-
-  const info = map[status] || { cls: "red", icon: "?", label: status };
-
-  return (
-    <div className="cedis-last-card">
-      <div className={`cedis-last-icon ${info.cls}`}>{info.icon}</div>
-      <div className="cedis-last-body">
-        <div className="cedis-last-folio">{factura?.numeroFactura ?? "—"}</div>
-        <div className="cedis-last-client">
-          {factura?.nombreCliente ?? "Sin información"}
-        </div>
-      </div>
-      <span className={`cedis-badge ${info.cls}`}>{info.label}</span>
-    </div>
-  );
+import PageHero from "../../components/PageHero";
+import arteHero from "../../assets/hero-escaner.svg";
+import ScanResultDialog from './ScanResultDialog';
+import TarjetaComandos from './TarjetaComandos';
+import {COMANDOS,PREFIJO,useLectoraGlobal,sonar} from './lectoraComandos';
+import {useEffect,useRef,useState} from 'react';
+import './FacturasDashboard.css';
+const months=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const current=()=>{const p=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit'}).formatToParts(new Date());return {year:Number(p.find(x=>x.type==='year').value),month:Number(p.find(x=>x.type==='month').value)};};
+const date=v=>v?String(v).slice(0,10).split('-').reverse().join('/'):'—';
+const time=v=>v?date(v)+' '+String(v).slice(11,16):'—';
+const money=v=>v==null?'—':new Intl.NumberFormat('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}).format(v);
+const labels={surtida:'Surtida',pendiente:'No surtida',cancelada:'Cancelada',desconocido:'Por verificar'};
+async function api(path,options={}){const response=await fetch('/api/cedis/facturas'+path,{...options,headers:{'Content-Type':'application/json',Authorization:'Bearer '+localStorage.getItem('fabpsa_token')}});const data=await response.json();if(!response.ok)throw new Error(data.message||'No se pudo completar la operación.');return data;}
+function Barcode(){return <svg viewBox="0 0 48 40" fill="none" stroke="currentColor" aria-hidden="true"><path d="M3 12V3h9M36 3h9v9M45 28v9h-9M12 37H3v-9" strokeWidth="2"/>{[11,16,20,27,32,37].map((x,i)=><path key={x} d={'M'+x+' 10v20'} strokeWidth={i%2?3:1.5}/>)}</svg>}
+export default function FacturasCedisPage(){
+ const [access,setAccess]=useState(null),[accessError,setAccessError]=useState('');
+ const canScan=access?.soloConsulta===false;
+ const now=current(),[year,setYear]=useState(now.year),[month,setMonth]=useState(now.month),[status,setStatus]=useState(''),[search,setSearch]=useState(''),[reload,setReload]=useState(0),[page,setPage]=useState(1);
+ const [data,setData]=useState(null),[loading,setLoading]=useState(true),[error,setError]=useState('');
+ const [code,setCode]=useState(''),[busy,setBusy]=useState(false),[result,setResult]=useState(null),[focused,setFocused]=useState(false);const scanner=useRef(null),processing=useRef(false);
+ const [selected,setSelected]=useState(null),[detail,setDetail]=useState(null),[detailError,setDetailError]=useState('');const dialog=useRef(null);
+ const [aviso,setAviso]=useState(null),[tarjeta,setTarjeta]=useState(false);const ultimaLeida=useRef(null),tabla=useRef(null),avisoTimer=useRef(null);
+ useEffect(()=>{const controller=new AbortController();const check=()=>api('/acceso',{signal:controller.signal}).then(d=>{if(!controller.signal.aborted){setAccess(d);setAccessError('');}}).catch(e=>{if(!controller.signal.aborted){setAccess(null);setAccessError(e.message);}});check();window.addEventListener('focus',check);return()=>{controller.abort();window.removeEventListener('focus',check);};},[reload]);
+ useEffect(()=>{if(canScan)scanner.current?.focus();},[canScan]);
+ useEffect(()=>{const controller=new AbortController();setLoading(true);setError('');setData(null);const timer=setTimeout(()=>{api('/historico?'+new URLSearchParams({anio:year,mes:month,status,q:search}),{signal:controller.signal}).then(d=>{if(!controller.signal.aborted){if(d.ok===false)throw new Error(d.message);setData(d);}}).catch(e=>{if(!controller.signal.aborted)setError(e.message);}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});},220);return()=>{clearTimeout(timer);controller.abort();};},[year,month,status,search,reload]);
+ useEffect(()=>{if(!selected)return;const controller=new AbortController();setDetail(null);setDetailError('');dialog.current?.showModal();api('/'+encodeURIComponent(selected.numeroFactura),{signal:controller.signal}).then(d=>{if(!controller.signal.aborted)setDetail(d);}).catch(e=>{if(!controller.signal.aborted)setDetailError(e.message)});return()=>controller.abort();},[selected]);
+ async function scan(e){e.preventDefault();await procesarLectura(code.trim());}
+ // Toda lectura (campo de captura o lectora con el foco en otro lado) entra aquí: CMD-… navega; lo demás es una factura
+ async function procesarLectura(value){if(!canScan||!value)return;
+  // Lectoras con distribución de teclado distinta pueden cambiar el guion (CMD'ABAJO, CMD/ABAJO…): se normaliza
+  const cmd=value.toUpperCase().match(/^CMD[^A-Z0-9]?([A-Z]+)$/);if(cmd){setCode('');ejecutarComando(PREFIJO+cmd[1]);return;}if(processing.current)return;processing.current=true;setBusy(true);setResult(null);setSelected(null);try{const r=await api('/scan',{method:'POST',body:JSON.stringify({numeroFactura:value}),signal:AbortSignal.timeout(30000)});setResult({...r,code:value});setCode('');ultimaLeida.current=value;sonar(['SCANNED','ALREADY_SCANNED'].includes(r.status)?'factura':'error');if(['SCANNED','ALREADY_SCANNED'].includes(r.status))setReload(v=>v+1);}catch(e){sonar('error');setResult({status:'ERROR',message:'No se pudo confirmar la lectura. Consulta el estado de la factura antes de repetir. '+e.message,code:value});}finally{processing.current=false;setBusy(false);}}
+ function avisar(texto,tipo='comando'){clearTimeout(avisoTimer.current);setAviso({texto,tipo});avisoTimer.current=setTimeout(()=>setAviso(null),1800);sonar(tipo);}
+ function desplazar(sentido){const t=tabla.current;if(t&&t.scrollHeight>t.clientHeight+4){t.scrollBy({top:sentido*t.clientHeight*0.8,behavior:'smooth'});t.scrollIntoView({block:'nearest',behavior:'smooth'});}else window.scrollBy({top:sentido*window.innerHeight*0.7,behavior:'smooth'});}
+ function ejecutarComando(cmd){const c=COMANDOS.find(x=>x.codigo===cmd);if(!c){avisar('Comando no reconocido: '+cmd,'error');return;}
+  switch(cmd){case 'CMD-INICIO':setResult(null);setSelected(null);window.scrollTo({top:0,behavior:'smooth'});requestAnimationFrame(()=>scanner.current?.focus());break;
+  case 'CMD-ABAJO':desplazar(1);break;case 'CMD-ARRIBA':desplazar(-1);break;
+  case 'CMD-SIGUIENTE':setPage(p=>Math.min(p+1,pages));tabla.current?.scrollTo({top:0});break;case 'CMD-ANTERIOR':setPage(p=>Math.max(p-1,1));tabla.current?.scrollTo({top:0});break;
+  case 'CMD-ULTIMA':if(!ultimaLeida.current){avisar('Todavía no se ha leído ninguna factura','error');return;}setResult(null);setSelected({numeroFactura:ultimaLeida.current});break;
+  case 'CMD-CERRAR':setResult(null);setSelected(null);setTarjeta(false);requestAnimationFrame(()=>scanner.current?.focus());break;
+  case 'CMD-PENDIENTES':filter('pendientes');break;case 'CMD-SURTIDAS':filter('surtidas');break;case 'CMD-TODAS':filter('');break;
+  case 'CMD-ACTUALIZAR':setReload(v=>v+1);break;default:break;}
+  avisar(c.icono+'  '+c.titulo);}
+ useLectoraGlobal({activo:canScan,campoCaptura:scanner,onLectura:procesarLectura});
+ useEffect(()=>()=>clearTimeout(avisoTimer.current),[]);
+ function closeScanResult(){setResult(null);requestAnimationFrame(()=>{scanner.current?.focus();scanner.current?.select();});}
+ function changeYear(value){setYear(Number(value));setMonth(m=>Number(value)===now.year?Math.min(m,now.month):m);setPage(1);}
+ function filter(value){setStatus(value);setPage(1);}
+ const rows=data?.facturas||[],pages=Math.max(1,Math.ceil(rows.length/50)),activePage=Math.min(page,pages),visible=rows.slice((activePage-1)*50,activePage*50),r=data?.resumen||{};
+ const end=new Date(year,month,0).getDate(),currency=f=>f.moneda==='MXN'?'Pesos · MXN':f.moneda==='USD'?'Dólares · USD':f.moneda||f.monedaDescripcion||'Sin registrar';
+ return <main className="cdf-root"><header className="cdf-header cdf-header--nube"><PageHero arte={arteHero} eyebrow="Operación CEDIS · FABPSA" titulo={canScan?'Escáner de':'Visor de'} resalte="facturas" sub="Control de surtido y trazabilidad de las lecturas" volver={{to:'/',label:'Volver al inicio'}}/><div className="cdf-period"><small>PERIODO DE CONSULTA</small><strong>{months[month-1]} {year}</strong><span>Del 1 al {end} · Por fecha de factura</span></div></header>
+ {accessError&&<div className="cdf-access-note" role="alert">{accessError} <button onClick={()=>setReload(v=>v+1)}>Reintentar</button></div>}
+ {access?.soloConsulta&&<div className="cdf-access-note"><i className="ti ti-eye" aria-hidden="true"/><strong>Contabilidad · solo consulta</strong><span>Consulta facturas y su estado de surtido.</span></div>}
+ {canScan&&<section className="cdf-capture" aria-label="Lectura de facturas"><div><span className="cdf-chip">LECTORA DE CÓDIGO DE BARRAS</span><h2>Registrar factura surtida</h2><p>Lee el código de la factura en cualquier momento: no hace falta hacer clic en el campo. Para moverte por el módulo usa la tarjeta de comandos.</p><button type="button" className="cdf-tarjeta-btn" onClick={()=>setTarjeta(true)}>Tarjeta de comandos QR</button></div><form onSubmit={scan}><label htmlFor="invoice-code">Número de factura</label><div className="cdf-input-group"><Barcode/><input id="invoice-code" ref={scanner} value={code} onChange={e=>setCode(e.target.value)} onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)} readOnly={busy} maxLength={50} autoComplete="off" spellCheck="false" placeholder="Esperando código de barras…"/><button disabled={busy||!code.trim()} type="submit">{busy?'Registrando…':'Registrar surtido'}</button></div><small className="cdf-ready">{busy?'Procesando lectura…':focused?'● Listo para recibir la lectura':'● Lectora activa en toda la página'}</small></form></section>}
+ {canScan&&result&&<ScanResultDialog result={result} onClose={closeScanResult} formatTime={time}/>}
+ {aviso&&<div className={'cdf-aviso '+aviso.tipo} role="status" aria-live="polite">{aviso.texto}</div>}
+ {tarjeta&&<TarjetaComandos onClose={()=>{setTarjeta(false);requestAnimationFrame(()=>scanner.current?.focus());}}/>}
+ <div className="cdf-kpis">{[['','Facturas del mes',r.total,'blue'],['surtidas','Surtidas',r.surtidas,'green'],['pendientes','No surtidas',r.pendientes,'amber'],['canceladas','Canceladas',r.canceladas,'red']].map(([key,label,value,tone])=><button key={key} className={'cdf-kpi '+tone} aria-pressed={status===key} onClick={()=>filter(key)}><span>{label}</span><strong>{loading?'…':value??'—'}</strong><small>{key==='surtidas'?'Con lectura registrada':key==='pendientes'?'Facturas activas por surtir':key==='canceladas'?'No admiten surtido':'Consulta del periodo completo'}</small></button>)}</div>
+ <section className="cdf-panel"><div className="cdf-panel-top"><div><h2>Facturas del periodo</h2><p>Consulta el estado, importes y responsable del surtido.</p></div><button className="cdf-refresh" disabled={loading} onClick={()=>setReload(v=>v+1)}>Actualizar</button></div><div className="cdf-filters"><label>Año<select aria-label="Año de facturas" value={year} onChange={e=>changeYear(e.target.value)}>{Array.from({length:Math.max(1,now.year-2025)},(_,i)=>2026+i).reverse().map(v=><option key={v}>{v}</option>)}</select></label><label>Mes<select aria-label="Mes de facturas" value={month} onChange={e=>{setMonth(Number(e.target.value));setPage(1);}}>{months.slice(0,year===now.year?now.month:12).map((v,i)=><option key={v} value={i+1}>{v}</option>)}</select></label><label>Estado<select aria-label="Estado de surtido" value={status} onChange={e=>filter(e.target.value)}><option value="">Todas</option><option value="pendientes">No surtidas</option><option value="surtidas">Surtidas</option><option value="canceladas">Canceladas</option></select></label><label className="cdf-search">Buscar<input aria-label="Buscar facturas" value={search} onChange={e=>{setSearch(e.target.value);setPage(1);}} placeholder="Factura, cliente, vendedor o pedido"/></label></div>
+ {loading?<div className="cdf-state" role="status">Cargando facturas del periodo…</div>:error?<div className="cdf-state" role="alert"><p>{error}</p><button onClick={()=>setReload(v=>v+1)}>Reintentar</button></div>:!rows.length?<div className="cdf-state"><Barcode/><h3>Sin facturas para esta consulta</h3><p>Revisa el mes, el estado o el texto de búsqueda.</p></div>:<div ref={tabla} className="cdf-table-scroll" tabIndex={0} role="region" aria-label="Listado de facturas"><table><thead><tr>{['Factura','Fecha factura','Cliente','Moneda','Subtotal','Impuesto','Total','Vendedor','Fecha surtida','Usuario surtido','Leída','Estado'].map(h=><th key={h} className={['Subtotal','Impuesto','Total'].includes(h)?'cdf-money':undefined}>{h}</th>)}</tr></thead><tbody>{visible.map((f,i)=><tr key={f.numeroFactura+'-'+i}><td><button className="cdf-folio" onClick={()=>setSelected(f)}>{f.numeroFactura}</button></td><td>{date(f.fechaFactura)}</td><td><strong>{f.codigoCliente}</strong><small title={f.nombreCliente}>{f.nombreCliente||'Sin nombre registrado'}</small></td><td>{currency(f)}</td><td className="cdf-money">{money(f.subTotalFactura)}</td><td className="cdf-money">{money(f.impuestoFactura)}</td><td className="cdf-money cdf-total"><strong>{money(f.totalFactura)}</strong></td><td>{f.codigoVendedor||'—'}</td><td>{date(f.fechaFacturaSurtida)}{f.fechaFacturaSurtida&&<small>{String(f.fechaFacturaSurtida).slice(11,16)}</small>}</td><td>{f.usuarioFacturaSurtida||'—'}</td><td>{f.leida?'Sí':'No'}</td><td><span className={'cdf-status '+f.estado}>{labels[f.estado]||'Por verificar'}</span></td></tr>)}</tbody></table></div>}
+ <footer className="cdf-table-footer"><span>{loading?'Consultando…':rows.length+' facturas en la consulta'} · Importes en la moneda de cada factura</span>{pages>1&&<div><button aria-label="Página anterior" disabled={activePage===1} onClick={()=>setPage(activePage-1)}>‹</button><span>{activePage} / {pages}</span><button aria-label="Página siguiente" disabled={activePage===pages} onClick={()=>setPage(activePage+1)}>›</button></div>}</footer></section>
+ {selected&&<dialog ref={dialog} className="cdf-dialog" aria-labelledby="cdf-detail-title" onCancel={()=>setSelected(null)} onClick={e=>{if(e.target===e.currentTarget)setSelected(null)}}><div><header><div><small>DETALLE DE FACTURA</small><h2 id="cdf-detail-title">{selected.numeroFactura}</h2></div><button aria-label="Cerrar detalle" onClick={()=>setSelected(null)}>×</button></header>{detailError?<p role="alert">{detailError}</p>:!detail?<p role="status">Cargando detalle…</p>:<><p>{detail.cabecera.nombreCliente} · {detail.cabecera.codigoCliente}</p><div className="cdf-detail-summary"><span>{currency(detail.cabecera)}</span><strong>Total {money(detail.cabecera.totalFactura)}</strong><span className={'cdf-status '+detail.cabecera.estado}>{labels[detail.cabecera.estado]}</span></div>{detail.cabecera.facturaSustituida!=null&&<p>Factura sustituida: {String(detail.cabecera.facturaSustituida)}</p>}<p>Surtido: {time(detail.cabecera.fechaFacturaSurtida)} · {detail.cabecera.usuarioFacturaSurtida||'Sin lectura registrada'}</p><div className="cdf-table-scroll"><table><thead><tr><th>Partida</th><th>Artículo</th><th>Unidades</th><th>Valor</th><th>Lote</th><th>Almacén</th></tr></thead><tbody>{detail.partidas.map((p,i)=><tr key={i}><td>{p.numeroPartida}</td><td>{p.codigoArticulo}</td><td>{p.unidades} {p.udmCapturada}</td><td>{money(p.valores)}</td><td>{p.numeroLote||'—'}</td><td>{p.codigoAlmacen}</td></tr>)}</tbody></table>{!detail.partidas.length&&<p>Sin partidas registradas.</p>}</div></>}</div></dialog>}
+ </main>;
 }

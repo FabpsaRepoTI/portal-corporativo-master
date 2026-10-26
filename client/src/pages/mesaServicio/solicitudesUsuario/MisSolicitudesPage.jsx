@@ -1,3 +1,5 @@
+import arteHero from "../../../assets/mesa-servicios-atlas.png";
+import PageHero from "../../../components/PageHero";
 import { useState, useEffect, useRef, useCallback, useContext } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../../../context/AuthContext";
@@ -63,7 +65,7 @@ function isImage(mime) {
   return mime?.startsWith("image/");
 }
 
-/* ─── SLA — primera respuesta (fecha límite fija) ─────────────── */
+/* ─── SLA helpers ─────────────────────────────────────────────── */
 function getSlaInfo(fechaLimite) {
   if (!fechaLimite)
     return {
@@ -95,8 +97,6 @@ function getSlaInfo(fechaLimite) {
     min,
   };
 }
-
-/* ─── SLA — resolución (misma lógica que Sistemas TI) ─────────── */
 function getSlaResolucionInfo(d) {
   const {
     idEstatus,
@@ -106,11 +106,8 @@ function getSlaResolucionInfo(d) {
     fechaUltimaPausa,
     tiempoAtencionMin,
   } = d;
-
   const slaMin = slaResolucionMin ?? null;
-
-  // Sin iniciar (no ha pasado a "En proceso")
-  if (!fechaInicioResolucion) {
+  if (!fechaInicioResolucion)
     return {
       iniciado: false,
       slaMin,
@@ -120,12 +117,9 @@ function getSlaResolucionInfo(d) {
       min: null,
       estado: "sin_iniciar",
     };
-  }
-
-  // Ya resuelto/cerrado: usar tiempoAtencionMin guardado en BD
   if ([3, 4].includes(idEstatus) && tiempoAtencionMin != null) {
-    const consumidoMin = tiempoAtencionMin;
-    const restante = (slaMin ?? 0) - consumidoMin;
+    const consumidoMin = tiempoAtencionMin,
+      restante = (slaMin ?? 0) - consumidoMin;
     return {
       iniciado: true,
       concluido: true,
@@ -139,8 +133,6 @@ function getSlaResolucionInfo(d) {
       estado: restante >= 0 ? "en_tiempo" : "vencido",
     };
   }
-
-  // En pausa: contador congelado
   if (idEstatus === 6 && fechaUltimaPausa) {
     const consumidoMin = Math.max(
       0,
@@ -161,8 +153,6 @@ function getSlaResolucionInfo(d) {
       estado: "pausado",
     };
   }
-
-  // Activo: tiempo corriendo
   const ahora = new Date();
   const transcurridoMin = Math.floor(
     (ahora - new Date(fechaInicioResolucion)) / 60000,
@@ -204,7 +194,7 @@ function getSlaResolucionInfo(d) {
   };
 }
 
-/* ─── Estatus map — incluye estado 6 En pausa ─────────────────── */
+/* ─── Estatus map ─────────────────────────────────────────────── */
 const ESTATUS_MAP = {
   1: { label: "Abierto", bg: "rgba(124,140,248,0.12)", color: "#7c8cf8" },
   2: { label: "En progreso", bg: "rgba(245,158,11,0.12)", color: "#f59e0b" },
@@ -219,7 +209,6 @@ const ESTATUS_MAP = {
   },
   8: { label: "Escalado", bg: "rgba(243,139,168,0.15)", color: "#f38ba8" },
 };
-
 function EstatusChip({ idEstatus, label }) {
   const cfg = ESTATUS_MAP[idEstatus] ?? {
     label: label ?? "—",
@@ -240,7 +229,6 @@ function EstatusChip({ idEstatus, label }) {
     </span>
   );
 }
-
 function PrioChip({ nombre, color }) {
   const hex = color || "#64748b";
   return (
@@ -259,7 +247,7 @@ function PrioChip({ nombre, color }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   EMPTY STATE — sin cambios
+   EMPTY STATE
    ═══════════════════════════════════════════════════════════════ */
 function EmptyState({ tipo, onAction }) {
   const configs = {
@@ -436,7 +424,7 @@ function EmptyState({ tipo, onAction }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MODAL CONFIRMAR CIERRE — sin cambios
+   MODAL — CONFIRMAR CIERRE
    ═══════════════════════════════════════════════════════════════ */
 function ModalCerrarTicket({ onConfirm, onCancel }) {
   return (
@@ -468,18 +456,144 @@ function ModalCerrarTicket({ onConfirm, onCancel }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   POPOVER EVALUACIÓN — sin cambios
+   MODAL — REAPERTURA CON MOTIVO OBLIGATORIO
+   ═══════════════════════════════════════════════════════════════ */
+function ModalReabrirTicket({ onConfirm, onCancel, loading, errorExterno }) {
+  const [motivo, setMotivo] = useState("");
+  const [error, setError] = useState("");
+  const textareaRef = useRef(null);
+  useEffect(() => {
+    setTimeout(() => textareaRef.current?.focus(), 80);
+  }, []);
+  useEffect(() => {
+    if (errorExterno) setError(errorExterno);
+  }, [errorExterno]);
+  function handleConfirm() {
+    if (!motivo.trim()) {
+      setError("El motivo de reapertura es obligatorio.");
+      return;
+    }
+    setError("");
+    onConfirm(motivo.trim());
+  }
+  return (
+    <div className="msp-modal-overlay" onClick={onCancel}>
+      <div
+        className="msp-modal"
+        style={{ maxWidth: 480 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="msp-modal-icon"
+          style={{
+            background: "rgba(124,140,248,0.1)",
+            border: "1px solid rgba(124,140,248,0.25)",
+          }}
+        >
+          <i
+            className="ti ti-refresh"
+            style={{ color: "#7c8cf8", fontSize: "1.8rem" }}
+          />
+        </div>
+        <div className="msp-modal-title">Reabrir ticket</div>
+        <div className="msp-modal-sub">
+          Indica el motivo por el cual deseas reabrir este ticket.
+        </div>
+        <div style={{ width: "100%", textAlign: "left" }}>
+          <textarea
+            ref={textareaRef}
+            rows={4}
+            placeholder="Describe el motivo de la reapertura…"
+            value={motivo}
+            onChange={(e) => {
+              setMotivo(e.target.value);
+              if (error) setError("");
+            }}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              background: "var(--bg-elevated)",
+              border: `1px solid ${error ? "#f38ba8" : "var(--border)"}`,
+              borderRadius: 8,
+              color: "var(--text-body)",
+              fontSize: 12.5,
+              padding: "0.55rem 0.75rem",
+              resize: "vertical",
+              outline: "none",
+              fontFamily: "inherit",
+              lineHeight: 1.55,
+              transition: "border-color 0.18s",
+            }}
+          />
+          {error && (
+            <div
+              style={{
+                fontSize: 11.5,
+                color: "#f38ba8",
+                marginTop: 4,
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <i className="ti ti-alert-circle" style={{ fontSize: 12 }} />
+              {error}
+            </div>
+          )}
+        </div>
+        <div className="msp-modal-actions">
+          <button
+            className="msp-modal-btn ghost"
+            onClick={onCancel}
+            disabled={loading}
+          >
+            Cancelar
+          </button>
+          <button
+            className="msp-modal-btn"
+            style={{
+              background: "#7c8cf8",
+              border: "none",
+              color: "#0f172a",
+              fontWeight: 600,
+              opacity: loading ? 0.6 : 1,
+            }}
+            onClick={handleConfirm}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <i
+                  className="ti ti-loader spinning"
+                  style={{ marginRight: 4 }}
+                />
+                Reabriendo…
+              </>
+            ) : (
+              <>
+                <i className="ti ti-refresh" style={{ marginRight: 4 }} />
+                Reabrir ticket
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   POPOVER EVALUACIÓN
    ═══════════════════════════════════════════════════════════════ */
 function EvalPopover({ ticketId, detalle, onEvaluado, onClose }) {
-  const [estrellas, setEstrellas] = useState(0);
-  const [hover, setHover] = useState(0);
-  const [comentario, setComentario] = useState("");
-  const [enviando, setEnviando] = useState(false);
-  const [enviado, setEnviado] = useState(false);
+  const [estrellas, setEstrellas] = useState(0),
+    [hover, setHover] = useState(0);
+  const [comentario, setComentario] = useState(""),
+    [enviando, setEnviando] = useState(false),
+    [enviado, setEnviado] = useState(false);
   const ref = useRef(null);
   const LABELS = ["Muy malo", "Malo", "Regular", "Bueno", "Excelente"];
   const EMOJIS = ["😤", "😕", "😐", "😊", "🤩"];
-
   useEffect(() => {
     function handle(e) {
       if (ref.current && !ref.current.contains(e.target)) onClose();
@@ -487,7 +601,6 @@ function EvalPopover({ ticketId, detalle, onEvaluado, onClose }) {
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
   }, [onClose]);
-
   async function enviar() {
     if (!estrellas || enviando) return;
     setEnviando(true);
@@ -513,7 +626,6 @@ function EvalPopover({ ticketId, detalle, onEvaluado, onClose }) {
       setEnviando(false);
     }
   }
-
   const nivel = hover || estrellas;
   return (
     <div className="msp-eval-popover" ref={ref}>
@@ -602,43 +714,37 @@ function EvalPopover({ ticketId, detalle, onEvaluado, onClose }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB: Información general — layout fijo, resolución estimada
-   corregida con getSlaResolucionInfo
+   TAB: Información general
    ═══════════════════════════════════════════════════════════════ */
 function TabInfoGeneral({ d }) {
   const resolInfo = getSlaResolucionInfo(d);
-
-  // Texto de "Resolución estimada" consistente con Sistemas TI
   let resolucionEstimada;
-  if (!resolInfo.iniciado) {
+  if (!resolInfo.iniciado)
     resolucionEstimada = (
       <span style={{ color: "var(--text-faint)", fontSize: 11 }}>
         Sin iniciar — esperando "En proceso"
       </span>
     );
-  } else if (resolInfo.pausado) {
+  else if (resolInfo.pausado)
     resolucionEstimada = (
       <span style={{ color: "var(--warning)" }}>
         ⏸ {resolInfo.texto} restantes (pausado)
       </span>
     );
-  } else if (resolInfo.concluido) {
+  else if (resolInfo.concluido)
     resolucionEstimada = (
       <span style={{ color: "var(--success)" }}>
         {fmtTiempo(resolInfo.tiempoReal)} (resuelto)
       </span>
     );
-  } else {
+  else
     resolucionEstimada = (
       <span style={{ color: resolInfo.color, fontWeight: 600 }}>
         {resolInfo.texto}
       </span>
     );
-  }
-
   return (
     <div className="msp-tab-content msp-tab-content--info">
-      {/* Col 1: Detalles */}
       <div className="msp-detail-section">
         <div className="msp-detail-section-title">Detalles</div>
         <div className="msp-detail-row">
@@ -665,14 +771,12 @@ function TabInfoGeneral({ d }) {
           </div>
         )}
         <div className="msp-detail-row">
-          <span className="msp-detail-label">Descripción</span>
+          <span className="msp-detail-label">Descripción del incidente</span>
           <div className="msp-descripcion-box">
             {d.descripcion || "Sin descripción."}
           </div>
         </div>
       </div>
-
-      {/* Col 2: Estado */}
       <div className="msp-detail-section">
         <div className="msp-detail-section-title">Estado</div>
         <div className="msp-detail-row">
@@ -702,8 +806,6 @@ function TabInfoGeneral({ d }) {
           </div>
         )}
       </div>
-
-      {/* Col 3: Asignación */}
       <div className="msp-detail-section">
         <div className="msp-detail-section-title">Asignación</div>
         <div className="msp-asignacion-card">
@@ -721,10 +823,25 @@ function TabInfoGeneral({ d }) {
               Sin asignar aún
             </div>
           )}
+          {d.accionesRealizadas && (
+            <div
+              style={{
+                marginTop: "0.75rem",
+                borderTop: "1px solid var(--border)",
+                paddingTop: "0.65rem",
+              }}
+            >
+              <div className="msp-asignacion-title">Resolución</div>
+              <div
+                className="msp-descripcion-box"
+                style={{ marginTop: "0.3rem" }}
+              >
+                {d.accionesRealizadas}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Col 4: Tiempos */}
       <div className="msp-detail-section">
         <div className="msp-detail-section-title">Tiempos</div>
         <div className="msp-tiempos-card">
@@ -752,10 +869,10 @@ function TabInfoGeneral({ d }) {
               {resolInfo.slaMin ?? "—"} min
             </span>
           </div>
-          <div className="msp-tiempo-row">
-            <span className="msp-tiempo-label">Resolución estimada</span>
+          {/*<div className="msp-tiempo-row">
+            <span className="msp-tiempo-label">Resolución estimada change</span>
             <span className="msp-tiempo-val">{resolucionEstimada}</span>
-          </div>
+          </div>*/}
           {d.tiempoAtencionMin != null && (
             <div className="msp-tiempo-row">
               <span className="msp-tiempo-label">Tiempo de atención</span>
@@ -771,20 +888,18 @@ function TabInfoGeneral({ d }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB: Evidencias — sin cambios funcionales
+   TAB: Evidencias
    ═══════════════════════════════════════════════════════════════ */
 function TabEvidencias({ archivos, ticketId, onArchivoSubido }) {
-  const [lightbox, setLightbox] = useState(null);
-  const [progreso, setProgreso] = useState(null);
-  const [subiendo, setSubiendo] = useState(false);
+  const [lightbox, setLightbox] = useState(null),
+    [progreso, setProgreso] = useState(null),
+    [subiendo, setSubiendo] = useState(false);
   const fileRef = useRef(null);
-
   function buildUrl(ruta) {
     if (!ruta) return "";
     if (ruta.startsWith("http")) return ruta;
     return `${STATIC_BASE}${ruta.startsWith("/") ? ruta : `/${ruta}`}`;
   }
-
   async function handleFiles(e) {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -814,7 +929,6 @@ function TabEvidencias({ archivos, ticketId, onArchivoSubido }) {
       if (fileRef.current) fileRef.current.value = "";
     }
   }
-
   return (
     <div className="msp-tab-content">
       <div
@@ -921,236 +1035,7 @@ function TabEvidencias({ archivos, ticketId, onArchivoSubido }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   TAB: SLA — misma lógica que Sistemas TI
-   ═══════════════════════════════════════════════════════════════ */
-function TabSLA({ d }) {
-  const slaResp = getSlaInfo(d.fechaLimiteResp);
-  const resolInfo = getSlaResolucionInfo(d);
-  const r = 36,
-    circ = 2 * Math.PI * r;
-
-  function Ring({ info }) {
-    const offset = circ - (info.pct / 100) * circ;
-    return (
-      <div className="msp-sla-ring-wrap">
-        <svg width="84" height="84" viewBox="0 0 90 90">
-          <circle
-            cx="45"
-            cy="45"
-            r={r}
-            fill="none"
-            stroke="var(--border)"
-            strokeWidth="7"
-          />
-          <circle
-            cx="45"
-            cy="45"
-            r={r}
-            fill="none"
-            stroke={info.color}
-            strokeWidth="7"
-            strokeDasharray={circ}
-            strokeDashoffset={offset}
-            strokeLinecap="round"
-            transform="rotate(-90 45 45)"
-          />
-        </svg>
-        <div className="msp-sla-ring-center">
-          <span
-            style={{
-              color: info.color,
-              fontWeight: 700,
-              fontSize: info.pausado ? 11 : 13,
-              lineHeight: 1.2,
-            }}
-          >
-            {info.texto}
-          </span>
-          <span style={{ fontSize: 9, color: "var(--text-faint)" }}>
-            {info.pausado ? "⏸ pausa" : "restante"}
-          </span>
-        </div>
-      </div>
-    );
-  }
-
-  const estadoLabel = (i) =>
-    !i.iniciado
-      ? "Sin iniciar"
-      : i.pausado
-        ? "En pausa"
-        : i.concluido
-          ? i.min >= 0
-            ? "En tiempo"
-            : "Vencido"
-          : i.min == null
-            ? "—"
-            : i.min < 0
-              ? "Vencida"
-              : i.min < 60
-                ? "Crítico"
-                : i.min < 180
-                  ? "En riesgo"
-                  : "En tiempo";
-
-  const estadoBg = (i) =>
-    i.pausado
-      ? "rgba(246,193,119,0.12)"
-      : !i.iniciado
-        ? "rgba(148,163,184,0.1)"
-        : i.min == null || i.min < 0 || i.min < 60
-          ? "rgba(243,139,168,0.12)"
-          : i.min < 180
-            ? "rgba(246,193,119,0.12)"
-            : "rgba(76,201,166,0.12)";
-
-  return (
-    <div className="msp-tab-content">
-      <div className="msp-sla-content">
-        <div className="msp-sla-bloques">
-          {/* Primera respuesta */}
-          <div className="msp-sla-bloque">
-            <div className="msp-sla-bloque-title">Primera respuesta</div>
-            <div className="msp-sla-bloque-inner">
-              <Ring info={slaResp} />
-              <div className="msp-sla-bloque-rows">
-                <div className="msp-tiempo-row">
-                  <span className="msp-tiempo-label">Comprometida</span>
-                  <span className="msp-tiempo-val">
-                    {fmtFecha(d.fechaLimiteResp, true)}
-                  </span>
-                </div>
-                <div className="msp-tiempo-row">
-                  <span className="msp-tiempo-label">Tiempo restante</span>
-                  <span
-                    style={{
-                      fontWeight: 600,
-                      color: slaResp.color,
-                      fontSize: 12,
-                    }}
-                  >
-                    {slaResp.texto}
-                  </span>
-                </div>
-                <div className="msp-tiempo-row">
-                  <span className="msp-tiempo-label">SLA</span>
-                  <span className="msp-tiempo-val">
-                    {d.slaRespuestaMin ?? "—"} min
-                  </span>
-                </div>
-                <div className="msp-tiempo-row">
-                  <span className="msp-tiempo-label">Estado</span>
-                  <span
-                    className="msp-chip"
-                    style={{
-                      background: estadoBg(slaResp),
-                      color: slaResp.color,
-                      border: `1px solid ${slaResp.color}30`,
-                      fontSize: 11,
-                      padding: "2px 8px",
-                      borderRadius: 20,
-                    }}
-                  >
-                    {estadoLabel(slaResp)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Resolución */}
-          <div className="msp-sla-bloque">
-            <div className="msp-sla-bloque-title">Resolución</div>
-            {!resolInfo.iniciado ? (
-              <div className="msp-tac-nd">
-                <span>—</span>
-                <small>
-                  El SLA de resolución comienza cuando el ticket pase a{" "}
-                  <strong>En proceso</strong>.<br />
-                  SLA configurado:{" "}
-                  <strong>{resolInfo.slaMin ?? "—"} min</strong>
-                </small>
-              </div>
-            ) : (
-              <div className="msp-sla-bloque-inner">
-                <Ring info={resolInfo} />
-                <div className="msp-sla-bloque-rows">
-                  <div className="msp-tiempo-row">
-                    <span className="msp-tiempo-label">Inicio</span>
-                    <span className="msp-tiempo-val">
-                      {fmtFecha(d.fechaInicioResolucion, true)}
-                    </span>
-                  </div>
-                  <div className="msp-tiempo-row">
-                    <span className="msp-tiempo-label">Tiempo restante</span>
-                    <span
-                      style={{
-                        fontWeight: 600,
-                        color: resolInfo.color,
-                        fontSize: 12,
-                      }}
-                    >
-                      {resolInfo.texto}
-                      {resolInfo.pausado ? " ⏸" : ""}
-                    </span>
-                  </div>
-                  <div className="msp-tiempo-row">
-                    <span className="msp-tiempo-label">SLA</span>
-                    <span className="msp-tiempo-val">
-                      {resolInfo.slaMin ?? "—"} min
-                    </span>
-                  </div>
-                  {resolInfo.concluido && (
-                    <div className="msp-tiempo-row">
-                      <span className="msp-tiempo-label">Tiempo real</span>
-                      <span className="msp-tiempo-val">
-                        {fmtTiempo(resolInfo.tiempoReal)}
-                      </span>
-                    </div>
-                  )}
-                  <div className="msp-tiempo-row">
-                    <span className="msp-tiempo-label">Estado</span>
-                    <span
-                      className="msp-chip"
-                      style={{
-                        background: estadoBg(resolInfo),
-                        color: resolInfo.color,
-                        border: `1px solid ${resolInfo.color}30`,
-                        fontSize: 11,
-                        padding: "2px 8px",
-                        borderRadius: 20,
-                      }}
-                    >
-                      {estadoLabel(resolInfo)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Tiempo de atención */}
-          <div className="msp-sla-bloque">
-            <div className="msp-sla-bloque-title">Tiempo de atención</div>
-            {d.tiempoAtencionMin != null ? (
-              <div className="msp-tac-val" style={{ color: "#10b981" }}>
-                {fmtTiempo(d.tiempoAtencionMin)}
-              </div>
-            ) : (
-              <div className="msp-tac-nd">
-                <span>—</span>
-                <small>Se calculará al resolver o cerrar el ticket</small>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════
-   TAB: Comentarios — sin cambios
+   TAB: Comentarios
    ═══════════════════════════════════════════════════════════════ */
 function TabComentarios({ d, ticketId, user, onNuevoComentario }) {
   const [texto, setTexto] = useState(""),
@@ -1263,7 +1148,296 @@ function TabComentarios({ d, ticketId, user, onNuevoComentario }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Panel expandido — sin cambios en permisos/acciones
+   TAB: Seguimiento y resolución
+   Línea de tiempo unificada: bitácora + escalamiento + reaperturas
+   ═══════════════════════════════════════════════════════════════ */
+function TabSeguimiento({ d }) {
+  const items = [];
+
+  // Bitácora del ingeniero
+  (d.bitacora ?? []).forEach((b) => {
+    items.push({
+      tipo: "bitacora",
+      fecha: new Date(b.fecha),
+      nota: b.nota,
+      autor: b.nombreUsuario,
+      idKey: `b-${b.idBitacora}`,
+    });
+  });
+
+  // Escalamiento visible al usuario (solo si está escalado y hay fecha)
+  if (d.idEstatus === 8 && d.fechaInicioEscalamiento) {
+    const yaEnBitacora = (d.bitacora ?? []).some((b) =>
+      b.nota?.toLowerCase().includes("escalad"),
+    );
+    if (!yaEnBitacora) {
+      items.push({
+        tipo: "escalamiento",
+        fecha: new Date(d.fechaInicioEscalamiento),
+        nombreProveedor: d.nombreProveedor,
+        idKey: "escalamiento-0",
+      });
+    }
+  }
+
+  // Historial completo de reaperturas
+  (d.reaperturas ?? []).forEach((r) => {
+    items.push({
+      tipo: "reapertura",
+      fecha: new Date(r.fechaReapertura),
+      motivo: r.motivo,
+      autor: r.nombreUsuario,
+      idKey: `r-${r.idReapertura}`,
+    });
+  });
+
+  // Orden cronológico
+  items.sort((a, b) => a.fecha - b.fecha);
+
+  const tipoConfig = {
+    bitacora: {
+      color: "var(--primary)",
+      bg: "rgba(76,201,166,0.1)",
+      label: "Ingeniero TI",
+      icon: "ti-point-filled",
+    },
+    escalamiento: {
+      color: "#f38ba8",
+      bg: "rgba(243,139,168,0.1)",
+      label: "Escalamiento",
+      icon: "ti-arrow-up-right",
+    },
+    reapertura: {
+      color: "#7c8cf8",
+      bg: "rgba(124,140,248,0.1)",
+      label: "Ticket reabierto",
+      icon: "ti-refresh",
+    },
+  };
+
+  if (!items.length) {
+    return (
+      <div className="msp-tab-content">
+        <div
+          style={{
+            gridColumn: "1/-1",
+            textAlign: "center",
+            padding: "2rem 1rem",
+            color: "var(--text-faint)",
+            fontSize: 13,
+          }}
+        >
+          <i
+            className="ti ti-timeline"
+            style={{
+              fontSize: "1.8rem",
+              display: "block",
+              marginBottom: 8,
+              color: "var(--border)",
+            }}
+          />
+          Sin actividades registradas aún.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="msp-tab-content">
+      <div style={{ gridColumn: "1/-1" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
+          {items.map((item, i) => {
+            const cfg = tipoConfig[item.tipo];
+            return (
+              <div
+                key={item.idKey}
+                style={{
+                  display: "flex",
+                  gap: 12,
+                  paddingBottom: i < items.length - 1 ? 16 : 0,
+                  position: "relative",
+                }}
+              >
+                {i < items.length - 1 && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      left: 11,
+                      top: 22,
+                      bottom: 0,
+                      width: 1,
+                      background: "var(--border)",
+                    }}
+                  />
+                )}
+                <div
+                  style={{
+                    width: 22,
+                    height: 22,
+                    borderRadius: "50%",
+                    flexShrink: 0,
+                    background: cfg.bg,
+                    border: `2px solid ${cfg.color}`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: 1,
+                    zIndex: 1,
+                  }}
+                >
+                  <i
+                    className={`ti ${cfg.icon}`}
+                    style={{ fontSize: 8, color: cfg.color }}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 4,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                      {fmtFecha(item.fecha, true)}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        padding: "1px 8px",
+                        borderRadius: 20,
+                        background: cfg.bg,
+                        color: cfg.color,
+                      }}
+                    >
+                      {cfg.label}
+                    </span>
+                  </div>
+                  {item.tipo === "bitacora" && (
+                    <div
+                      style={{
+                        background: "var(--bg-surface)",
+                        border: "1px solid var(--border)",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12.5,
+                        color: "var(--text-body)",
+                        lineHeight: 1.65,
+                        wordBreak: "break-word",
+                        whiteSpace: "pre-wrap",
+                        overflowWrap: "break-word",
+                      }}
+                    >
+                      {item.nota}
+                    </div>
+                  )}
+                  {item.tipo === "escalamiento" && (
+                    <div
+                      style={{
+                        background: "rgba(243,139,168,0.06)",
+                        border: "1px solid rgba(243,139,168,0.2)",
+                        borderRadius: 8,
+                        padding: "10px 12px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          color: "#f38ba8",
+                          marginBottom: 3,
+                        }}
+                      >
+                        <i
+                          className="ti ti-arrow-up-right"
+                          style={{ marginRight: 5 }}
+                        />
+                        Ticket escalado
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "var(--text-muted)",
+                          lineHeight: 1.55,
+                        }}
+                      >
+                        Este incidente fue escalado a un proveedor especializado
+                        para continuar con su atención.
+                        {item.nombreProveedor && (
+                          <span
+                            style={{
+                              display: "block",
+                              marginTop: 4,
+                              color: "var(--text-body)",
+                              fontWeight: 500,
+                            }}
+                          >
+                            Proveedor: {item.nombreProveedor}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {item.tipo === "reapertura" && (
+                    <div
+                      style={{
+                        background: "rgba(124,140,248,0.06)",
+                        border: "1px solid rgba(124,140,248,0.2)",
+                        borderRadius: 8,
+                        padding: "10px 12px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          color: "#7c8cf8",
+                          marginBottom: 3,
+                        }}
+                      >
+                        <i
+                          className="ti ti-refresh"
+                          style={{ marginRight: 5 }}
+                        />
+                        Ticket reabierto
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: "var(--text-muted)",
+                          lineHeight: 1.55,
+                        }}
+                      >
+                        Motivo:{" "}
+                        <span
+                          style={{
+                            display: "block",
+                            marginTop: 2,
+                            color: "var(--text-body)",
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                          }}
+                        >
+                          {item.motivo}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Panel expandido
    ═══════════════════════════════════════════════════════════════ */
 function DetalleExpandido({
   id,
@@ -1273,14 +1447,15 @@ function DetalleExpandido({
   onRefresh,
   refreshTick,
 }) {
-  const [detalle, setDetalle] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [detalle, setDetalle] = useState(null),
+    [loading, setLoading] = useState(true);
   const [tab, setTab] = useState(initialTab ?? "info");
-  const [yaEvaluo, setYaEvaluo] = useState(false);
-  const [showEval, setShowEval] = useState(false);
-  const [cerrando, setCerrando] = useState(false);
-  const [reabriendo, setReabriendo] = useState(false);
-  const [pedirCierre, setPedirCierre] = useState(false);
+  const [yaEvaluo, setYaEvaluo] = useState(false),
+    [showEval, setShowEval] = useState(false);
+  const [cerrando, setCerrando] = useState(false),
+    [reabriendo, setReabriendo] = useState(false);
+  const [pedirCierre, setPedirCierre] = useState(false),
+    [pedirReapertura, setPedirReapertura] = useState(false);
 
   useEffect(() => {
     if (initialTab) setTab(initialTab);
@@ -1327,22 +1502,33 @@ function DetalleExpandido({
       setCerrando(false);
     }
   }
-  async function handleReabrir() {
+
+  const [errorReapertura, setErrorReapertura] = useState("");
+
+  async function handleReabrir(motivo) {
     setReabriendo(true);
+    setErrorReapertura("");
     try {
       const r = await fetch(`${API}/api/solicitudes-usuario/${id}/reabrir`, {
         method: "PUT",
         headers: authH(),
+        body: JSON.stringify({ motivoReapertura: motivo }),
       });
-      if (!r.ok) throw new Error();
+      const data = await r.json();
+      if (!data.ok) {
+        setErrorReapertura(data.error || "No se pudo reabrir el ticket.");
+        return;
+      }
+      setPedirReapertura(false);
       setYaEvaluo(false);
       onRefresh();
-    } catch {
-      alert("No se pudo reabrir el ticket.");
+    } catch (e) {
+      setErrorReapertura(e.message || "No se pudo reabrir el ticket.");
     } finally {
       setReabriendo(false);
     }
   }
+
   function puedeReabrir() {
     if (!detalle || detalle.idEstatus !== 4) return false;
     if (!detalle.fechaResolucion) return false;
@@ -1351,6 +1537,10 @@ function DetalleExpandido({
 
   const nComentarios = detalle?.comentarios?.length || 0;
   const nEvidencias = detalle?.archivos?.length || 0;
+  const nSeguimiento =
+    (detalle?.bitacora?.length || 0) +
+    (detalle?.reaperturas?.length || 0) +
+    (detalle?.idEstatus === 8 ? 1 : 0);
   const puedeCancel = detalle?.idEstatus === 1;
   const esResuelto = detalle?.idEstatus === 3;
   const esCerrado = detalle?.idEstatus === 4;
@@ -1388,7 +1578,6 @@ function DetalleExpandido({
                 icon: "ti-paperclip",
                 count: nEvidencias,
               },
-              { key: "sla", label: "SLA", icon: "ti-clock" },
               {
                 key: "comentarios",
                 label: "Comentarios",
@@ -1409,6 +1598,7 @@ function DetalleExpandido({
               </button>
             ))}
           </div>
+
           {tab === "info" && <TabInfoGeneral d={detalle} />}
           {tab === "evidencias" && (
             <TabEvidencias
@@ -1417,7 +1607,6 @@ function DetalleExpandido({
               onArchivoSubido={onArchivoSubido}
             />
           )}
-          {tab === "sla" && <TabSLA d={detalle} />}
           {tab === "comentarios" && (
             <TabComentarios
               d={detalle}
@@ -1426,6 +1615,8 @@ function DetalleExpandido({
               onNuevoComentario={onNuevoComentario}
             />
           )}
+          {tab === "seguimiento" && <TabSeguimiento d={detalle} />}
+
           <div className="msp-detail-actions">
             <span className="msp-detail-actions-label">Acciones</span>
             <button
@@ -1435,6 +1626,7 @@ function DetalleExpandido({
               <i className="ti ti-message" />
               Agregar comentario
             </button>
+
             {esResuelto && !yaEvaluo && (
               <div className="msp-eval-trigger-wrap">
                 <button
@@ -1458,6 +1650,7 @@ function DetalleExpandido({
                 )}
               </div>
             )}
+
             {pedirCierre && (
               <ModalCerrarTicket
                 onConfirm={() => {
@@ -1467,6 +1660,7 @@ function DetalleExpandido({
                 onCancel={() => setPedirCierre(false)}
               />
             )}
+
             {esResuelto && yaEvaluo && (
               <>
                 <span className="msp-eval-done">
@@ -1490,6 +1684,7 @@ function DetalleExpandido({
                 </button>
               </>
             )}
+
             {esCerrado && puedeReabrir() && (
               <button
                 className="msp-btn-action"
@@ -1497,13 +1692,26 @@ function DetalleExpandido({
                   color: "#7c8cf8",
                   borderColor: "rgba(124,140,248,0.3)",
                 }}
-                onClick={handleReabrir}
+                onClick={() => setPedirReapertura(true)}
                 disabled={reabriendo}
               >
                 <i className="ti ti-refresh" />
-                {reabriendo ? "Reabriendo…" : "Reabrir ticket"}
+                Reabrir ticket
               </button>
             )}
+
+            {pedirReapertura && (
+              <ModalReabrirTicket
+                loading={reabriendo}
+                onConfirm={handleReabrir}
+                onCancel={() => {
+                  setPedirReapertura(false);
+                  setErrorReapertura("");
+                }}
+                errorExterno={errorReapertura}
+              />
+            )}
+
             {puedeCancel && (
               <button
                 className="msp-btn-action danger"
@@ -1579,22 +1787,16 @@ export default function MisSolicitudesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [mainTab, setMainTab] = useState("incidencias");
-  const [kpis, setKpis] = useState(null);
-  const [kpisHw, setKpisHw] = useState(null);
-  const [solicitudes, setSolicitudes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [expandedId, setExpandedId] = useState(null);
-  const [pendingTab, setPendingTab] = useState(null);
-  const [buscar, setBuscar] = useState("");
-
-  const [refreshTick, setRefreshTick] = useState(0);
-
-  // Polling silencioso cada 20s
-  const pollingRef = useRef(null);
-  const expandedIdRef = useRef(null);
-  expandedIdRef.current = expandedId;
-  const [filtroEstatus, setFiltroEstatus] = useState("");
-  const [filtroPrioridad, setFiltroPrioridad] = useState("");
+  const [kpis, setKpis] = useState(null),
+    [kpisHw, setKpisHw] = useState(null);
+  const [solicitudes, setSolicitudes] = useState([]),
+    [loading, setLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState(null),
+    [pendingTab, setPendingTab] = useState(null);
+  const [buscar, setBuscar] = useState(""),
+    [refreshTick, setRefreshTick] = useState(0);
+  const [filtroEstatus, setFiltroEstatus] = useState(""),
+    [filtroPrioridad, setFiltroPrioridad] = useState("");
 
   useEffect(() => {
     const folio = searchParams.get("folio"),
@@ -1624,7 +1826,6 @@ export default function MisSolicitudesPage() {
       .then(setKpisHw)
       .catch(() => {});
   }, []);
-
   useEffect(() => {
     cargarKpis();
   }, [cargarKpis]);
@@ -1649,34 +1850,9 @@ export default function MisSolicitudesPage() {
       setLoading(false);
     }
   }, [filtroEstatus, filtroPrioridad, buscar, mainTab]);
-
   useEffect(() => {
     fetchLista();
   }, [fetchLista]);
-
-  // Polling silencioso: actualiza grid y detalle abierto sin loader
-  useEffect(() => {
-    if (mainTab !== "incidencias") return;
-    pollingRef.current = setInterval(async () => {
-      // Refrescar lista silenciosamente
-      const p = new URLSearchParams();
-      if (filtroEstatus) p.set("estatus", filtroEstatus);
-      if (filtroPrioridad) p.set("prioridad", filtroPrioridad);
-      if (buscar.trim()) p.set("buscar", buscar.trim());
-      try {
-        const r = await fetch(`${API}/api/solicitudes-usuario?${p}`, {
-          headers: authH(),
-        });
-        const data = await r.json();
-        if (Array.isArray(data)) setSolicitudes(data);
-      } catch {}
-      // Si hay detalle abierto, incrementar tick para forzar recarga
-      if (expandedIdRef.current) {
-        setRefreshTick((t) => t + 1);
-      }
-    }, 20000);
-    return () => clearInterval(pollingRef.current);
-  }, [mainTab, filtroEstatus, filtroPrioridad, buscar]);
 
   function switchTab(key) {
     setMainTab(key);
@@ -1802,41 +1978,16 @@ export default function MisSolicitudesPage() {
   return (
     <div className="msp-page">
       <div className="msp-inner">
-        {/* Hero */}
-        <div className="msp-hero">
-          <svg
-            className="msp-hero-deco"
-            viewBox="0 0 400 120"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle cx="340" cy="20" r="80" fill="#7c8cf8" opacity="0.04" />
-            <circle cx="375" cy="80" r="50" fill="#4cc9a6" opacity="0.035" />
-          </svg>
-          <div className="mds-header">
-            <button
-              className="mds-back"
-              onClick={() => navigate("/mesa-de-servicio")}
-            >
-              <i className="ti ti-arrow-left" />
-              Volver a la Mesa de Ayuda
-            </button>
-            <div className="mds-hero">
-              <div className="mds-hero-icon">
-                <i className="ti ti-headset" />
-              </div>
-              <div className="mds-hero-text">
-                <h1 className="mds-hero-title">Mis Solicitudes</h1>
-                <p className="mds-hero-desc">
-                  Consulta y da seguimiento a tus solicitudes con el equipo de
-                  Sistemas.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* Encabezado estándar del portal (mismo que Información Técnica) */}
+        <PageHero
+          arte={arteHero}
+          eyebrow="Mesa de Servicio"
+          titulo="Mis"
+          resalte="Solicitudes"
+          sub="Consulta y da seguimiento a tus solicitudes con el equipo de Sistemas."
+          volver={{ to: "/mesa-de-servicio", label: "Volver a la Mesa de Ayuda" }}
+        />
 
-        {/* KPI strip */}
         <div className="msp-kpi-strip">
           {kpiCards.map((k) => (
             <div
@@ -1855,7 +2006,6 @@ export default function MisSolicitudesPage() {
           ))}
         </div>
 
-        {/* Tabla card */}
         <div className="msp-table-card">
           <div className="msp-main-tabs">
             {MAIN_TABS.map((t) => (
@@ -1942,6 +2092,33 @@ export default function MisSolicitudesPage() {
               </button>
             )}
             <div className="msp-toolbar-spacer" />
+            {mainTab === "incidencias" && (
+              <button
+                className="msp-btn-action"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                  padding: "0.38rem 0.8rem",
+                  borderRadius: 7,
+                  border: "1px solid var(--border)",
+                  background: "transparent",
+                  color: "var(--text-body)",
+                  fontSize: 12,
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  fontFamily: "inherit",
+                  whiteSpace: "nowrap",
+                }}
+                onClick={() => {
+                  fetchLista();
+                  cargarKpis();
+                }}
+              >
+                <i className="ti ti-refresh" />
+                Actualizar
+              </button>
+            )}
             {solicitudes.length > 0 && mainTab === "incidencias" && (
               <span className="msp-result-count">
                 {solicitudes.length} resultado
@@ -1967,7 +2144,7 @@ export default function MisSolicitudesPage() {
                   <col style={{ width: 180 }} />
                   <col style={{ width: 110 }} />
                   <col style={{ width: 90 }} />
-                  <col style={{ width: 100 }} />
+                  <col style={{ width: 110 }} />
                   <col style={{ width: 140 }} />
                   <col style={{ width: 110 }} />
                   <col style={{ width: 120 }} />
@@ -2010,17 +2187,16 @@ export default function MisSolicitudesPage() {
                       const isExpanded = expandedId === s.idSolicitud;
                       const resuelto = [3, 4, 5].includes(s.idEstatus);
                       const enPausa = s.idEstatus === 6;
-
-                      // SLA restante: en proceso → resolución. Resto → primera respuesta.
+                      const esEscalado = s.idEstatus === 8;
                       let slaDisplay;
-                      if (resuelto) {
+                      if (resuelto)
                         slaDisplay = (
                           <span className="msp-sla ok">
                             <i className="ti ti-circle-check" />
                             Atendido
                           </span>
                         );
-                      } else if (enPausa) {
+                      else if (enPausa)
                         slaDisplay = (
                           <span
                             className="msp-sla"
@@ -2029,7 +2205,7 @@ export default function MisSolicitudesPage() {
                             ⏸ En pausa
                           </span>
                         );
-                      } else if (s.idEstatus === 2 && s.fechaInicioResolucion) {
+                      else if (s.idEstatus === 2 && s.fechaInicioResolucion) {
                         const ri = getSlaResolucionInfo(s);
                         slaDisplay = (
                           <span
@@ -2055,7 +2231,6 @@ export default function MisSolicitudesPage() {
                           </span>
                         );
                       }
-
                       return [
                         <tr
                           key={s.idSolicitud}
@@ -2104,10 +2279,25 @@ export default function MisSolicitudesPage() {
                             />
                           </td>
                           <td>
-                            <EstatusChip
-                              idEstatus={s.idEstatus}
-                              label={s.estatusNombre}
-                            />
+                            <div>
+                              <EstatusChip
+                                idEstatus={s.idEstatus}
+                                label={s.estatusNombre}
+                              />
+                              {/* Nombre del proveedor bajo el chip "Escalado" */}
+                              {esEscalado && s.nombreProveedor && (
+                                <div
+                                  style={{
+                                    fontSize: 10.5,
+                                    color: "#f38ba8",
+                                    marginTop: 2,
+                                    paddingLeft: 2,
+                                  }}
+                                >
+                                  {s.nombreProveedor}
+                                </div>
+                              )}
+                            </div>
                           </td>
                           <td>
                             {s.nombreTecnico ? (

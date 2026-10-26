@@ -1,25 +1,22 @@
-// React y hooks que vamos a usar:
-// useState — para guardar datos que cambian (solicitudes, filtros, modales)
-// useEffect — para ejecutar código cuando el componente carga (traer datos del backend)
-// useContext — para leer el usuario logueado desde AuthContext
-import { useState, useEffect, useContext } from "react";
-
-// Importamos las funciones del service que acabamos de crear
+import {notifyPendingChanged} from "../../../context/PendingAttention";
+import { useState, useEffect, useRef, useCallback, useContext } from "react";
 import {
   getSolicitudesHardware,
   atenderSolicitud,
   rechazarSolicitud,
 } from "../../../services/solicitudesService.js";
-
-// El contexto de autenticación nos da acceso al usuario logueado
 import { AuthContext } from "../../../context/AuthContext";
-
-// Los estilos del componente
 import "./HardwareSolicitudes.css";
 
-// ─── UTILIDADES ────────────────────────────────────────────────────────────────
+const API = "";
 
-// Convierte el estatus a una clase CSS para colorear el badge
+function authH() {
+  const t = localStorage.getItem("fabpsa_token");
+  return { Authorization: `Bearer ${t}`, "Content-Type": "application/json" };
+}
+
+// ─── UTILIDADES ───────────────────────────────────────────────────────────────
+
 function claseEstatus(estatus) {
   const v = String(estatus || "")
     .toLowerCase()
@@ -32,7 +29,6 @@ function claseEstatus(estatus) {
   return "hws-badge--default";
 }
 
-// Formatea una fecha ISO a formato legible "DD/MM/YYYY HH:MM"
 function formatFecha(fecha) {
   if (!fecha) return "—";
   const v = String(fecha);
@@ -40,56 +36,377 @@ function formatFecha(fecha) {
   return v.substring(0, 16);
 }
 
-// ─── COMPONENTE PRINCIPAL ──────────────────────────────────────────────────────
+function fmtFechaLarga(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("es-MX", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function initials(name) {
+  if (!name) return "?";
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+}
+
+// ─── HILO DE COMENTARIOS ─────────────────────────────────────────────────────
+// Usa el mismo endpoint que el usuario — ajusta si el backend tiene ruta propia para TI
+
+function HiloComentariosTI({ solicitudId }) {
+  const { user } = useContext(AuthContext);
+  const [comentarios, setComentarios] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [texto, setTexto] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [errorEnvio, setErrorEnvio] = useState(null);
+  const hiloRef = useRef(null);
+
+  const cargar = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Misma ruta que usa el usuario — cambiar si el backend expone ruta propia para TI
+      const r = await fetch(
+        `${API}/api/admin/hardware/${solicitudId}/comentarios`,
+        { headers: authH() },
+      );
+      if (!r.ok) throw new Error();
+      const data = await r.json();
+      setComentarios(Array.isArray(data) ? data : []);
+    } catch {
+      setComentarios([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [solicitudId]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
+
+  useEffect(() => {
+    if (hiloRef.current)
+      hiloRef.current.scrollTop = hiloRef.current.scrollHeight;
+  }, [comentarios]);
+
+  async function enviar() {
+    if (!texto.trim() || enviando) return;
+    setEnviando(true);
+    setErrorEnvio(null);
+    try {
+      // Ruta exclusiva para TI — el backend valida area = SISTEMAS
+      const r = await fetch(
+        `${API}/api/hardware/${solicitudId}/comentario-ti`,
+        {
+          method: "POST",
+          headers: authH(),
+          body: JSON.stringify({ comentario: texto.trim() }),
+        },
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const nuevo = await r.json();
+      setComentarios((prev) => [...prev, nuevo]);
+      setTexto("");
+    } catch (err) {
+      setErrorEnvio("No se pudo enviar el comentario. Intenta de nuevo.");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  function onKey(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      enviar();
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="hwt-loading">
+        <i className="ti ti-loader-2 hwt-spin" /> Cargando comentarios…
+      </div>
+    );
+  }
+
+  return (
+    <div className="hwt-hilo-wrap">
+      {/* Mensajes */}
+      <div className="hwt-hilo" ref={hiloRef}>
+        {comentarios.length === 0 ? (
+          <div className="hwt-hilo-empty">
+            <i className="ti ti-message-circle-off" />
+            Sin mensajes aún. Inicia la conversación con el usuario.
+          </div>
+        ) : (
+          comentarios.map((c, idx) => {
+            const esEvento = c.esEvento === true || c.esEvento === 1;
+            const esMio =
+              c.login === user?.login || c.rol === "sistemas" || c.rol === "ti";
+
+            if (esEvento)
+              return (
+                <div key={c.id ?? idx} className="hwt-evento">
+                  <i className="ti ti-point-filled" />
+                  <span>{c.mensaje}</span>
+                  <span className="hwt-evento-fecha">
+                    {fmtFechaLarga(c.fechaCreacion)}
+                  </span>
+                </div>
+              );
+
+            return (
+              <div
+                key={c.id ?? idx}
+                className={`hwt-mensaje ${esMio ? "mio" : "otro"}`}
+              >
+                <div className="hwt-msg-header">
+                  <div className={`hwt-msg-avatar ${esMio ? "ti" : "usr"}`}>
+                    {initials(c.nombre)}
+                  </div>
+                  <span className={`hwt-msg-rol ${esMio ? "ti" : "usr"}`}>
+                    {esMio ? "TI" : "Usuario"}
+                  </span>
+                  <span className="hwt-msg-nombre">{c.nombre}</span>
+                  <span className="hwt-msg-sep">·</span>
+                  <span className="hwt-msg-fecha">
+                    {fmtFechaLarga(c.fechaCreacion)}
+                  </span>
+                </div>
+                <div className={`hwt-burbuja ${esMio ? "mio" : "otro"}`}>
+                  {c.mensaje}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Error de envío */}
+      {errorEnvio && (
+        <div className="hwt-error-envio">
+          <i className="ti ti-alert-triangle" /> {errorEnvio}
+        </div>
+      )}
+
+      {/* Caja de envío */}
+      <div className="hwt-input-wrap">
+        <div className="hwt-input-row">
+          <textarea
+            className="hwt-textarea"
+            rows={3}
+            placeholder="Escribe un comentario para el usuario… (Enter para enviar)"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={onKey}
+          />
+          <button
+            className="hwt-btn-enviar"
+            disabled={!texto.trim() || enviando}
+            onClick={enviar}
+          >
+            {enviando ? (
+              <>
+                <i className="ti ti-loader-2 hwt-spin" /> Enviando…
+              </>
+            ) : (
+              <>
+                <i className="ti ti-send" /> Enviar
+              </>
+            )}
+          </button>
+        </div>
+        <div className="hwt-input-hint">
+          <i className="ti ti-info-circle" />
+          El mensaje será visible para el usuario solicitante.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PANEL EXPANDIDO — TABS HORIZONTALES ─────────────────────────────────────
+
+function PanelDetallesTI({ solicitud, onAtender }) {
+  const [tab, setTab] = useState("articulos");
+
+  const nMensajes = solicitud.totalMensajes || 0;
+  const nArticulos = solicitud.detalle?.length || 0;
+
+  return (
+    <div className="hwt-panel">
+      {/* Tabs */}
+      <div className="hwt-tabs">
+        {[
+          {
+            key: "articulos",
+            icon: "ti-package",
+            label: "Artículos",
+            count: nArticulos,
+          },
+          {
+            key: "comentarios",
+            icon: "ti-message",
+            label: "Comentarios",
+            count: nMensajes,
+          },
+          { key: "info", icon: "ti-info-circle", label: "Información" },
+        ].map((t) => (
+          <button
+            key={t.key}
+            className={`hwt-tab ${tab === t.key ? "active" : ""}`}
+            onClick={() => setTab(t.key)}
+          >
+            <i className={`ti ${t.icon}`} />
+            {t.label}
+            {t.count > 0 && <span className="hwt-tab-badge">{t.count}</span>}
+          </button>
+        ))}
+      </div>
+
+      {/* Contenido */}
+      <div className="hwt-tab-body">
+        {/* ── Artículos ── */}
+        {tab === "articulos" && (
+          <div className="hwt-arts-wrap">
+            {!solicitud.detalle?.length ? (
+              <div className="hwt-empty-inline">Sin artículos registrados.</div>
+            ) : (
+              <div className="hwt-arts-list">
+                {solicitud.detalle.map((d, i) => (
+                  <div key={d.idDetalle} className="hwt-art-row">
+                    <div className="hwt-art-num">{i + 1}</div>
+                    <div className="hwt-art-info">
+                      <div className="hwt-art-nombre">{d.nombreArticulo}</div>
+                      {d.observacionAtencion && (
+                        <div className="hwt-art-obs">
+                          {d.observacionAtencion}
+                        </div>
+                      )}
+                    </div>
+                    <div className="hwt-art-right">
+                      <span className="hwt-art-cant">×{d.cantidad}</span>
+                      <span
+                        className={`hws-badge ${claseEstatus(d.estatusDetalle)}`}
+                      >
+                        {d.estatusDetalle}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="hwt-arts-footer">
+              <span className="hwt-arts-total">
+                {nArticulos} artículo{nArticulos !== 1 ? "s" : ""} ·{" "}
+                {solicitud.detalle?.reduce(
+                  (a, d) => a + Number(d.cantidad || 0),
+                  0,
+                )}{" "}
+                piezas
+              </span>
+              <button
+                className="hws-btn hws-btn--primary"
+                onClick={() => onAtender(solicitud)}
+              >
+                <i className="ti ti-pencil" /> Atender solicitud
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Comentarios ── */}
+        {tab === "comentarios" && (
+          <HiloComentariosTI solicitudId={solicitud.idSolicitud} />
+        )}
+
+        {/* ── Información ── */}
+        {tab === "info" && (
+          <div className="hwt-info-grid">
+            <div className="hwt-info-item">
+              <span className="hwt-info-label">Solicitante</span>
+              <strong className="hwt-info-val">{solicitud.usuario}</strong>
+            </div>
+            <div className="hwt-info-item">
+              <span className="hwt-info-label">Departamento</span>
+              <strong className="hwt-info-val">
+                {solicitud.departamento || "—"}
+              </strong>
+            </div>
+            <div className="hwt-info-item">
+              <span className="hwt-info-label">Fecha de registro</span>
+              <strong className="hwt-info-val">
+                {formatFecha(solicitud.fechaRegistro)}
+              </strong>
+            </div>
+            <div className="hwt-info-item">
+              <span className="hwt-info-label">Estatus</span>
+              <span className={`hws-badge ${claseEstatus(solicitud.estatus)}`}>
+                {solicitud.estatus}
+              </span>
+            </div>
+            <div className="hwt-info-item hwt-info-item--full">
+              <span className="hwt-info-label">Motivo</span>
+              <div className="hwt-info-texto">
+                {solicitud.motivo || "Sin motivo especificado."}
+              </div>
+            </div>
+            {solicitud.observaciones && (
+              <div className="hwt-info-item hwt-info-item--full">
+                <span className="hwt-info-label">Observaciones</span>
+                <div className="hwt-info-texto">{solicitud.observaciones}</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── COMPONENTE PRINCIPAL ─────────────────────────────────────────────────────
 
 export default function HardwareSolicitudesPage() {
   const { user } = useContext(AuthContext);
 
-  // Lista completa de solicitudes que viene del backend
   const [solicitudes, setSolicitudes] = useState([]);
-
-  // Estado de carga y error al traer las solicitudes
+  useEffect(()=>{notifyPendingChanged();},[solicitudes]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Filtros de búsqueda — cada uno controla su input
   const [buscar, setBuscar] = useState("");
   const [filtroEstatus, setFiltroEstatus] = useState("");
   const [filtroDept, setFiltroDept] = useState("");
   const [fechaDesde, setFechaDesde] = useState("");
   const [fechaHasta, setFechaHasta] = useState("");
-
-  // Paginación — qué página estamos viendo y cuántos registros por página
   const [pagina, setPagina] = useState(1);
   const [porPagina, setPorPagina] = useState(15);
-
-  // IDs de filas expandidas (para mostrar el detalle de artículos)
-  const [expandidas, setExpandidas] = useState(new Set());
-
-  // Modal de consulta rápida — null = cerrado, objeto = solicitud seleccionada
+  const [expandedId, setExpandedId] = useState(null);
   const [modalConsulta, setModalConsulta] = useState(null);
-
-  // Modal de atención — null = cerrado, objeto = solicitud seleccionada
   const [modalAtender, setModalAtender] = useState(null);
-
-  // Estado de los campos del modal de atención (por idDetalle)
   const [camposAtencion, setCamposAtencion] = useState({});
-
-  // Estado del botón guardar en el modal de atención
   const [guardando, setGuardando] = useState(false);
   const [alertaModal, setAlertaModal] = useState(null);
 
-  // ─── CARGAR DATOS AL MONTAR ────────────────────────────────────────────────
-  // useEffect con [] como dependencia = se ejecuta solo una vez cuando el componente aparece
-  useEffect(() => {
+  const recargar = useCallback(() => {
+    setLoading(true);
+    setExpandedId(null);
     getSolicitudesHardware()
       .then(setSolicitudes)
       .catch(() => setError("No se pudieron cargar las solicitudes."))
       .finally(() => setLoading(false));
   }, []);
 
-  // ─── RESUMEN ───────────────────────────────────────────────────────────────
-  // Calculamos los conteos directamente de la lista — sin llamada extra al backend
+  useEffect(() => {
+    recargar();
+  }, [recargar]);
+
   const resumen = {
     total: solicitudes.length,
     pendientes: solicitudes.filter(
@@ -106,35 +423,30 @@ export default function HardwareSolicitudesPage() {
     ).length,
   };
 
-  // ─── DEPARTAMENTOS ÚNICOS para el filtro ───────────────────────────────────
   const departamentos = [
     ...new Set(solicitudes.map((s) => s.departamento).filter(Boolean)),
   ].sort();
 
-  // ─── FILTRADO ──────────────────────────────────────────────────────────────
-  // Filtramos la lista completa según todos los criterios activos
   const filtradas = solicitudes.filter((s) => {
     const texto = `${s.folio} ${s.usuario} ${s.departamento}`.toLowerCase();
-    const okBuscar = texto.includes(buscar.toLowerCase());
-    const okEstatus = !filtroEstatus || s.estatus === filtroEstatus;
-    const okDept = !filtroDept || s.departamento === filtroDept;
     const fecha = String(s.fechaRegistro).substring(0, 10);
-    const okDesde = !fechaDesde || fecha >= fechaDesde;
-    const okHasta = !fechaHasta || fecha <= fechaHasta;
-    return okBuscar && okEstatus && okDept && okDesde && okHasta;
+    return (
+      texto.includes(buscar.toLowerCase()) &&
+      (!filtroEstatus || s.estatus === filtroEstatus) &&
+      (!filtroDept || s.departamento === filtroDept) &&
+      (!fechaDesde || fecha >= fechaDesde) &&
+      (!fechaHasta || fecha <= fechaHasta)
+    );
   });
 
-  // ─── PAGINACIÓN ────────────────────────────────────────────────────────────
   const totalPaginas = Math.max(1, Math.ceil(filtradas.length / porPagina));
   const paginaReal = Math.min(pagina, totalPaginas);
   const inicio = (paginaReal - 1) * porPagina;
   const paginadas = filtradas.slice(inicio, inicio + porPagina);
 
-  // Cuando cambia un filtro, volvemos a la página 1
   function alFiltrar() {
     setPagina(1);
   }
-
   function limpiarFiltros() {
     setBuscar("");
     setFiltroEstatus("");
@@ -143,18 +455,10 @@ export default function HardwareSolicitudesPage() {
     setFechaHasta("");
     setPagina(1);
   }
-
-  // ─── EXPANDIR FILA ─────────────────────────────────────────────────────────
   function toggleExpand(id) {
-    setExpandidas((prev) => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setExpandedId((prev) => (prev === id ? null : id));
   }
 
-  // ─── MODAL ATENDER ─────────────────────────────────────────────────────────
-  // Cuando abrimos el modal, inicializamos los campos con los valores actuales
   function abrirAtender(sol) {
     const campos = {};
     sol.detalle.forEach((d) => {
@@ -171,7 +475,6 @@ export default function HardwareSolicitudesPage() {
     setModalAtender(sol);
   }
 
-  // Actualiza un campo específico de un artículo en el modal
   function setCampo(idDetalle, campo, valor) {
     setCamposAtencion((prev) => ({
       ...prev,
@@ -179,14 +482,11 @@ export default function HardwareSolicitudesPage() {
     }));
   }
 
-  // Guarda los cambios del modal de atención
   async function guardarAtencion() {
-    // Validación: si estatus es "En proceso" debe tener fecha
     const sinFecha = modalAtender.detalle.find((d) => {
       const c = camposAtencion[d.idDetalle];
       return c?.estatus === "En proceso" && !c?.fecha;
     });
-
     if (sinFecha) {
       setAlertaModal({
         tipo: "warning",
@@ -195,20 +495,15 @@ export default function HardwareSolicitudesPage() {
       });
       return;
     }
-
     setGuardando(true);
-
     const cambios = modalAtender.detalle.map((d) => ({
       idDetalle: d.idDetalle,
       estatus: camposAtencion[d.idDetalle]?.estatus || d.estatusDetalle,
       fechaEstimadaEntrega: camposAtencion[d.idDetalle]?.fecha || null,
       observacionAtencion: camposAtencion[d.idDetalle]?.observacion || null,
     }));
-
     try {
       const res = await atenderSolicitud(modalAtender.idSolicitud, cambios);
-
-      // Actualizar los datos localmente sin recargar del backend
       setSolicitudes((prev) =>
         prev.map((s) => {
           if (s.idSolicitud !== modalAtender.idSolicitud) return s;
@@ -229,13 +524,11 @@ export default function HardwareSolicitudesPage() {
           };
         }),
       );
-
       setAlertaModal({
         tipo: "success",
         titulo: "Cambios guardados",
         texto: "La solicitud se actualizó correctamente.",
       });
-
       setTimeout(() => setModalAtender(null), 1500);
     } catch {
       setAlertaModal({
@@ -248,7 +541,6 @@ export default function HardwareSolicitudesPage() {
     }
   }
 
-  // ─── RECHAZAR SOLICITUD ────────────────────────────────────────────────────
   async function handleRechazar() {
     if (!modalConsulta) return;
     try {
@@ -273,17 +565,13 @@ export default function HardwareSolicitudesPage() {
     }
   }
 
-  // ─── RENDER ────────────────────────────────────────────────────────────────
-
   if (loading)
     return <div className="hws-loading">Cargando solicitudes...</div>;
   if (error) return <div className="hws-error">{error}</div>;
 
   return (
     <div className="hws-wrap">
-      {/* ENCABEZADO */}
-
-      {/* TARJETAS RESUMEN */}
+      {/* KPI */}
       <div className="hws-resumen">
         {[
           {
@@ -346,7 +634,6 @@ export default function HardwareSolicitudesPage() {
             <i className="ti ti-search" />
           </div>
         </div>
-
         <div className="hws-filtro">
           <label>Estatus</label>
           <select
@@ -363,7 +650,6 @@ export default function HardwareSolicitudesPage() {
             <option>Rechazada</option>
           </select>
         </div>
-
         <div className="hws-filtro">
           <label>Departamento</label>
           <select
@@ -379,7 +665,6 @@ export default function HardwareSolicitudesPage() {
             ))}
           </select>
         </div>
-
         <div className="hws-filtro">
           <label>Desde</label>
           <input
@@ -391,7 +676,6 @@ export default function HardwareSolicitudesPage() {
             }}
           />
         </div>
-
         <div className="hws-filtro">
           <label>Hasta</label>
           <input
@@ -403,9 +687,14 @@ export default function HardwareSolicitudesPage() {
             }}
           />
         </div>
-
         <button className="hws-btn hws-btn--ghost" onClick={limpiarFiltros}>
           <i className="ti ti-eraser" /> Limpiar
+        </button>
+        <button
+          className="hws-btn hws-btn--ghost hws-btn-refresh-tabla"
+          onClick={recargar}
+        >
+          <i className="ti ti-refresh" /> Actualizar
         </button>
       </div>
 
@@ -433,124 +722,92 @@ export default function HardwareSolicitudesPage() {
                 </tr>
               </thead>
               <tbody>
-                {paginadas.map((s) => (
-                  <>
-                    {/* FILA PRINCIPAL */}
-                    <tr key={s.idSolicitud} className="hws-row">
-                      <td>
-                        <button
-                          className={`hws-btn-expand ${expandidas.has(s.idSolicitud) ? "open" : ""}`}
+                {paginadas.map((s) => {
+                  const isExpanded = expandedId === s.idSolicitud;
+                  return (
+                    <>
+                      <tr key={s.idSolicitud} className="hws-row">
+                        <td>
+                          <button
+                            className={`hws-btn-expand ${isExpanded ? "open" : ""}`}
+                            onClick={() => toggleExpand(s.idSolicitud)}
+                          >
+                            <i
+                              className={`ti ${isExpanded ? "ti-minus" : "ti-plus"}`}
+                            />
+                          </button>
+                        </td>
+                        <td
+                          className="hws-folio hws-td-click"
                           onClick={() => toggleExpand(s.idSolicitud)}
                         >
-                          <i
-                            className={`ti ${expandidas.has(s.idSolicitud) ? "ti-minus" : "ti-plus"}`}
-                          />
-                        </button>
-                      </td>
-                      <td className="hws-folio">{s.folio}</td>
-                      <td>{formatFecha(s.fechaRegistro)}</td>
-                      <td>{s.usuario}</td>
-                      <td>{s.departamento}</td>
-                      <td>
-                        <span
-                          className={`hws-badge ${claseEstatus(s.estatus)}`}
+                          {s.folio}
+                        </td>
+                        <td
+                          className="hws-td-click"
+                          onClick={() => toggleExpand(s.idSolicitud)}
                         >
-                          {s.estatus}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="hws-acciones">
-                          <button
-                            className="hws-btn-icon"
-                            title="Ver detalles"
-                            onClick={() => setModalConsulta(s)}
+                          {formatFecha(s.fechaRegistro)}
+                        </td>
+                        <td
+                          className="hws-td-click"
+                          onClick={() => toggleExpand(s.idSolicitud)}
+                        >
+                          {s.usuario}
+                        </td>
+                        <td
+                          className="hws-td-click"
+                          onClick={() => toggleExpand(s.idSolicitud)}
+                        >
+                          {s.departamento}
+                        </td>
+                        <td
+                          className="hws-td-click"
+                          onClick={() => toggleExpand(s.idSolicitud)}
+                        >
+                          <span
+                            className={`hws-badge ${claseEstatus(s.estatus)}`}
                           >
-                            <i className="ti ti-eye" />
-                          </button>
-                          <button
-                            className="hws-btn-icon"
-                            title="Atender solicitud"
-                            onClick={() => abrirAtender(s)}
-                          >
-                            <i className="ti ti-pencil" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-
-                    {/* FILA DETALLE EXPANDIBLE */}
-                    {expandidas.has(s.idSolicitud) && (
-                      <tr
-                        key={`det-${s.idSolicitud}`}
-                        className="hws-row-detalle"
-                      >
-                        <td colSpan={7}>
-                          <div className="hws-detalle">
-                            <div className="hws-detalle-title">
-                              Artículos solicitados
-                            </div>
-                            <table className="hws-detalle-table">
-                              <thead>
-                                <tr>
-                                  <th>#</th>
-                                  <th>Artículo</th>
-                                  <th>Cantidad</th>
-                                  <th>Estatus</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {s.detalle.length === 0 ? (
-                                  <tr>
-                                    <td colSpan={4}>
-                                      Sin artículos registrados.
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  s.detalle.map((d, i) => (
-                                    <tr key={d.idDetalle}>
-                                      <td>{i + 1}</td>
-                                      <td>{d.nombreArticulo}</td>
-                                      <td>{d.cantidad}</td>
-                                      <td>
-                                        <span
-                                          className={`hws-badge ${claseEstatus(d.estatusDetalle)}`}
-                                        >
-                                          {d.estatusDetalle}
-                                        </span>
-                                      </td>
-                                    </tr>
-                                  ))
-                                )}
-                              </tbody>
-                            </table>
-                            <div className="hws-detalle-footer">
-                              <span>
-                                Total artículos:{" "}
-                                <strong>{s.detalle.length}</strong>
-                              </span>
-                              <span>
-                                Total piezas:{" "}
-                                <strong>
-                                  {s.detalle.reduce(
-                                    (a, d) => a + Number(d.cantidad || 0),
-                                    0,
-                                  )}
-                                </strong>
-                              </span>
-                              <button
-                                className="hws-btn hws-btn--primary"
-                                onClick={() => abrirAtender(s)}
-                              >
-                                Ver / Atender{" "}
-                                <i className="ti ti-arrow-right" />
-                              </button>
-                            </div>
+                            {s.estatus}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="hws-acciones">
+                            <button
+                              className="hws-btn-icon"
+                              title="Ver detalles"
+                              onClick={() => setModalConsulta(s)}
+                            >
+                              <i className="ti ti-eye" />
+                            </button>
+                            <button
+                              className="hws-btn-icon"
+                              title="Atender"
+                              onClick={() => abrirAtender(s)}
+                            >
+                              <i className="ti ti-pencil" />
+                            </button>
                           </div>
                         </td>
                       </tr>
-                    )}
-                  </>
-                ))}
+
+                      {/* Panel expandido con tabs */}
+                      {isExpanded && (
+                        <tr
+                          key={`det-${s.idSolicitud}`}
+                          className="hws-row-detalle"
+                        >
+                          <td colSpan={7} style={{ padding: 0 }}>
+                            <PanelDetallesTI
+                              solicitud={s}
+                              onAtender={abrirAtender}
+                            />
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
               </tbody>
             </table>
           )}
@@ -629,7 +886,7 @@ export default function HardwareSolicitudesPage() {
         )}
       </div>
 
-      {/* ── MODAL CONSULTA RÁPIDA ── */}
+      {/* MODAL CONSULTA */}
       {modalConsulta && (
         <div className="hws-backdrop" onClick={() => setModalConsulta(null)}>
           <div
@@ -677,7 +934,6 @@ export default function HardwareSolicitudesPage() {
               >
                 Cerrar
               </button>
-              {/* Solo mostramos rechazar si no está ya rechazada, completada o tiene artículos atendidos */}
               {!["rechazada", "completada"].includes(
                 modalConsulta.estatus?.toLowerCase(),
               ) &&
@@ -696,7 +952,7 @@ export default function HardwareSolicitudesPage() {
         </div>
       )}
 
-      {/* ── MODAL ATENDER ── */}
+      {/* MODAL ATENDER */}
       {modalAtender && (
         <div className="hws-backdrop" onClick={() => setModalAtender(null)}>
           <div className="hws-modal" onClick={(e) => e.stopPropagation()}>
@@ -713,7 +969,6 @@ export default function HardwareSolicitudesPage() {
               </button>
             </div>
             <div className="hws-modal-body">
-              {/* Alerta dentro del modal */}
               {alertaModal && (
                 <div className={`hws-alerta hws-alerta--${alertaModal.tipo}`}>
                   <i
@@ -727,8 +982,6 @@ export default function HardwareSolicitudesPage() {
                   </div>
                 </div>
               )}
-
-              {/* Info del solicitante */}
               <div className="hws-info-grid">
                 <div>
                   <span>Solicitante</span>
@@ -743,10 +996,7 @@ export default function HardwareSolicitudesPage() {
                   <strong>{modalAtender.motivo || "—"}</strong>
                 </div>
               </div>
-
               <div className="hws-modal-section">Artículos solicitados</div>
-
-              {/* Un bloque por cada artículo */}
               {modalAtender.detalle.map((d) => {
                 const c = camposAtencion[d.idDetalle] || {};
                 return (
@@ -774,7 +1024,6 @@ export default function HardwareSolicitudesPage() {
                           <option>Rechazada</option>
                         </select>
                       </div>
-                      {/* Solo mostramos fecha si el estatus es "En proceso" */}
                       {c.estatus === "En proceso" && (
                         <div className="hws-atencion-campo">
                           <label>Fecha estimada de entrega</label>

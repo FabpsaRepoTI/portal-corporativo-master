@@ -1,0 +1,67 @@
+/* Mismo paginador que Mesa de Servicio (.mha-pager), dentro de .sit-table-wrap */
+.sit-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 8px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+.sit-pager__info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.sit-pager__tam {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.sit-pager__tam select {
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-body);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sit-pager__btns {
+  display: flex;
+  gap: 3px;
+}
+.sit-pn {
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+.sit-pn--act {
+  background: var(--secondary);
+  color: #fff;
+  border-color: var(--secondary);
+}
+.sit-pn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.sit-pn--gap {
+  border-color: transparent;
+  background: transparent;
+  cursor: default;
+}

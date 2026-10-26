@@ -23,8 +23,8 @@ export function useServicioConfig(slug) {
         return res.json();
       })
       .then((data) => {
-        console.log("API response:", data); // ← agrega esto
-        setConfig(data.data ?? data); // ← cambia esta línea también
+        console.log("API response:", data); // 
+        setConfig(data.data ?? data); //
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));

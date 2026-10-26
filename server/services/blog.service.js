@@ -73,7 +73,7 @@ async function eliminarEdicion(idEdicion) {
   if (check.recordset[0].activa)
     throw new Error("No puedes eliminar la edición activa");
 
-  // trivia (opcional — puede no existir)
+  // trivia (opcional)
   try {
     await pool.request().input("id", sql.Int, id).query(`
       DELETE FROM blog_trivia_respuesta WHERE idResultado IN (
@@ -103,7 +103,23 @@ async function eliminarEdicion(idEdicion) {
   await pool.request().input("id", sql.Int, id).query(`
     DELETE FROM blog_encuesta WHERE idEdicion = @id`);
 
-  // artículos
+  // reacciones y guardados de artículos de la edición
+  await pool.request().input("id", sql.Int, id).query(`
+    DELETE FROM blog_reacciones WHERE idArticulo IN (
+      SELECT idArticulo FROM blog_articulo WHERE idEdicion = @id)`);
+  await pool.request().input("id", sql.Int, id).query(`
+    DELETE FROM blog_guardados WHERE idArticulo IN (
+      SELECT idArticulo FROM blog_articulo WHERE idEdicion = @id)`);
+  await pool.request().input("id", sql.Int, id).query(`
+    DELETE FROM blog_reacciones_comentario WHERE idComentario IN (
+      SELECT c.idComentario FROM blog_comentario c
+      JOIN blog_articulo a ON a.idArticulo = c.idArticulo WHERE a.idEdicion = @id)`);
+  await pool.request().input("id", sql.Int, id).query(`
+    DELETE FROM blog_respuestas WHERE idComentario IN (
+      SELECT c.idComentario FROM blog_comentario c
+      JOIN blog_articulo a ON a.idArticulo = c.idArticulo WHERE a.idEdicion = @id)`);
+
+  // likes y comentarios
   await pool.request().input("id", sql.Int, id).query(`
     DELETE FROM blog_like WHERE idArticulo IN (
       SELECT idArticulo FROM blog_articulo WHERE idEdicion = @id)`);
@@ -122,19 +138,45 @@ async function eliminarEdicion(idEdicion) {
 
 async function getArticulosEdicion(idEdicion) {
   const pool = await getPool();
-  const result = await pool
-    .request()
-    .input("idEdicion", sql.Int, parseInt(idEdicion)).query(`
-      SELECT a.idArticulo, a.titulo, a.extracto, a.categoria, a.autor,
-             a.fotoUrl, a.destacado, a.estatus, a.tiempoLectura,
-             a.fechaPublicacion, a.fechaCreacion,
-             (SELECT COUNT(*) FROM blog_like WHERE idArticulo = a.idArticulo) AS likes,
-             (SELECT COUNT(*) FROM blog_comentario WHERE idArticulo = a.idArticulo AND activo = 1) AS comentarios
-      FROM   blog_articulo a
-      WHERE  a.idEdicion = @idEdicion AND a.estatus = 2
-      ORDER BY a.destacado DESC, a.fechaPublicacion DESC
-    `);
-  return result.recordset;
+  try {
+    const result = await pool
+      .request()
+      .input("idEdicion", sql.Int, parseInt(idEdicion)).query(`
+        SELECT
+          a.idArticulo, a.titulo, a.extracto, a.categoria,
+          a.autor, a.fotoUrl, a.destacado, a.estatus,
+          a.tiempoLectura, a.fechaPublicacion, a.fechaCreacion,
+          ISNULL(u.name, a.autor) AS autorNombre,
+          u.picture               AS fotoAutor,
+          (SELECT COUNT(*) FROM blog_comentario
+           WHERE idArticulo = a.idArticulo AND activo = 1)               AS comentarios,
+          (SELECT COUNT(*) FROM blog_reacciones
+           WHERE idArticulo = a.idArticulo AND tipo = 'like')            AS reaccionLike,
+          (SELECT COUNT(*) FROM blog_reacciones
+           WHERE idArticulo = a.idArticulo AND tipo = 'love')            AS reaccionLove,
+          (SELECT COUNT(*) FROM blog_reacciones
+           WHERE idArticulo = a.idArticulo AND tipo = 'interest')        AS reaccionInterest
+        FROM   blog_articulo a
+        LEFT JOIN sec_users u ON u.login = a.autor
+        WHERE  a.idEdicion = @idEdicion AND a.estatus = 2
+        ORDER BY a.destacado DESC, a.fechaPublicacion DESC
+      `);
+
+    return result.recordset.map((a) => ({
+      ...a,
+      autor: a.autorNombre || a.autor,
+      reacciones: {
+        like: a.reaccionLike || 0,
+        love: a.reaccionLove || 0,
+        interest: a.reaccionInterest || 0,
+      },
+      miReaccion: null,
+      guardado: false,
+    }));
+  } catch (e) {
+    console.error("❌ getArticulosEdicion error:", e.message);
+    throw e;
+  }
 }
 
 async function getArticuloDetalle(idArticulo, loginUsuario) {
@@ -146,39 +188,97 @@ async function getArticuloDetalle(idArticulo, loginUsuario) {
       SELECT a.idArticulo, a.idEdicion, a.titulo, a.extracto, a.contenido,
              a.categoria, a.autor, a.fotoUrl, a.destacado, a.estatus,
              a.tiempoLectura, a.fechaPublicacion, a.fechaCreacion,
-             (SELECT COUNT(*) FROM blog_like WHERE idArticulo = a.idArticulo) AS likes
+             ISNULL(u.name, a.autor) AS autorNombre,
+             u.picture               AS fotoAutor,
+             (SELECT COUNT(*) FROM blog_reacciones
+              WHERE idArticulo = a.idArticulo) AS totalReacciones
       FROM   blog_articulo a
+      LEFT JOIN sec_users u ON u.login = a.autor
       WHERE  a.idArticulo = @id AND a.estatus = 2
     `);
 
   const articulo = artResult.recordset[0];
   if (!articulo) return null;
 
-  const likeResult = await pool
+  articulo.autor = articulo.autorNombre || articulo.autor;
+
+  const reacciones = await getReaccionesArticulo(idArticulo, loginUsuario);
+  articulo.reacciones = reacciones;
+  articulo.miReaccion = reacciones.miReaccion;
+  articulo.meGusta = reacciones.miReaccion !== null;
+
+  const guardadoRes = await pool
     .request()
     .input("id", sql.Int, parseInt(idArticulo))
     .input("login", sql.VarChar(255), loginUsuario).query(`
-      SELECT 1 AS liked FROM blog_like
+      SELECT 1 AS guardado FROM blog_guardados
       WHERE idArticulo = @id AND loginUsuario = @login
     `);
-  articulo.meGusta = likeResult.recordset.length > 0;
+  articulo.guardado = guardadoRes.recordset.length > 0;
 
   const comResult = await pool
     .request()
     .input("id", sql.Int, parseInt(idArticulo)).query(`
       SELECT c.idComentario, c.loginUsuario,
-             c.loginUsuario AS nombreUsuario,
+             ISNULL(u.name, c.loginUsuario) AS nombreUsuario,
+             u.picture                       AS fotoUsuario,
              c.comentario, c.fecha
       FROM   blog_comentario c
+      LEFT JOIN sec_users u ON u.login = c.loginUsuario
       WHERE  c.idArticulo = @id AND c.activo = 1
       ORDER BY c.fecha ASC
     `);
-  articulo.comentarios = comResult.recordset;
 
+  const comentarios = [];
+  for (const c of comResult.recordset) {
+    const rcRes = await pool.request().input("idCom", sql.Int, c.idComentario)
+      .query(`
+        SELECT tipo, COUNT(*) AS total
+        FROM   blog_reacciones_comentario
+        WHERE  idComentario = @idCom
+        GROUP BY tipo
+      `);
+
+    const rcMia = await pool
+      .request()
+      .input("idCom", sql.Int, c.idComentario)
+      .input("login", sql.VarChar(255), loginUsuario).query(`
+        SELECT tipo FROM blog_reacciones_comentario
+        WHERE idComentario = @idCom AND loginUsuario = @login
+      `);
+
+    const rcMap = { like: 0, love: 0 };
+    rcRes.recordset.forEach((r) => {
+      rcMap[r.tipo] = r.total;
+    });
+
+    const rpRes = await pool.request().input("idCom", sql.Int, c.idComentario)
+      .query(`
+        SELECT rp.idRespuesta, rp.loginUsuario,
+               ISNULL(u.name, rp.loginUsuario) AS nombreUsuario,
+               u.picture                        AS fotoUsuario,
+               rp.respuesta, rp.fecha
+        FROM   blog_respuestas rp
+        LEFT JOIN sec_users u ON u.login = rp.loginUsuario
+        WHERE  rp.idComentario = @idCom
+        ORDER BY rp.fecha ASC
+      `);
+
+    comentarios.push({
+      ...c,
+      reacciones: {
+        like: rcMap.like,
+        love: rcMap.love,
+        miReaccion: rcMia.recordset[0]?.tipo || null,
+      },
+      respuestas: rpRes.recordset,
+    });
+  }
+
+  articulo.comentarios = comentarios;
   return articulo;
 }
 
-// DETALLE ADMIN — sin filtro de estatus, trae contenido completo para editar
 async function getArticuloDetalleAdmin(idArticulo) {
   const pool = await getPool();
   const result = await pool.request().input("id", sql.Int, parseInt(idArticulo))
@@ -287,8 +387,10 @@ async function getArticulosAdmin(idEdicion) {
     .input("idEdicion", sql.Int, parseInt(idEdicion)).query(`
       SELECT a.idArticulo, a.titulo, a.categoria, a.autor, a.destacado,
              a.estatus, a.tiempoLectura, a.fechaPublicacion, a.fechaCreacion,
-             (SELECT COUNT(*) FROM blog_like WHERE idArticulo = a.idArticulo) AS likes,
-             (SELECT COUNT(*) FROM blog_comentario WHERE idArticulo = a.idArticulo AND activo = 1) AS comentarios
+             (SELECT COUNT(*) FROM blog_like
+              WHERE idArticulo = a.idArticulo) AS likes,
+             (SELECT COUNT(*) FROM blog_comentario
+              WHERE idArticulo = a.idArticulo AND activo = 1) AS comentarios
       FROM   blog_articulo a
       WHERE  a.idEdicion = @idEdicion
       ORDER BY a.fechaCreacion DESC
@@ -297,7 +399,30 @@ async function getArticulosAdmin(idEdicion) {
 }
 
 // ─────────────────────────────────────────────
-//  LIKES
+//  ESTADO PERSONAL (miReaccion + guardado en bloque)
+// ─────────────────────────────────────────────
+
+async function getEstadoArticulos(idEdicion, loginUsuario) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input("idEdicion", sql.Int, parseInt(idEdicion))
+    .input("login", sql.VarChar(255), loginUsuario).query(`
+      SELECT a.idArticulo,
+             r.tipo AS miReaccion,
+             CASE WHEN g.idGuardado IS NOT NULL THEN 1 ELSE 0 END AS guardado
+      FROM   blog_articulo a
+      LEFT JOIN blog_reacciones r
+             ON r.idArticulo = a.idArticulo AND r.loginUsuario = @login
+      LEFT JOIN blog_guardados g
+             ON g.idArticulo = a.idArticulo AND g.loginUsuario = @login
+      WHERE  a.idEdicion = @idEdicion AND a.estatus = 2
+    `);
+  return result.recordset;
+}
+
+// ─────────────────────────────────────────────
+//  LIKES (compatibilidad)
 // ─────────────────────────────────────────────
 
 async function toggleLike(idArticulo, loginUsuario) {
@@ -305,9 +430,11 @@ async function toggleLike(idArticulo, loginUsuario) {
   const existe = await pool
     .request()
     .input("id", sql.Int, parseInt(idArticulo))
-    .input("login", sql.VarChar(255), loginUsuario).query(`
-      SELECT idLike FROM blog_like WHERE idArticulo = @id AND loginUsuario = @login
-    `);
+    .input("login", sql.VarChar(255), loginUsuario)
+    .query(
+      `SELECT idLike FROM blog_like WHERE idArticulo = @id AND loginUsuario = @login`,
+    );
+
   if (existe.recordset.length > 0) {
     await pool
       .request()
@@ -327,6 +454,234 @@ async function toggleLike(idArticulo, loginUsuario) {
       );
     return { accion: "added" };
   }
+}
+
+// ─────────────────────────────────────────────
+//  REACCIONES A ARTÍCULOS
+// ─────────────────────────────────────────────
+
+async function reaccionarArticulo(idArticulo, loginUsuario, tipo) {
+  const pool = await getPool();
+
+  const existe = await pool
+    .request()
+    .input("id", sql.Int, parseInt(idArticulo))
+    .input("login", sql.VarChar(255), loginUsuario).query(`
+      SELECT idReaccion, tipo FROM blog_reacciones
+      WHERE idArticulo = @id AND loginUsuario = @login
+    `);
+
+  if (existe.recordset.length > 0) {
+    const actual = existe.recordset[0].tipo;
+    if (actual === tipo) {
+      await pool
+        .request()
+        .input("id", sql.Int, parseInt(idArticulo))
+        .input("login", sql.VarChar(255), loginUsuario)
+        .query(
+          `DELETE FROM blog_reacciones WHERE idArticulo = @id AND loginUsuario = @login`,
+        );
+      return { accion: "removed", tipo };
+    } else {
+      await pool
+        .request()
+        .input("id", sql.Int, parseInt(idArticulo))
+        .input("login", sql.VarChar(255), loginUsuario)
+        .input("tipo", sql.VarChar(10), tipo)
+        .query(
+          `UPDATE blog_reacciones SET tipo = @tipo WHERE idArticulo = @id AND loginUsuario = @login`,
+        );
+      return { accion: "changed", tipo };
+    }
+  } else {
+    await pool
+      .request()
+      .input("id", sql.Int, parseInt(idArticulo))
+      .input("login", sql.VarChar(255), loginUsuario)
+      .input("tipo", sql.VarChar(10), tipo)
+      .query(
+        `INSERT INTO blog_reacciones (idArticulo, loginUsuario, tipo) VALUES (@id, @login, @tipo)`,
+      );
+    return { accion: "added", tipo };
+  }
+}
+
+async function getReaccionesArticulo(idArticulo, loginUsuario) {
+  const pool = await getPool();
+
+  const totales = await pool
+    .request()
+    .input("id", sql.Int, parseInt(idArticulo)).query(`
+      SELECT tipo, COUNT(*) AS total
+      FROM   blog_reacciones
+      WHERE  idArticulo = @id
+      GROUP BY tipo
+    `);
+
+  const miReaccion = await pool
+    .request()
+    .input("id", sql.Int, parseInt(idArticulo))
+    .input("login", sql.VarChar(255), loginUsuario).query(`
+      SELECT tipo FROM blog_reacciones
+      WHERE idArticulo = @id AND loginUsuario = @login
+    `);
+
+  const usuarios = await pool
+    .request()
+    .input("id", sql.Int, parseInt(idArticulo)).query(`
+      SELECT TOP 4
+             r.loginUsuario,
+             ISNULL(u.name, r.loginUsuario) AS nombre,
+             u.picture                       AS fotoUrl
+      FROM   blog_reacciones r
+      LEFT JOIN sec_users u ON u.login = r.loginUsuario
+      WHERE  r.idArticulo = @id
+      ORDER BY r.fecha DESC
+    `);
+
+  const map = { like: 0, love: 0, interest: 0 };
+  totales.recordset.forEach((row) => {
+    map[row.tipo] = row.total;
+  });
+
+  return {
+    like: map.like,
+    love: map.love,
+    interest: map.interest,
+    total: map.like + map.love + map.interest,
+    miReaccion: miReaccion.recordset[0]?.tipo || null,
+    usuarios: usuarios.recordset,
+  };
+}
+
+// ─────────────────────────────────────────────
+//  REACCIONES EN COMENTARIOS
+// ─────────────────────────────────────────────
+
+async function reaccionarComentario(idComentario, loginUsuario, tipo) {
+  const pool = await getPool();
+
+  const existe = await pool
+    .request()
+    .input("id", sql.Int, parseInt(idComentario))
+    .input("login", sql.VarChar(255), loginUsuario).query(`
+      SELECT idReaccion, tipo FROM blog_reacciones_comentario
+      WHERE idComentario = @id AND loginUsuario = @login
+    `);
+
+  if (existe.recordset.length > 0) {
+    const actual = existe.recordset[0].tipo;
+    if (actual === tipo) {
+      await pool
+        .request()
+        .input("id", sql.Int, parseInt(idComentario))
+        .input("login", sql.VarChar(255), loginUsuario)
+        .query(
+          `DELETE FROM blog_reacciones_comentario WHERE idComentario = @id AND loginUsuario = @login`,
+        );
+      return { accion: "removed", tipo };
+    } else {
+      await pool
+        .request()
+        .input("id", sql.Int, parseInt(idComentario))
+        .input("login", sql.VarChar(255), loginUsuario)
+        .input("tipo", sql.VarChar(10), tipo)
+        .query(
+          `UPDATE blog_reacciones_comentario SET tipo = @tipo WHERE idComentario = @id AND loginUsuario = @login`,
+        );
+      return { accion: "changed", tipo };
+    }
+  } else {
+    await pool
+      .request()
+      .input("id", sql.Int, parseInt(idComentario))
+      .input("login", sql.VarChar(255), loginUsuario)
+      .input("tipo", sql.VarChar(10), tipo)
+      .query(
+        `INSERT INTO blog_reacciones_comentario (idComentario, loginUsuario, tipo) VALUES (@id, @login, @tipo)`,
+      );
+    return { accion: "added", tipo };
+  }
+}
+
+// ─────────────────────────────────────────────
+//  RESPUESTAS A COMENTARIOS
+// ─────────────────────────────────────────────
+
+async function responderComentario(idComentario, loginUsuario, respuesta) {
+  const pool = await getPool();
+
+  const userRes = await pool
+    .request()
+    .input("login", sql.VarChar(255), loginUsuario)
+    .query(`SELECT name, picture FROM sec_users WHERE login = @login`);
+  const u = userRes.recordset[0];
+
+  const result = await pool
+    .request()
+    .input("idComentario", sql.Int, parseInt(idComentario))
+    .input("login", sql.VarChar(255), loginUsuario)
+    .input("nombre", sql.NVarChar(150), u?.name || loginUsuario)
+    .input("fotoUrl", sql.VarChar(500), u?.picture || null)
+    .input("respuesta", sql.NVarChar(1000), respuesta.trim()).query(`
+      INSERT INTO blog_respuestas (idComentario, loginUsuario, nombreUsuario, fotoUrl, respuesta)
+      OUTPUT INSERTED.idRespuesta, INSERTED.fecha
+      VALUES (@idComentario, @login, @nombre, @fotoUrl, @respuesta)
+    `);
+
+  return result.recordset[0];
+}
+
+// ─────────────────────────────────────────────
+//  ARTÍCULOS GUARDADOS
+// ─────────────────────────────────────────────
+
+async function toggleGuardado(idArticulo, loginUsuario) {
+  const pool = await getPool();
+
+  const existe = await pool
+    .request()
+    .input("id", sql.Int, parseInt(idArticulo))
+    .input("login", sql.VarChar(255), loginUsuario)
+    .query(
+      `SELECT idGuardado FROM blog_guardados WHERE idArticulo = @id AND loginUsuario = @login`,
+    );
+
+  if (existe.recordset.length > 0) {
+    await pool
+      .request()
+      .input("id", sql.Int, parseInt(idArticulo))
+      .input("login", sql.VarChar(255), loginUsuario)
+      .query(
+        `DELETE FROM blog_guardados WHERE idArticulo = @id AND loginUsuario = @login`,
+      );
+    return { accion: "removed" };
+  } else {
+    await pool
+      .request()
+      .input("id", sql.Int, parseInt(idArticulo))
+      .input("login", sql.VarChar(255), loginUsuario)
+      .query(
+        `INSERT INTO blog_guardados (idArticulo, loginUsuario) VALUES (@id, @login)`,
+      );
+    return { accion: "added" };
+  }
+}
+
+async function getArticulosGuardados(loginUsuario) {
+  const pool = await getPool();
+  const result = await pool
+    .request()
+    .input("login", sql.VarChar(255), loginUsuario).query(`
+      SELECT a.idArticulo, a.titulo, a.extracto, a.categoria,
+             a.autor, a.fotoUrl, a.tiempoLectura, a.fechaPublicacion,
+             g.fecha AS fechaGuardado
+      FROM   blog_guardados g
+      JOIN   blog_articulo a ON a.idArticulo = g.idArticulo
+      WHERE  g.loginUsuario = @login AND a.estatus = 2
+      ORDER BY g.fecha DESC
+    `);
+  return result.recordset;
 }
 
 // ─────────────────────────────────────────────
@@ -356,6 +711,74 @@ async function moderarComentario(idComentario, activo) {
     .query(
       `UPDATE blog_comentario SET activo = @activo WHERE idComentario = @id`,
     );
+}
+
+// ─────────────────────────────────────────────
+//  PARTICIPACIÓN
+// ─────────────────────────────────────────────
+
+async function getParticipacion(idEdicion) {
+  const pool = await getPool();
+  try {
+    const result = await pool
+      .request()
+      .input("idEdicion", sql.Int, parseInt(idEdicion)).query(`
+        SELECT TOP 3
+               actividad.login,
+               ISNULL(u.name, actividad.login) AS nombre,
+               u.picture                        AS fotoUrl,
+               SUM(actividad.puntos)            AS total
+        FROM (
+          SELECT c.loginUsuario AS login, COUNT(*) AS puntos
+          FROM   blog_comentario c
+          JOIN   blog_articulo a ON a.idArticulo = c.idArticulo
+          WHERE  a.idEdicion = @idEdicion AND c.activo = 1
+          GROUP BY c.loginUsuario
+
+          UNION ALL
+
+          SELECT r.loginUsuario AS login, COUNT(*) AS puntos
+          FROM   blog_reacciones r
+          JOIN   blog_articulo a ON a.idArticulo = r.idArticulo
+          WHERE  a.idEdicion = @idEdicion
+          GROUP BY r.loginUsuario
+
+          UNION ALL
+
+          SELECT rc.loginUsuario AS login, COUNT(*) AS puntos
+          FROM   blog_reacciones_comentario rc
+          JOIN   blog_comentario c ON c.idComentario = rc.idComentario
+          JOIN   blog_articulo a ON a.idArticulo = c.idArticulo
+          WHERE  a.idEdicion = @idEdicion
+          GROUP BY rc.loginUsuario
+
+          UNION ALL
+
+          SELECT rp.loginUsuario AS login, COUNT(*) AS puntos
+          FROM   blog_respuestas rp
+          JOIN   blog_comentario c ON c.idComentario = rp.idComentario
+          JOIN   blog_articulo a ON a.idArticulo = c.idArticulo
+          WHERE  a.idEdicion = @idEdicion
+          GROUP BY rp.loginUsuario
+
+          UNION ALL
+
+          SELECT ev.loginUsuario AS login, COUNT(*) AS puntos
+          FROM   blog_encuesta_voto ev
+          JOIN   blog_encuesta e ON e.idEncuesta = ev.idEncuesta
+          WHERE  e.idEdicion = @idEdicion
+          GROUP BY ev.loginUsuario
+
+        ) actividad
+        LEFT JOIN sec_users u ON u.login = actividad.login
+        GROUP BY actividad.login, u.name, u.picture
+        ORDER BY total DESC
+      `);
+    return result.recordset;
+  } catch (e) {
+    console.error("❌ getParticipacion error:", e.message);
+    throw e;
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -449,8 +872,8 @@ async function getArchivo() {
   const pool = await getPool();
   const result = await pool.request().query(`
     SELECT e.idEdicion, e.titulo, e.mes, e.anio, e.activa,
-           COUNT(a.idArticulo) AS totalArticulos,
-           SUM(CAST(a.destacado AS INT)) AS destacados
+           COUNT(a.idArticulo)            AS totalArticulos,
+           SUM(CAST(a.destacado AS INT))  AS destacados
     FROM   blog_edicion e
     LEFT JOIN blog_articulo a ON a.idEdicion = e.idEdicion AND a.estatus = 2
     GROUP BY e.idEdicion, e.titulo, e.mes, e.anio, e.activa
@@ -458,6 +881,10 @@ async function getArchivo() {
   `);
   return result.recordset;
 }
+
+// ─────────────────────────────────────────────
+//  EXPORTS
+// ─────────────────────────────────────────────
 
 module.exports = {
   // ediciones
@@ -473,11 +900,24 @@ module.exports = {
   crearArticulo,
   actualizarArticulo,
   getArticulosAdmin,
-  // likes
+  getEstadoArticulos,
+  // likes (compatibilidad)
   toggleLike,
+  // reacciones
+  reaccionarArticulo,
+  getReaccionesArticulo,
   // comentarios
   agregarComentario,
   moderarComentario,
+  // reacciones en comentarios
+  reaccionarComentario,
+  // respuestas
+  responderComentario,
+  // guardados
+  toggleGuardado,
+  getArticulosGuardados,
+  // participación
+  getParticipacion,
   // encuestas
   getEncuestaEdicion,
   crearEncuesta,

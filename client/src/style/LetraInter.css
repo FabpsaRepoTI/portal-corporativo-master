@@ -1,0 +1,21 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&display=swap");
+/* LetraInter.css — PRUEBA TEMPORAL: letra Inter en todo el portal (incluido el
+   inicio de sesión). Se activa con LETRA_INTER en App.jsx; con false vuelve
+   Outfit. Los íconos (.ti) conservan su propia fuente. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap");
+html.portal-inter,
+html.portal-inter body,
+html.portal-inter *:not(.ti):not([class^="ti-"]):not([class*=" ti-"]):not(code):not(pre) {
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif !important;
+  font-feature-settings: "cv11", "ss01", "calt";
+}
+/* Inter se lee más grande que Outfit: títulos un poco más compactos */
+html.portal-inter :is(h1, .apps-title, .nube-titulo, .gd-header__title) { letter-spacing: -0.035em; }
+html.portal-inter :is(td, .sit-table td) { font-variant-numeric: tabular-nums; }
+
+/* PRUEBA: títulos en Plus Jakarta Sans (el resto sigue en Inter) */
+html.portal-inter.portal-inter.portal-inter.portal-inter.portal-inter body :is(h1, h2, h3, .apps-title, .apps-title *, .nube-titulo, .nube-titulo *, .gd-header__title, .gd-header__title *,
+  .hap-name, .hap-name *, .lg2-panel-title, .lg2-brand-title, .lg2-brand-title *, .lg2-loading-title,
+  .portfolio-header h1, .portfolio-header h1 *, .adm-nivel, .sit-card__title, .cg-board-heading h2) {
+  font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", system-ui, sans-serif !important;
+}

@@ -65,7 +65,7 @@ export default function NotificationToast({ notificacion, onClose }) {
         style={{ background: `${notificacion.colorHex}22` }}
       >
         <i
-          className={`ti ti-${notificacion.icono}`}
+          className={`ti ${notificacion.icono?.startsWith("ti-") ? notificacion.icono : `ti-${notificacion.icono || "bell"}`}`}
           style={{ color: notificacion.colorHex }}
         />
       </div>

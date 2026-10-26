@@ -62,6 +62,7 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "../client/public")));
 
+// Fotos de perfil, blog, mantenimiento y solicitudes viven en <repo>/uploads.
 app.use(
   "/uploads",
   express.static(
@@ -71,21 +72,8 @@ app.use(
   ),
 );
 
-app.use(
-  "/uploads",
-  express.static(
-    process.env.UPLOADS_DIR
-      ? process.env.UPLOADS_DIR
-      : path.join(__dirname, "../uploads"),
-  ),
-);
-
-app.use(
-  "/uploads/blog",
-  express.static(path.join(__dirname, "../uploads/blog")),
-);
-
-// AGREGAR ESTA LÍNEA — sirve también desde server/uploads/
+// Adjuntos de Gestión de Desarrollo (avances) y algunas solicitudes viven en
+// server/uploads — se sirve como fallback bajo el mismo prefijo.
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/api/auth", authRoutes);
@@ -97,6 +85,8 @@ app.use("/api/admin", sistemasAdminRoutes);
 
 const serviciosRoutes = require("./routes/servicios.routes");
 app.use("/api/servicios", serviciosRoutes);
+app.use("/api/mesa-asistente", require("./routes/mesaAsistente.routes"));
+app.use("/api/encuesta-mesa", require("./routes/encuestaMesaServicio.routes"));
 
 const solicitudesAdminRoutes = require("./routes/solicitudesAdmin.routes");
 app.use("/api/mesa-admin", solicitudesAdminRoutes);
@@ -119,6 +109,15 @@ app.use("/api/usuarios", usuariosRouter);
 
 const solicitudesDesarrollo = require("./routes/solicitudesDesarrollo.routes");
 app.use("/api/solicitudes-desarrollo", solicitudesDesarrollo);
+const gestionAccess = [
+  require("./middleware/dev.middleware").verifyToken,
+  require("./middleware/requireModulo")("gestion_desarrollo"),
+];
+app.use(
+  "/api/gestion-desarrollo",
+  ...gestionAccess,
+  require("./routes/gestionDesarrollo.routes"),
+);
 
 const homeRoutes = require("./routes/home.routes");
 app.use("/api/home", homeRoutes);
@@ -136,7 +135,13 @@ const perfilRoutes = require("./routes/perfil.routes");
 app.use("/api/perfil", perfilRoutes);
 
 const ejecutivoRoutes = require("./routes/ejecutivo.routes");
-app.use("/api/ejecutivo", ejecutivoRoutes);
+// Visor Ejecutivo / Panel de Operación TI: sesión válida y equipo de TI
+app.use(
+  "/api/ejecutivo",
+  require("./middleware/auth").verifyToken,
+  require("./middleware/requireSistemas"),
+  ejecutivoRoutes,
+);
 
 app.get("/", (req, res) => {
   res.send("API FABPSA funcionando en intranet");
@@ -146,23 +151,44 @@ app.get("/api/listo", (req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+const mntRoutes = require("./routes/mnt.routes");
+app.use("/api/mantenimiento", mntRoutes);
+
+// Módulo: Gestión de Desarrollo de Software
+app.use("/api/dev/proyectos", require("./routes/dev/proyectos.routes"));
+app.use("/api/dev/tareas", require("./routes/dev/tareas.routes"));
+app.use("/api/dev/hitos", require("./routes/dev/hitos.routes"));
+app.use("/api/dev/avances", require("./routes/dev/avances.routes"));
+app.use("/api/dev/cronograma", require("./routes/dev/cronograma.routes"));
+app.use("/api/dev/equipo", require("./routes/dev/equipo.routes"));
+app.use("/api/dev/ejecutivo", require("./routes/dev/ejecutivo.routes"));
+const sharepointRoutes = require("./routes/dev/sharepoint.routes");
+app.use("/api/dev/sharepoint", ...gestionAccess, sharepointRoutes);
+
 app.get("/api/birthdays", async (req, res) => {
   try {
     const db = await getPool();
-    const result = await db.request().query(`
+    const requestedMonth = Number.parseInt(req.query.month, 10);
+    const month =
+      requestedMonth >= 1 && requestedMonth <= 12
+        ? requestedMonth
+        : new Date().getMonth() + 1;
+    const result = await db.request().input("month", sql.Int, month).query(`
       SELECT
         LTRIM(RTRIM(A.Nombre)) AS nombre,
         LTRIM(RTRIM(A.apellidoPaterno)) AS apellidoPaterno,
         FORMAT(A.fechaNacimiento, 'd MMMM', 'es-ES') AS fechaNacimiento,
         DAY(A.fechaNacimiento) AS diaNacimiento,
+        MONTH(A.fechaNacimiento) AS mesNacimiento,
         LTRIM(RTRIM(C.codigoSitio)) AS codigoSitio,
         LTRIM(RTRIM(C.nombreCorto)) AS sitio,
         LTRIM(RTRIM(B.departamento)) AS departamento
       FROM usuariosRH A
       JOIN DEPARTAMENTOS B ON A.departamento = B.codigoDepartamento
       JOIN SITIOS C ON B.codigoSitio = C.codigoSitio
-      WHERE MONTH(A.fechaNacimiento) = MONTH(GETDATE())
+      WHERE MONTH(A.fechaNacimiento) = @month
         AND A.validaExistencia = 1
+        and nombre not like '%Juan Manuel%'
       ORDER BY DAY(A.fechaNacimiento)
     `);
     const rows = result.recordset.map((r) => ({
@@ -177,6 +203,12 @@ app.get("/api/birthdays", async (req, res) => {
     res.status(500).json({ error: "Error consultando base de datos." });
   }
 });
+
+// Módulo: Vigilancia — Reporte de Novedades
+app.use("/api/vigilancia", require("./routes/vigilancia.routes"));
+
+// Módulo: SIT — Sistema de Información Técnica
+app.use("/api/sit", require("./routes/sit.routes"));
 
 app.listen(PORT, () => {
   console.log(`✅ FABPSA corriendo en http://localhost:${PORT}`);

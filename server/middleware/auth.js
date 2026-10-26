@@ -16,7 +16,10 @@ function verifyToken(req, res, next) {
     req.user = payload;
     next();
   } catch (err) {
-    return res.status(401).json({ error: "Token inválido o expirado." });
+    if (err.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Token expirado.", expired: true });
+    }
+    return res.status(401).json({ error: "Token inválido." });
   }
 }
 

@@ -1,3 +1,4 @@
+import arteHero from "../assets/hero-aplicativos.svg";
 import { useNavigate } from 'react-router-dom';
 import { useReveal } from '../hooks/useReveal';
 import { APPS } from '../data/staticData';
@@ -17,6 +18,7 @@ export default function AplicativosPage() {
           <h1 className="apps-title">Aplicativos <em>FABPSA</em></h1>
           <p className="apps-sub">Selecciona el sistema al que deseas acceder.</p>
         </div>
+        <img className="page-hero__arte" src={arteHero} alt="" aria-hidden="true" />
         <div className="apps-soporte">
           <i className="ti ti-headset" />
           <a href="equipoTI.php">Soporte TI</a>

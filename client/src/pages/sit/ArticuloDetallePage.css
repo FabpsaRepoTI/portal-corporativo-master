@@ -1,0 +1,38 @@
+/* ── Ficha del artículo ─────────────────────── */
+.sit-det__articulo {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.sit-det__articulo-info {
+  flex: 1;
+  min-width: 220px;
+}
+.sit-det__articulo-info small {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.sit-det__articulo-info h1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 2px 0 6px;
+  font-size: 22px;
+  color: var(--text-h);
+}
+.sit-det__articulo-info p {
+  margin: 0;
+  color: var(--text-body);
+}
+.sit-det__comercial {
+  margin-top: 4px !important;
+  font-size: 13px;
+  color: var(--text-muted) !important;
+}
+
+

@@ -1,13 +1,15 @@
+import PageHero from "../../components/PageHero";
+import arteHero from "../../assets/hero-aplicativos.svg";
+import useUsuariosAccess from '../../hooks/useUsuariosAccess';
+import {formatearNombreCorto, esNombreCorto} from '../../utils/nombreCorto';
 // ─────────────────────────────────────────────
 //  UsuariosPage.jsx
 //  client/src/pages/admin/UsuariosPage.jsx
 // ─────────────────────────────────────────────
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
 import "./UsuariosPage.css";
 
-//const API = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
 const API = import.meta.env.VITE_API_URL ?? "";
 const SITIOS = [
   "SUR 121",
@@ -20,6 +22,7 @@ const SITIOS = [
   "TOLUCA",
   "PACIFICO",
   "SURESTE",
+  "PLANTA",
 ];
 
 const FORM_VACIO = {
@@ -31,6 +34,7 @@ const FORM_VACIO = {
   area: "",
   phone: "",
   role: "",
+  picture: null,
 };
 
 function token() {
@@ -43,14 +47,54 @@ function headers() {
   };
 }
 
-export default function UsuariosPage() {
-  const { user } = useAuth();
-  const navigate = useNavigate();
+// ── Avatar reutilizable ──────────────────────────────────────
+function UserAvatar({ user: u, size = 30, radius = 8 }) {
+  if (u?.picture) {
+    return (
+      <img
+        src={u.picture}
+        alt={u.name ?? u.login}
+        style={{
+          width: size,
+          height: size,
+          minWidth: size,
+          borderRadius: radius,
+          objectFit: "cover",
+          objectPosition: "center",
+          flexShrink: 0,
+          display: "block",
+          overflow: "hidden",
+        }}
+      />
+    );
+  }
+  const parts = (u?.name ?? "?").trim().split(" ").filter(Boolean);
+  const initials =
+    parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : (parts[0]?.[0] ?? "?").toUpperCase();
 
+  return (
+    <div
+      className="usr-avatar"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        fontSize: size * 0.4,
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
+
+export default function UsuariosPage() {
+  const navigate = useNavigate();
+  const capacidades = useUsuariosAccess();
   useEffect(() => {
-    if ((user?.area ?? "").toUpperCase().trim() !== "SISTEMAS")
-      navigate("/", { replace: true });
-  }, [user, navigate]);
+    if (!capacidades.loading && !capacidades.puedeVerUsuarios) navigate('/', {replace:true});
+  }, [capacidades.loading, capacidades.puedeVerUsuarios, navigate]);
 
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,7 +107,11 @@ export default function UsuariosPage() {
   const [form, setForm] = useState(FORM_VACIO);
   const [formErr, setFormErr] = useState({});
   const [saving, setSaving] = useState(false);
-  const [showPswd, setShowPswd] = useState(false);
+  const [currentPswd, setCurrentPswd] = useState(null);
+  const [loadingPswd, setLoadingPswd] = useState(false);
+  const [fotoPreview, setFotoPreview] = useState(null);
+  const [fotoFile, setFotoFile] = useState(null);
+  const fotoInputRef = useRef(null);
 
   const [areaOpen, setAreaOpen] = useState(false);
   const [areaIdx, setAreaIdx] = useState(-1);
@@ -72,15 +120,7 @@ export default function UsuariosPage() {
 
   const [emailDup, setEmailDup] = useState(null);
   const [toast, setToast] = useState(null);
-
-  // ── NUEVO: estado modal accesos ──────────────
-  const [accesosModal, setAccesosModal] = useState(false);
-  const [accesosLogin, setAccesosLogin] = useState(null);
-  const [accesosNombre, setAccesosNombre] = useState("");
-  const [catalogoMods, setCatalogoMods] = useState([]);
-  const [modulosUser, setModulosUser] = useState([]);
-  const [savingAccesos, setSavingAccesos] = useState(false);
-  const [loadingAccesos, setLoadingAccesos] = useState(false);
+  const [justCreated, setJustCreated] = useState(null);
 
   function showToast(msg, type = "success") {
     setToast({ msg, type });
@@ -88,6 +128,7 @@ export default function UsuariosPage() {
   }
 
   const cargar = useCallback(async () => {
+    if (!capacidades.puedeVerUsuarios) {setUsuarios([]);setLoading(false);return;}
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -104,7 +145,7 @@ export default function UsuariosPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, filtSitio, filtArea]);
+  }, [search, filtSitio, filtArea, capacidades.puedeVerUsuarios]);
 
   useEffect(() => {
     cargar();
@@ -134,13 +175,18 @@ export default function UsuariosPage() {
   }
 
   function abrirNuevo() {
+    if (!capacidades.puedeCrear) return;
     setEditando(null);
     setForm(FORM_VACIO);
     setFormErr({});
-    setShowPswd(false);
     setEmailDup(null);
+    setFotoPreview(null);
+    setFotoFile(null);
+    setJustCreated(null);
+    setCurrentPswd(null);
     setModalOpen(true);
   }
+
   function abrirEditar(u) {
     setEditando(u.login);
     setForm({
@@ -152,72 +198,77 @@ export default function UsuariosPage() {
       area: u.area ?? "",
       phone: u.phone ?? "",
       role: u.role ?? "",
+      picture: null,
     });
     setFormErr({});
-    setShowPswd(false);
     setEmailDup(null);
+    setFotoPreview(u.picture ?? null);
+    setFotoFile(null);
+    setJustCreated(null);
+    setCurrentPswd(null);
     setModalOpen(true);
   }
 
-  // ── NUEVO: abrir modal accesos ───────────────
-  async function abrirAccesos(u) {
-    setAccesosLogin(u.login);
-    setAccesosNombre(u.name ?? u.login);
-    setAccesosModal(true);
-    setLoadingAccesos(true);
-    try {
-      const [catRes, usrRes] = await Promise.all([
-        fetch(`${API}/api/permisos/modulos`, { headers: headers() }),
-        fetch(`${API}/api/permisos/usuarios/${u.login}/modulos`, {
-          headers: headers(),
-        }),
-      ]);
-
-      const catData = await catRes.json();
-      const usrData = await usrRes.json();
-
-      setCatalogoMods(Array.isArray(catData) ? catData : []);
-      setModulosUser(Array.isArray(usrData) ? usrData : []);
-    } catch {
-      showToast("Error al cargar módulos.", "error");
-      setAccesosModal(false);
-    } finally {
-      setLoadingAccesos(false);
+  async function verContrasenaActual() {
+    if (currentPswd !== null) {
+      setCurrentPswd(null);
+      return;
     }
-  }
-
-  function toggleModulo(clave) {
-    setModulosUser((prev) =>
-      prev.includes(clave) ? prev.filter((m) => m !== clave) : [...prev, clave],
-    );
-  }
-
-  async function guardarAccesos() {
-    setSavingAccesos(true);
+    setLoadingPswd(true);
     try {
-      const res = await fetch(
-        `${API}/api/permisos/usuarios/${accesosLogin}/modulos`,
-        {
-          method: "PUT",
-          headers: headers(),
-          body: JSON.stringify({ modulos: modulosUser }),
-        },
-      );
+      const res = await fetch(`${API}/api/usuarios/${editando}/password`, {
+        headers: headers(),
+      });
       if (!res.ok) throw new Error();
-      showToast("Accesos actualizados correctamente.");
-      setAccesosModal(false);
+      const data = await res.json();
+      setCurrentPswd(data.pswd ?? "");
     } catch {
-      showToast("Error al guardar accesos.", "error");
+      showToast("No se pudo consultar la contraseña actual.", "error");
     } finally {
-      setSavingAccesos(false);
+      setLoadingPswd(false);
     }
+  }
+
+  async function copiarAccesos(login, pswd) {
+    const texto = `Usuario: ${login}\nContraseña: ${pswd}`;
+    try {
+      await navigator.clipboard.writeText(texto);
+      showToast("Accesos copiados al portapapeles.");
+    } catch {
+      showToast("No se pudo copiar al portapapeles.", "error");
+    }
+  }
+
+  function handleFotoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      showToast("La imagen no debe superar 2 MB.", "error");
+      return;
+    }
+    setFotoFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setFotoPreview(ev.target.result);
+    reader.readAsDataURL(file);
+  }
+
+  function quitarFoto() {
+    setFotoPreview(null);
+    setFotoFile(null);
+    setForm((f) => ({ ...f, picture: "" }));
+    if (fotoInputRef.current) fotoInputRef.current.value = "";
+  }
+
+  // ── Abrir modal de accesos ───────────────────────────────
+  function abrirAccesosFixed(u) {
+    if (capacidades.puedeAsignarPermisos) navigate('/configuracion/accesos?usuario='+encodeURIComponent(u.login));
   }
 
   function validar() {
     const e = {};
     if (!form.login.trim()) e.login = "Requerido.";
     if (!editando && !form.pswd.trim()) e.pswd = "Requerido al crear usuario.";
-    if (!form.name.trim()) e.name = "Requerido.";
+    if (!esNombreCorto(form.name)) e.name = "Escribe un solo nombre y un apellido. Ejemplo: Juan Ramírez.";
     if (!form.email.trim()) e.email = "Requerido.";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       e.email = "Formato inválido.";
@@ -230,15 +281,17 @@ export default function UsuariosPage() {
   }
 
   async function guardar() {
+    if (!editando && !capacidades.puedeCrear) return;
     if (!validar()) return;
     setSaving(true);
     try {
       let res;
+
       if (editando) {
         res = await fetch(`${API}/api/usuarios/${editando}`, {
           method: "PUT",
           headers: headers(),
-          body: JSON.stringify(form),
+          body: JSON.stringify({ ...form, name: formatearNombreCorto(form.name), picture: undefined }),
         });
       } else {
         res = await fetch(`${API}/api/usuarios`, {
@@ -246,19 +299,48 @@ export default function UsuariosPage() {
           headers: headers(),
           body: JSON.stringify({
             ...form,
+            name: formatearNombreCorto(form.name),
             login: form.login.toUpperCase().trim(),
+            picture: undefined,
           }),
         });
       }
+
       const data = await res.json();
       if (!res.ok) {
         showToast(data.error ?? "Error al guardar.", "error");
         return;
       }
+
+      const loginGuardado = editando ?? data.login;
+
+      if (fotoFile && loginGuardado) {
+        const fd = new FormData();
+        fd.append("picture", fotoFile);
+        fd.append("login", loginGuardado);
+        await fetch(`${API}/api/usuarios/${loginGuardado}/foto`, {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token()}` },
+          body: fd,
+        });
+      }
+
+      if (form.picture === "" && !fotoFile && editando) {
+        await fetch(`${API}/api/usuarios/${editando}`, {
+          method: "PUT",
+          headers: headers(),
+          body: JSON.stringify({ ...form, picture: null }),
+        });
+      }
+
       showToast(
         editando ? "Usuario actualizado." : "Usuario creado correctamente.",
       );
-      setModalOpen(false);
+      if (editando) {
+        setModalOpen(false);
+      } else {
+        setJustCreated(loginGuardado);
+      }
       cargar();
     } catch {
       showToast("Error de conexión.", "error");
@@ -320,6 +402,7 @@ export default function UsuariosPage() {
     return () => document.removeEventListener("mousedown", h);
   }, []);
 
+  if (!capacidades.puedeVerUsuarios) return null;
   return (
     <div className="usr-page">
       {toast && (
@@ -331,19 +414,11 @@ export default function UsuariosPage() {
         </div>
       )}
 
-      <div className="usr-header">
-        <div className="usr-header-left">
-          <div className="usr-eyebrow">
-            <i className="ti ti-settings" /> Configuración · Usuarios
-          </div>
-          <h1 className="usr-title">Administración de usuarios</h1>
-          <p className="usr-subtitle">
-            Gestiona el acceso de los colaboradores al portal.
-          </p>
-        </div>
-        <button className="usr-btn-primary" onClick={abrirNuevo}>
+      <PageHero arte={arteHero} eyebrow="Administración · FABPSA" titulo="Administración de" resalte="usuarios" sub="Alta, edición y estado de las cuentas del portal." volver={{ to: "/", label: "Volver al inicio" }} />
+      <div className="usr-header usr-header--acciones">
+        {capacidades.puedeCrear && <button className="usr-btn-primary" onClick={abrirNuevo}>
           <i className="ti ti-user-plus" /> Nuevo usuario
-        </button>
+        </button>}
       </div>
 
       <div className="usr-toolbar">
@@ -401,7 +476,7 @@ export default function UsuariosPage() {
           </div>
         ) : (
           <>
-            {/* Desktop */}
+            {/* ── Desktop ── */}
             <table className="usr-table usr-desktop-only">
               <thead>
                 <tr>
@@ -424,7 +499,7 @@ export default function UsuariosPage() {
                       <span className="usr-login-chip">{u.login}</span>
                     </td>
                     <td className="usr-name-cell">
-                      <div className="usr-avatar">{u.name?.[0] ?? "?"}</div>
+                      <UserAvatar user={u} size={30} radius={8} />
                       {u.name ?? "—"}
                     </td>
                     <td className="usr-muted">{u.email ?? "—"}</td>
@@ -449,20 +524,20 @@ export default function UsuariosPage() {
                       >
                         <i className="ti ti-edit" />
                       </button>
-                      <button
+                      {capacidades.puedeAsignarPermisos && <button
                         className="usr-btn-edit"
-                        onClick={() => abrirAccesos(u)}
+                        onClick={() => abrirAccesosFixed(u)}
                         title="Accesos"
                       >
                         <i className="ti ti-shield-lock" />
-                      </button>
+                      </button>}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            {/* Mobile */}
+            {/* ── Mobile cards ── */}
             <div className="usr-cards usr-mobile-only">
               {usuarios.map((u) => (
                 <div
@@ -470,7 +545,7 @@ export default function UsuariosPage() {
                   className={`usr-card ${u.active !== "Y" ? "usr-card--inactive" : ""}`}
                 >
                   <div className="usr-card-top">
-                    <div className="usr-avatar">{u.name?.[0] ?? "?"}</div>
+                    <UserAvatar user={u} size={36} radius={10} />
                     <div className="usr-card-main">
                       <div className="usr-card-name">{u.name ?? "—"}</div>
                       <span className="usr-login-chip">{u.login}</span>
@@ -504,13 +579,12 @@ export default function UsuariosPage() {
                     >
                       <i className="ti ti-edit" /> Editar
                     </button>
-                    {/* NUEVO */}
-                    <button
+                    {capacidades.puedeAsignarPermisos && <button
                       className="usr-card-edit"
-                      onClick={() => abrirAccesos(u)}
+                      onClick={() => abrirAccesosFixed(u)}
                     >
                       <i className="ti ti-shield-lock" /> Accesos
-                    </button>
+                    </button>}
                   </div>
                 </div>
               ))}
@@ -536,10 +610,10 @@ export default function UsuariosPage() {
             <div className="usr-modal-header">
               <div>
                 <div className="usr-modal-eyebrow">
-                  {editando ? "Editar usuario" : "Nuevo usuario"}
+                  {justCreated ? "Usuario creado" : editando ? "Editar usuario" : "Nuevo usuario"}
                 </div>
                 <h2 className="usr-modal-title">
-                  {editando ? form.name || editando : "Crear cuenta de acceso"}
+                  {justCreated ? justCreated : editando ? form.name || editando : "Crear cuenta de acceso"}
                 </h2>
               </div>
               <button
@@ -550,7 +624,108 @@ export default function UsuariosPage() {
               </button>
             </div>
 
+            {justCreated ? (
+              <>
+                <div className="usr-modal-body">
+                  <p className="usr-field-hint">
+                    El usuario <strong>{justCreated}</strong> quedó creado sin módulos asignados. Puedes darle acceso ahora o hacerlo después desde la lista.
+                  </p>
+                </div>
+                <div className="usr-modal-footer">
+                  <button className="usr-btn-ghost" onClick={() => setModalOpen(false)}>
+                    Asignar después
+                  </button>
+                  <button
+                    className="usr-btn-primary"
+                    onClick={() => {
+                      setModalOpen(false);
+                      navigate('/configuracion/accesos?usuario=' + encodeURIComponent(justCreated));
+                    }}
+                  >
+                    <i className="ti ti-shield-lock" /> Asignar permisos ahora
+                  </button>
+                </div>
+              </>
+            ) : (
+            <>
             <div className="usr-modal-body">
+              {/* ── FOTO DE PERFIL ── */}
+              <div className="usr-field">
+                <label className="usr-label">
+                  Foto de perfil <span className="usr-opt">(opcional)</span>
+                </label>
+                <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                  <div
+                    style={{
+                      width: 64,
+                      height: 64,
+                      borderRadius: 12,
+                      flexShrink: 0,
+                      overflow: "hidden",
+                      border: "2px solid var(--border)",
+                      background: "var(--bg-elevated)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {fotoPreview ? (
+                      <img
+                        src={fotoPreview}
+                        alt="preview"
+                        style={{
+                          width: "100%",
+                          height: "100%",
+                          objectFit: "cover",
+                        }}
+                      />
+                    ) : (
+                      <i
+                        className="ti ti-user"
+                        style={{ fontSize: 28, color: "var(--text-muted)" }}
+                      />
+                    )}
+                  </div>
+                  <div
+                    style={{ display: "flex", flexDirection: "column", gap: 6 }}
+                  >
+                    <input
+                      ref={fotoInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      onChange={handleFotoChange}
+                    />
+                    <button
+                      type="button"
+                      className="usr-btn-ghost"
+                      style={{ height: 32, fontSize: 12, padding: "0 12px" }}
+                      onClick={() => fotoInputRef.current?.click()}
+                    >
+                      <i className="ti ti-upload" />{" "}
+                      {fotoPreview ? "Cambiar foto" : "Subir foto"}
+                    </button>
+                    {fotoPreview && (
+                      <button
+                        type="button"
+                        className="usr-btn-ghost"
+                        style={{
+                          height: 32,
+                          fontSize: 12,
+                          padding: "0 12px",
+                          color: "#ef4444",
+                          borderColor: "#ef444440",
+                        }}
+                        onClick={quitarFoto}
+                      >
+                        <i className="ti ti-trash" /> Quitar foto
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="usr-field-hint">JPG, PNG o WebP · máx. 2 MB</p>
+              </div>
+
               <div className="usr-field">
                 <label className="usr-label">
                   Login <span className="usr-req">*</span>
@@ -569,11 +744,6 @@ export default function UsuariosPage() {
                   autoComplete="off"
                   style={{ textTransform: "uppercase" }}
                 />
-                {editando && (
-                  <p className="usr-field-hint">
-                    El login no puede modificarse.
-                  </p>
-                )}
                 {formErr.login && (
                   <p className="usr-field-err">{formErr.login}</p>
                 )}
@@ -591,35 +761,59 @@ export default function UsuariosPage() {
                 <div className="usr-password-wrap">
                   <input
                     className={`usr-input usr-input--password ${formErr.pswd ? "usr-input--err" : ""}`}
-                    type={showPswd ? "text" : "password"}
+                    type="password"
                     value={form.pswd}
                     onChange={(e) => campo("pswd", e.target.value)}
                     placeholder={editando ? "••••••••" : "Nueva contraseña"}
                     autoComplete="new-password"
                   />
-                  <button
-                    type="button"
-                    className="usr-pswd-eye"
-                    onClick={() => setShowPswd((v) => !v)}
-                    tabIndex={-1}
-                  >
-                    <i className={`ti ${showPswd ? "ti-eye-off" : "ti-eye"}`} />
-                  </button>
                 </div>
                 {formErr.pswd && (
                   <p className="usr-field-err">{formErr.pswd}</p>
+                )}
+                {editando && (
+                  <div style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      className="usr-btn-ghost"
+                      style={{ height: 32, fontSize: 12, padding: "0 12px" }}
+                      disabled={loadingPswd}
+                      onClick={verContrasenaActual}
+                    >
+                      <i className={`ti ${currentPswd !== null ? "ti-eye-off" : "ti-eye"}`} />{" "}
+                      {loadingPswd
+                        ? "Consultando…"
+                        : currentPswd !== null
+                          ? "Ocultar contraseña actual"
+                          : "Mostrar contraseña actual"}
+                    </button>
+                    {currentPswd !== null && (
+                      <p
+                        className="usr-field-hint usr-pswd-copy"
+                        style={{ marginTop: 6, cursor: "pointer" }}
+                        title="Clic para copiar usuario y contraseña"
+                        onClick={() => copiarAccesos(editando, currentPswd)}
+                      >
+                        <i className="ti ti-copy" /> Contraseña actual:{" "}
+                        <strong>{currentPswd || "(vacía)"}</strong>
+                      </p>
+                    )}
+                  </div>
                 )}
               </div>
 
               <div className="usr-field">
                 <label className="usr-label">
-                  Nombre completo <span className="usr-req">*</span>
+                  Nombre <span className="usr-req">*</span>
                 </label>
                 <input
                   className={`usr-input ${formErr.name ? "usr-input--err" : ""}`}
                   value={form.name}
+                  maxLength={80}
+                  onBlur={() => campo("name", formatearNombreCorto(form.name))}
                   onChange={(e) => campo("name", e.target.value)}
-                  placeholder="Ej. Eric Espinoza"
+                  placeholder="Ej. Juan Ramírez"
+                  aria-label="Nombre"
                 />
                 {formErr.name && (
                   <p className="usr-field-err">{formErr.name}</p>
@@ -715,17 +909,6 @@ export default function UsuariosPage() {
                 </div>
               </div>
 
-              <div className="usr-field">
-                <label className="usr-label">
-                  Teléfono <span className="usr-opt">(opcional)</span>
-                </label>
-                <input
-                  className="usr-input"
-                  value={form.phone}
-                  onChange={(e) => campo("phone", e.target.value)}
-                  placeholder="Ej. 55 1234 5678"
-                />
-              </div>
             </div>
 
             <div className="usr-modal-footer">
@@ -752,139 +935,13 @@ export default function UsuariosPage() {
                 )}
               </button>
             </div>
+            </>
+            )}
           </div>
         </div>
       )}
 
       {/* ─── MODAL ACCESOS ──────────────────────── */}
-      {accesosModal && (
-        <div
-          className="usr-overlay"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setAccesosModal(false);
-          }}
-        >
-          <div className="usr-modal" role="dialog" aria-modal="true">
-            <div className="usr-modal-header">
-              <div>
-                <div className="usr-modal-eyebrow">Módulos y accesos</div>
-                <h2 className="usr-modal-title">{accesosNombre}</h2>
-              </div>
-              <button
-                className="usr-modal-close"
-                onClick={() => setAccesosModal(false)}
-              >
-                <i className="ti ti-x" />
-              </button>
-            </div>
-
-            <div className="usr-modal-body">
-              {loadingAccesos ? (
-                <div className="usr-empty">
-                  <i className="ti ti-loader-2 usr-spin" />
-                  <span>Cargando módulos…</span>
-                </div>
-              ) : (
-                <div
-                  style={{ display: "flex", flexDirection: "column", gap: 10 }}
-                >
-                  {catalogoMods.map((mod) => {
-                    const tiene = modulosUser.includes(mod.clave);
-                    return (
-                      <div
-                        key={mod.clave}
-                        onClick={() => toggleModulo(mod.clave)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          padding: "12px 16px",
-                          borderRadius: 10,
-                          cursor: "pointer",
-                          border: `1px solid ${tiene ? "var(--primary)" : "var(--border)"}`,
-                          background: tiene
-                            ? "color-mix(in srgb, var(--primary) 10%, transparent)"
-                            : "var(--bg-elevated)",
-                          transition: "all 0.15s",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                          }}
-                        >
-                          <i
-                            className={`ti ${mod.icono}`}
-                            style={{
-                              fontSize: 20,
-                              color: tiene
-                                ? "var(--primary)"
-                                : "var(--text-muted)",
-                            }}
-                          />
-                          <span
-                            style={{ fontWeight: 500, color: "var(--text-h)" }}
-                          >
-                            {mod.nombre}
-                          </span>
-                        </div>
-                        <div
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 6,
-                            border: `2px solid ${tiene ? "var(--primary)" : "var(--border)"}`,
-                            background: tiene
-                              ? "var(--primary)"
-                              : "transparent",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {tiene && (
-                            <i
-                              className="ti ti-check"
-                              style={{ fontSize: 12, color: "#fff" }}
-                            />
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="usr-modal-footer">
-              <button
-                className="usr-btn-ghost"
-                onClick={() => setAccesosModal(false)}
-              >
-                Cancelar
-              </button>
-              <button
-                className="usr-btn-primary"
-                onClick={guardarAccesos}
-                disabled={savingAccesos || loadingAccesos}
-              >
-                {savingAccesos ? (
-                  <>
-                    <i className="ti ti-loader-2 usr-spin" /> Guardando…
-                  </>
-                ) : (
-                  <>
-                    <i className="ti ti-shield-check" /> Guardar accesos
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,0 +1,17 @@
+.dev-decision,.dev-decision-notice{margin:16px 0;padding:20px;border:1px solid #e5e7ef;border-radius:12px;background:#fff;color:#334155;text-align:left;font-size:13px;line-height:1.6}
+.dev-decision-notice{border-color:#efd6df;background:#fffafb}
+.dev-decision h3,.dev-decision-notice h3{margin:0 0 10px;font-size:15px;font-weight:600}
+.dev-decision-notice h3{color:#96364f}
+.dev-decision p,.dev-decision-notice p{margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.dev-decision-meta,.dev-decision small{color:#64748b;font-size:12px}
+.dev-decision-alert{display:block;padding:8px 10px;background:#fff4df;border:1px solid #f0d49b;border-radius:6px;color:#80570b;font-size:12px;white-space:normal}
+.dev-decision-actions{display:flex;gap:8px;flex-wrap:wrap}
+.dev-decision button{padding:8px 12px;border:1px solid #d8dcea;background:#f8f9ff;color:#3730a3;border-radius:7px;font-size:12px;cursor:pointer;margin:4px 6px 4px 0}
+.dev-decision button:disabled{opacity:.5;cursor:default}
+.dev-decision label{display:block;font-weight:600;margin-top:12px}
+.dev-decision textarea{display:block;box-sizing:border-box;width:100%;min-height:100px;padding:10px;border:1px solid #cbd5e1;border-radius:7px;font:inherit;resize:vertical}
+.dev-decision-result{padding:12px;background:#f5f7fb;border-radius:8px;margin:12px 0}
+.dev-decision-history{margin-top:16px;border-top:1px solid #e5e7ef;padding-top:12px}
+.dev-decision-history summary{cursor:pointer;font-weight:600}
+.dev-decision-history li{margin:12px 0}.dev-decision-history small{display:block}
+.sdp-decision-panel{padding:16px 24px}.sdp-decision-panel>h3{font-size:14px;margin:20px 0 12px}

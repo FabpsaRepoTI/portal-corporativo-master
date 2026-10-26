@@ -1,3 +1,7 @@
+import {notifyPendingChanged} from "../../../context/PendingAttention";
+import DesarrolloDecision, { DecisionAviso, ALERTA_DECISION } from '../../../components/DesarrolloDecision';
+import {getEtapasDesarrollo} from "../../../services/gestionDesarrollo";
+import {ETAPAS_DESARROLLO} from "../../gestionDesarrollo/components/PlanEtapas";
 // ╔══════════════════════════════════════════════════════════════╗
 // ║  SolicitudesDesarrolloPage.jsx  v4                          ║
 // ║  + Tabs: Subtareas, Horas, Bloqueos                        ║
@@ -59,28 +63,28 @@ const KPI_DEFS = [
   },
   {
     key: "enEvaluacion",
-    label: "En evaluación",
+    label: "En revisión",
     icon: "ti-eye",
     color: "#8b5cf6",
     estatusParam: "2",
   },
   {
     key: "enDesarrollo",
-    label: "En desarrollo",
+    label: "En proceso",
     icon: "ti-code",
     color: "#3b82f6",
     estatusParam: "3",
   },
   {
     key: "enRevision",
-    label: "En revisión",
+    label: "En pruebas",
     icon: "ti-refresh",
     color: "#f59e0b",
     estatusParam: "4",
   },
   {
     key: "enPruebas",
-    label: "En pruebas",
+    label: "Esperando información",
     icon: "ti-test-pipe",
     color: "#06b6d4",
     estatusParam: "5",
@@ -145,6 +149,10 @@ function fmtMinutos(min) {
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
 function calcBarra(row) {
+  if (Number(row.idEstatus) === 6)
+    return { estado: "rechazado", label: "Rechazado", pct: 0 };
+  if (Number(row.idEstatus) === 7)
+    return { estado: "terminal", label: "Concluido", pct: 100 };
   const {
     tiempoEstado,
     diasRestantes,
@@ -154,8 +162,6 @@ function calcBarra(row) {
   } = row;
   if (!fechaCompromiso || tiempoEstado === "sin_fecha")
     return { estado: "sin_fecha", label: "Fecha pendiente", pct: 0 };
-  if (tiempoEstado === "terminal")
-    return { estado: "terminal", label: "Concluido", pct: 100 };
   const total = Math.max(duracionTotal ?? 1, 1),
     transcu = Math.max(diasTranscurridos ?? 0, 0);
   const pct = Math.min(Math.round((transcu / total) * 100), 100),
@@ -238,6 +244,8 @@ function StarRating({ value, onChange, size = 22 }) {
 
 function MiniBarraTiempo({ row }) {
   const b = calcBarra(row);
+  if (b.estado === "rechazado")
+    return <span className="sdp-time-chip sdp-time-chip--rejected"><i className="ti ti-ban" /> Rechazado</span>;
   const colorMap = {
     sin_fecha: "#d1d5db",
     terminal: "#10b981",
@@ -271,6 +279,8 @@ function MiniBarraTiempo({ row }) {
 
 function BarraTiempo({ row }) {
   const b = calcBarra(row);
+  if (b.estado === "rechazado")
+    return <span className="sdp-time-chip sdp-time-chip--rejected"><i className="ti ti-ban" /> Rechazado</span>;
   const colorMap = {
     sin_fecha: "#9ca3af",
     terminal: "#10b981",
@@ -317,6 +327,7 @@ function BarraTiempo({ row }) {
 function SemaforoSLA({ row }) {
   const b = calcBarra(row);
   const map = {
+    rechazado: { color: "#be4561", label: "Rechazado" },
     sin_fecha: { color: "#9ca3af", label: "Sin fecha" },
     terminal: { color: "#10b981", label: "Concluido" },
     en_tiempo: { color: "#10b981", label: "En tiempo" },
@@ -379,11 +390,13 @@ export default function SolicitudesDesarrolloPage() {
     tecnicos: [],
   });
   const [rows, setRows] = useState([]);
+  useEffect(()=>{notifyPendingChanged();},[rows]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const [page, setPage] = useState(1);
-  const [buscar, setBuscar] = useState("");
+  const [buscar, setBuscar] = useState(() => new URLSearchParams(window.location.search).get("buscar") || "");
   const [fEstatus, setFEstatus] = useState("");
   const [fTipo, setFTipo] = useState("");
   const [fSistema, setFSistema] = useState("");
@@ -394,6 +407,7 @@ export default function SolicitudesDesarrolloPage() {
   const [dir, setDir] = useState("DESC");
 
   const [expandedId, setExpandedId] = useState(null);
+  const [tituloTip, setTituloTip] = useState(null);
   const [panelData, setPanelData] = useState(null);
   const [panelTab, setPanelTab] = useState("resumen");
   const [panelLoading, setPanelLoading] = useState(false);
@@ -401,9 +415,17 @@ export default function SolicitudesDesarrolloPage() {
   const [modal, setModal] = useState(null);
   const [mAsignar, setMAsignar] = useState({ login: "", nombre: "" });
   const [mEstatus, setMEstatus] = useState("");
+  const [mAccion, setMAccion] = useState("normal");
   const [mMotivo, setMMotivo] = useState("");
+  const [mExplicacion, setMExplicacion] = useState("");
+  const [mObservaciones, setMObservaciones] = useState("");
   const [mFecha, setMFecha] = useState("");
+  const [mPrioridad,setMPrioridad]=useState("");
   const [mAvance, setMAvance] = useState(0);
+  const [mAlcance,setMAlcance]=useState("PROYECTO");
+  const [mEtapa,setMEtapa]=useState({numeroEtapa:"",fechaInicioEtapa:"",fechaFinEtapa:""});
+  const [mEtapas,setMEtapas]=useState([]);
+  useEffect(()=>{if(modal?.type!=="detalle")return;let cancelled=false;setMEtapa({numeroEtapa:"",fechaInicioEtapa:"",fechaFinEtapa:""});setMEtapas([]);getEtapasDesarrollo("mesa",modal.sol.idSolicitud).then(r=>{if(cancelled)return;setMEtapas(r.data||[]);const e=r.data?.find(e=>e.activa);if(e)setMEtapa({numeroEtapa:String(e.numeroEtapa),fechaInicioEtapa:e.fechaInicio?.slice(0,10)||"",fechaFinEtapa:e.fechaCompromiso?.slice(0,10)||"",entregable:e.entregable||""});}).catch(e=>{if(!cancelled)showToast(e.message,"err")});return()=>{cancelled=true}},[modal?.type,modal?.sol?.idSolicitud]);
   const [mActividad, setMActividad] = useState("");
   const [mActividadesConcluir, setMActividadesConcluir] = useState("");
   const [mImpacta, setMImpacta] = useState(false);
@@ -427,6 +449,7 @@ export default function SolicitudesDesarrolloPage() {
 
   // Tipo de desarrollo (aparece tras asignar responsable)
   const [mTipoDesarrollo, setMTipoDesarrollo] = useState("");
+  const [tipoSaving,setTipoSaving]=useState(false);
   const [modalTipoDesarrollo, setModalTipoDesarrollo] = useState(null); // { idSolicitud, loginResponsable }
 
   const TIPOS_DESARROLLO = [
@@ -460,17 +483,21 @@ export default function SolicitudesDesarrolloPage() {
       .then((d) => {
         if (d.estatus) setCatalogos(d);
       });
-    fetchKpis();
     // eslint-disable-next-line
   }, []);
 
-  function fetchKpis() {
-    fetch("/api/solicitudes-desarrollo/kpis", { headers })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.pendientes !== undefined) setKpis(d);
-      });
-  }
+  const kpiRequest = useRef(0);
+  const fetchKpis = useCallback(async () => {
+    const requestId = ++kpiRequest.current;
+    try {
+      const r = await fetch("/api/solicitudes-desarrollo/kpis?" + new URLSearchParams(fResponsable ? {responsable:fResponsable} : {}), {headers});
+      if (!r.ok) throw new Error("No se pudieron cargar los indicadores");
+      const d = await r.json();
+      if (requestId === kpiRequest.current && d.pendientes !== undefined) setKpis(d);
+    } catch { if(requestId === kpiRequest.current) setKpis({}); }
+    // eslint-disable-next-line
+  }, [fResponsable]);
+  useEffect(() => { setKpis({}); fetchKpis(); return () => { ++kpiRequest.current; }; }, [fetchKpis]);
 
   const fetchRows = useCallback(() => {
     setLoading(true);
@@ -486,7 +513,7 @@ export default function SolicitudesDesarrolloPage() {
       ...(fResponsable ? { responsable: fResponsable } : {}),
       ...(fVencidos ? { vencidas: "true" } : {}),
     });
-    fetch(`/api/solicitudes-desarrollo?${params}`, { headers })
+    return fetch(`/api/solicitudes-desarrollo?${params}`, { headers })
       .then((r) => r.json())
       .then((d) => {
         if (d.data) {
@@ -532,6 +559,19 @@ export default function SolicitudesDesarrolloPage() {
       .catch(() => setPanelLoading(false));
   }
 
+  useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get("solicitud"));
+    if (Number.isInteger(id) && id > 0) loadPanel(id);
+    // The portfolio link is consumed once when opening this screen.
+    // eslint-disable-next-line
+  }, []);
+
+  useEffect(() => {
+    if (!expandedId || Number(panelData?.idEstatus) !== 6) return;
+    const timer = setInterval(() => { reloadPanel(); fetchRows(); }, 20000);
+    return () => clearInterval(timer);
+  }, [expandedId, panelData?.idEstatus]);
+
   function reloadPanel(updatedFields) {
     if (!expandedId) return;
     if (updatedFields && panelData)
@@ -541,6 +581,27 @@ export default function SolicitudesDesarrolloPage() {
       .then((d) => {
         if (d.idSolicitud) setPanelData(d);
       });
+  }
+
+  async function actualizarModulo() {
+    setRefreshing(true);
+    try {
+      const tareas = [fetchRows()];
+      tareas.push(fetchKpis());
+      if (expandedId) {
+        tareas.push(
+          fetch(`/api/solicitudes-desarrollo/${expandedId}`, { headers })
+            .then((r) => r.json())
+            .then((d) => d.idSolicitud && setPanelData(d)),
+        );
+      }
+      await Promise.all(tareas);
+      showToast("Información actualizada");
+    } catch (_) {
+      showToast("No fue posible actualizar la información", "err");
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   function handleKpiClick(kpi) {
@@ -572,34 +633,27 @@ export default function SolicitudesDesarrolloPage() {
     }).then((r) => r.json());
   }
 
-  async function handleAsignarme(sol) {
-    const r = await apiPut(`${sol.idSolicitud}/asignar`, {});
-    if (r.ok) {
-      showToast("Te asignaste como responsable");
-      fetchRows();
-      fetchKpis();
-      reloadPanel({
-        nombreTecnico: user.name,
-        tecnicoAsignado: user.login,
-        nombreResponsable: user.name,
-        loginResponsable: user.login,
-      });
-      // Abrir modal de tipo de desarrollo inmediatamente
-      setMTipoDesarrollo("");
-      setModalTipoDesarrollo({ idSolicitud: sol.idSolicitud });
-    } else showToast(r.message || "Error", "err");
+  function handleAsignarme(sol) {
+    setMTipoDesarrollo('');
+    setModalTipoDesarrollo({idSolicitud:sol.idSolicitud,asignacion:{}});
   }
 
   function openModal(type, sol) {
+    if (Number(sol.idEstatus) === 6) return showToast("Este desarrollo fue cancelado o rechazado. Solo está disponible para consulta.", "err");
+    if(type === "estatus") type = "detalle";
+    setMAccion("normal");
     setModal({ type, sol });
+    setMAlcance(sol.alcanceDesarrollo || "PROYECTO");
     setMAsignar({
       login: sol.loginResponsable || "",
       nombre: sol.nombreResponsable || "",
     });
     setMEstatus(String(sol.idEstatus || ""));
     setMMotivo("");
+    setMExplicacion(""); setMObservaciones("");
     setMFecha(sol.fechaCompromiso ? sol.fechaCompromiso.slice(0, 10) : "");
     setMAvance(sol.porcentajeAvance ?? 0);
+    setMPrioridad(String(sol.idPrioridad||""));
     setMImpacta(false);
     setMImpactos([{ area: "", motivo: "" }]);
     setMActividad("");
@@ -619,42 +673,26 @@ export default function SolicitudesDesarrolloPage() {
     setMBloqueoMotivo("");
   }
 
-  async function handleAsignar() {
+  function handleAsignar() {
     if (!mAsignar.login) return;
-    const idSol = modal.sol.idSolicitud;
-    const r = await apiPut(`${idSol}/asignar`, {
-      loginResponsable: mAsignar.login,
-      nombreResponsable: mAsignar.nombre,
-    });
-    if (r.ok) {
-      showToast("Responsable asignado");
-      setModal(null);
-      fetchRows();
-      fetchKpis();
-      reloadPanel({
-        nombreTecnico: mAsignar.nombre,
-        tecnicoAsignado: mAsignar.login,
-        nombreResponsable: mAsignar.nombre,
-        loginResponsable: mAsignar.login,
-      });
-      // Abrir modal de tipo de desarrollo inmediatamente
-      setMTipoDesarrollo("");
-      setModalTipoDesarrollo({ idSolicitud: idSol });
-    } else showToast(r.message || "Error", "err");
+    setMTipoDesarrollo('');
+    setModalTipoDesarrollo({idSolicitud:modal.sol.idSolicitud,asignacion:{loginResponsable:mAsignar.login,nombreResponsable:mAsignar.nombre}});
+    setModal(null);
   }
 
   async function handleEstatus() {
     const id = parseInt(mEstatus, 10);
     if (!id) return;
-    if ((id === 4 || id === 6) && !mMotivo.trim()) {
+    if ((id === 5 || id === 6) && !mMotivo.trim()) {
       showToast(
-        id === 4
-          ? "El motivo de revisión es obligatorio"
+        id === 5
+          ? "Indica qué información está pendiente"
           : "El motivo de cancelación es obligatorio",
         "err",
       );
       return;
     }
+    if (id === 6 && !mExplicacion.trim()) { showToast("La explicación detallada es obligatoria", "err"); return; }
     if (id === 3 && !mFecha) {
       showToast(
         "La fecha compromiso es obligatoria al iniciar el desarrollo",
@@ -664,8 +702,9 @@ export default function SolicitudesDesarrolloPage() {
     }
     const body = {
       idEstatus: id,
-      ...(id === 4 ? { motivoRevision: mMotivo } : {}),
-      ...(id === 6 ? { motivoRechazo: mMotivo } : {}),
+      ...(modal.type==="detalle"&&mPrioridad?{idPrioridad:Number(mPrioridad)}:{}),
+      ...(id === 5 ? { motivoRevision: mMotivo } : {}),
+      ...(id === 6 ? { motivoRechazo: mMotivo, explicacionDecision: mExplicacion, observacionesDecision: mObservaciones } : {}),
       ...(id === 3 ? { fechaCompromiso: mFecha } : {}),
     };
     const r = await apiPut(`${modal.sol.idSolicitud}/estatus`, body);
@@ -703,7 +742,9 @@ export default function SolicitudesDesarrolloPage() {
     } else showToast(r.message || "Error", "err");
   }
 
+  const seguimientoExcepcion = mAlcance === 'PROYECTO' ? ['espera','rechazar'].includes(mAccion) : mEstatus === '6' || (mEstatus === '5' && Number(modal?.sol?.idEstatus) !== 5);
   async function handleDetalle() {
+    if(seguimientoExcepcion) return handleEstatus();
     // Validar responsable antes de enviar (doble protección frontend)
     if (!modal.sol.loginResponsable) {
       showToast(
@@ -712,14 +753,21 @@ export default function SolicitudesDesarrolloPage() {
       );
       return;
     }
+    if(mAlcance === "PROYECTO" && (!mEtapa.numeroEtapa || !mEtapa.fechaInicioEtapa || !mEtapa.fechaFinEtapa || mEtapa.fechaFinEtapa<mEtapa.fechaInicioEtapa)) return showToast("Selecciona la etapa y un periodo válido de inicio y término.","err");
     const r = await apiPut(`${modal.sol.idSolicitud}/detalle`, {
-      fechaCompromiso: mFecha || undefined,
+      alcanceDesarrollo: mAlcance,
+      ...(mPrioridad?{idPrioridad:Number(mPrioridad)}:{}),
+      ...(mAlcance === "CAMBIO_SENCILLO" ? {idEstatus:Number(mEstatus)} : {}),
+      retomarTrabajo:mAccion === "retomar" || (mAlcance === "CAMBIO_SENCILLO" && Number(modal.sol.idEstatus) === 5 && mEstatus !== "5"),
+      ...(mAlcance === "PROYECTO" ? mEtapa : {}),
+      fechaCompromiso: mAlcance === "PROYECTO" ? mEtapa.fechaFinEtapa : (mFecha || undefined),
       porcentajeAvance: mAvance ?? undefined,
     });
     if (r.ok) {
       showToast("Guardado");
       setModal(null);
       fetchRows();
+      fetchKpis();
       reloadPanel();
     } else showToast(r.message || "Error", "err");
   }
@@ -730,20 +778,15 @@ export default function SolicitudesDesarrolloPage() {
       return;
     }
     if (!modalTipoDesarrollo?.idSolicitud) return;
-    const r = await apiPut(
-      `${modalTipoDesarrollo.idSolicitud}/tipo-desarrollo`,
-      {
-        tipoDesarrollo: mTipoDesarrollo,
-      },
-    );
-    if (r.ok) {
-      showToast("Tipo de desarrollo guardado");
-      setModalTipoDesarrollo(null);
-      setMTipoDesarrollo("");
-      fetchRows();
-      reloadPanel();
-    } else
-      showToast(r.message || "Error al guardar el tipo de desarrollo", "err");
+    if(tipoSaving) return;
+    setTipoSaving(true);
+    try {
+      const r=await apiPut(modalTipoDesarrollo.idSolicitud+'/asignar',{...modalTipoDesarrollo.asignacion,tipoDesarrollo:mTipoDesarrollo});
+      if(!r.ok) {showToast(r.message || 'No se pudo guardar la asignación','err');return;}
+      showToast('Responsable y tipo de desarrollo guardados');
+      setModalTipoDesarrollo(null);setMTipoDesarrollo('');fetchRows();fetchKpis();reloadPanel();
+    } catch {showToast('No se pudo guardar la asignación. Intenta nuevamente.','err');}
+    finally {setTipoSaving(false);}
   }
 
   async function handleActividad() {
@@ -1363,6 +1406,16 @@ export default function SolicitudesDesarrolloPage() {
 
   return (
     <div className="sdp-root">
+      {tituloTip &&
+        ReactDOM.createPortal(
+          <div
+            className="sdp-titulo-tip"
+            style={{ left: tituloTip.x, top: tituloTip.y }}
+          >
+            {tituloTip.text}
+          </div>,
+          document.body,
+        )}
       {/* KPI Strip */}
       <div className="sdp-kpi-strip">
         {KPI_DEFS.map((kpi) => {
@@ -1404,7 +1457,7 @@ export default function SolicitudesDesarrolloPage() {
 
       {/* Toolbar */}
       <div className="sdp-toolbar">
-        <div className="sdp-search-wrap">... {/* sin cambios */}</div>
+        
 
         {/* ← NUEVO wrapper para filtros */}
         <div className="sdp-toolbar-filters">
@@ -1456,6 +1509,16 @@ export default function SolicitudesDesarrolloPage() {
         </div>
 
         <div className="sdp-toolbar-spacer" />
+        <button
+          className="sdp-btn sdp-btn-outline"
+          type="button"
+          onClick={actualizarModulo}
+          disabled={refreshing}
+          title="Actualizar solicitudes y panel abierto"
+        >
+          <i className={`ti ti-refresh${refreshing ? " sdp-spin" : ""}`} />
+          {refreshing ? " Actualizando…" : " Actualizar"}
+        </button>
         <button
           className="sdp-btn sdp-btn-outline sdp-btn-excel"
           onClick={exportarExcel}
@@ -1535,8 +1598,19 @@ export default function SolicitudesDesarrolloPage() {
                               <i className="ti ti-lock" />
                             </span>
                           )}
-                          <span className="titulo-text">{sol.titulo}</span>
-                          {sol.motivoRevision && (
+                          <span
+                            className="titulo-text"
+                            onMouseEnter={(e) => {
+                              const el = e.currentTarget;
+                              if (el.scrollWidth <= el.clientWidth) return;
+                              const r = el.getBoundingClientRect();
+                              setTituloTip({ text: sol.titulo, x: r.left, y: r.bottom + 6 });
+                            }}
+                            onMouseLeave={() => setTituloTip(null)}
+                          >
+                            {sol.titulo}
+                          </span>
+                          {Number(sol.idEstatus) === 5 && sol.motivoRevision && (
                             <span
                               className="sdp-revision-dot"
                               title={`En revisión: ${sol.motivoRevision}`}
@@ -1607,6 +1681,7 @@ export default function SolicitudesDesarrolloPage() {
                         ) : (
                           <button
                             className="sdp-asignarme-btn"
+                            disabled={Number(sol.idEstatus) === 6}
                             onClick={stop(() => handleAsignarme(sol))}
                           >
                             <i className="ti ti-user-plus" /> Asignarme
@@ -1614,7 +1689,8 @@ export default function SolicitudesDesarrolloPage() {
                         )}
                       </td>
                       <td className="col-avance">
-                        <div className="avance-cell">
+                        {sol.revisionDecisionEstado === "pendiente_ti" && <span className="dev-decision-alert">{ALERTA_DECISION}</span>}
+                        {Number(sol.idEstatus) !== 6 && <div className="avance-cell">
                           <div className="avance-track">
                             <div
                               className="avance-fill"
@@ -1624,7 +1700,7 @@ export default function SolicitudesDesarrolloPage() {
                           <span className="avance-num">
                             {sol.porcentajeAvance ?? 0}%
                           </span>
-                        </div>
+                        </div>}
                         <MiniBarraTiempo row={sol} />
                       </td>
                       <td className="col-fecha">
@@ -1645,6 +1721,7 @@ export default function SolicitudesDesarrolloPage() {
                           <div className="sdp-menu-wrap">
                             <button
                               className="sdp-icon-btn sdp-menu-trigger"
+                              disabled={Number(sol.idEstatus) === 6}
                               onClick={stop((e) => {
                                 e.currentTarget.nextSibling.classList.toggle(
                                   "open",
@@ -1735,6 +1812,7 @@ export default function SolicitudesDesarrolloPage() {
                           ) : panelData ? (
                             <PanelExpandido
                               data={panelData}
+                              onRefresh={() => { reloadPanel(); fetchRows(); fetchKpis(); }}
                               tab={panelTab}
                               onTabChange={setPanelTab}
                               comentario={comentario}
@@ -1919,11 +1997,13 @@ export default function SolicitudesDesarrolloPage() {
                       disabled={!modal.sol.loginResponsable}
                     >
                       <option value="">— Selecciona —</option>
-                      {catalogos.estatus.map((e) => (
+                      {catalogos.estatus
+                        .filter((e) => Number(e.idEstatus) !== 7)
+                        .map((e) => (
                         <option key={e.idEstatus} value={e.idEstatus}>
                           {e.nombre}
                         </option>
-                      ))}
+                        ))}
                     </select>
                   </div>
                   {mEstatus === "3" && (
@@ -1943,11 +2023,11 @@ export default function SolicitudesDesarrolloPage() {
                       </div>
                     </div>
                   )}
-                  {(mEstatus === "4" || mEstatus === "6") && (
+                  {(mEstatus === "5" || mEstatus === "6") && (
                     <div className="sdp-modal-field">
                       <label>
-                        {mEstatus === "4"
-                          ? "Motivo de revisión *"
+                        {mEstatus === "5"
+                          ? "Información pendiente *"
                           : "Motivo de cancelación *"}
                       </label>
                       <textarea
@@ -1955,19 +2035,14 @@ export default function SolicitudesDesarrolloPage() {
                         value={mMotivo}
                         onChange={(e) => setMMotivo(e.target.value)}
                         placeholder={
-                          mEstatus === "4"
+                          mEstatus === "5"
                             ? "¿Qué requiere revisión?"
                             : "¿Por qué se cancela?"
                         }
                       />
                     </div>
                   )}
-                  {mEstatus === "7" && (
-                    <div className="sdp-modal-hint sdp-modal-hint--warn">
-                      <i className="ti ti-alert-triangle" /> Para concluir usa
-                      el botón "Concluir" en el panel.
-                    </div>
-                  )}
+                  {mEstatus === "6" && <><div className="sdp-modal-field"><label>Explicación detallada *<textarea aria-label="Explicación detallada" required maxLength={10000} rows={4} value={mExplicacion} onChange={e=>setMExplicacion(e.target.value)} /></label></div><div className="sdp-modal-field"><label>Observaciones o alternativa sugerida<textarea aria-label="Observaciones o alternativa sugerida" maxLength={10000} rows={2} value={mObservaciones} onChange={e=>setMObservaciones(e.target.value)} /></label></div></>}
                   <div className="sdp-modal-footer">
                     <button
                       className="sdp-btn sdp-btn-ghost"
@@ -1977,11 +2052,10 @@ export default function SolicitudesDesarrolloPage() {
                     </button>
                     <button
                       className="sdp-btn sdp-btn-primary"
-                      onClick={
-                        mEstatus === "7" ? () => setModal(null) : handleEstatus
-                      }
+                      disabled={mEstatus === "6" && (!mMotivo.trim() || !mExplicacion.trim())}
+                      onClick={handleEstatus}
                     >
-                      {mEstatus === "7" ? "Entendido" : "Guardar"}
+                      Guardar
                     </button>
                   </div>
                 </>
@@ -1990,7 +2064,7 @@ export default function SolicitudesDesarrolloPage() {
               {modal.type === "detalle" && (
                 <>
                   <p className="sdp-modal-title">
-                    <i className="ti ti-calendar-event" /> Seguimiento
+                    <i className="ti ti-calendar-event" /> Actualizar seguimiento
                   </p>
                   {!modal.sol.loginResponsable && (
                     <div className="sdp-modal-warn">
@@ -2000,15 +2074,30 @@ export default function SolicitudesDesarrolloPage() {
                     </div>
                   )}
                   <div className="sdp-modal-field">
+                    <label>Prioridad</label><select aria-label="Prioridad del desarrollo" value={mPrioridad} onChange={e=>setMPrioridad(e.target.value)}><option value="" disabled>Selecciona una prioridad</option>{catalogos.prioridades.map(p=><option key={p.idPrioridad} value={p.idPrioridad}>{p.nombre}</option>)}</select>
+                    <label>Tipo de trabajo *</label><select aria-label="Tipo de trabajo" value={mAlcance} onChange={e=>{setMAlcance(e.target.value);setMAccion("normal");setMEstatus(String(modal.sol.idEstatus || 1));setMEtapa({numeroEtapa:"",fechaInicioEtapa:"",fechaFinEtapa:""});setMFecha("");}}><option value="PROYECTO">Proyecto</option><option value="CAMBIO_SENCILLO">Adecuación menor</option></select>
+                    {mAlcance === "CAMBIO_SENCILLO" && <p>Se atiende en Mesa de Servicio, sin etapas ni incorporación a Gestión de Desarrollo.</p>}
+                    {mAlcance === 'CAMBIO_SENCILLO' ? <><label>Nuevo estatus</label><select aria-label="Nuevo estatus" value={mEstatus} onChange={e=>setMEstatus(e.target.value)}>{[[1,'Pendiente'],[2,'En revisión'],[3,'En proceso'],[4,'En pruebas'],[5,'Esperando información'],[6,'Rechazado']].map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></> : <><label>Situación del trabajo</label><select aria-label="Situación del trabajo" value={mAccion} onChange={e=>{setMAccion(e.target.value);if(e.target.value==='espera')setMEstatus('5');if(e.target.value==='rechazar')setMEstatus('6');}}><option value="normal">{Number(modal.sol.idEstatus)===5?'Mantener esperando información':'Continuar según la etapa'}</option>{Number(modal.sol.idEstatus)===5&&<option value="retomar">Retomar trabajo</option>}{Number(modal.sol.idEstatus)!==5&&<option value="espera">Esperando información</option>}<option value="rechazar">Rechazar desarrollo</option></select></>}
+                    {seguimientoExcepcion && <><label>{mEstatus==='6'?'Motivo de la decisión *':'Información pendiente *'}</label><textarea aria-label="Motivo de la decisión" required rows={3} value={mMotivo} onChange={e=>setMMotivo(e.target.value)}/>{mEstatus==='6'&&<><label>Explicación detallada *</label><textarea aria-label="Explicación detallada" required rows={4} value={mExplicacion} maxLength={10000} onChange={e=>setMExplicacion(e.target.value)}/><label>Observaciones o alternativa sugerida</label><textarea aria-label="Observaciones o alternativa sugerida" rows={2} value={mObservaciones} maxLength={10000} onChange={e=>setMObservaciones(e.target.value)}/></>}</>}
+                    <div className="sdp-modal-field sdp-followup-fields" hidden={seguimientoExcepcion}>
+                    {mAlcance === "PROYECTO" && <>
+                    <p className="sdp-modal-hint">Estatus resultante: <strong>{Number(modal.sol.idEstatus)===5&&mAccion!=='retomar'?'Esperando información':({1:'En revisión',2:'En proceso',3:'En revisión',4:'En pruebas',5:'En proceso'})[mEtapa.numeroEtapa]||'Selecciona una etapa'}</strong></p>
+                    <label>Etapa del avance *</label><select aria-label="Etapa del avance" value={mEtapa.numeroEtapa} onChange={e=>{const row=mEtapas.find(r=>String(r.numeroEtapa)===e.target.value);setMEtapa({numeroEtapa:e.target.value,fechaInicioEtapa:row?.fechaInicio?.slice(0,10)||'',fechaFinEtapa:row?.fechaCompromiso?.slice(0,10)||'',entregable:row?.entregable||''});}}><option value="">Selecciona una etapa</option>{[...ETAPAS_DESARROLLO,...(mEtapas.some(r=>r.numeroEtapa===3)?[{id:3,nombre:'Revisión'}]:[])].map(r=><option key={r.id} value={r.id} disabled={Boolean(mEtapas.find(e=>e.numeroEtapa===r.id)?.fechaCierre)}>{r.nombre}</option>)}</select>
+                    <label>Entregable esperado</label><textarea aria-label="Entregable esperado" rows={2} maxLength={2000} value={mEtapa.entregable || ''} onChange={e=>setMEtapa(p=>({...p,entregable:e.target.value}))} placeholder="Ej. Documento de análisis aprobado o módulo listo para pruebas"/>
+                    <label>Inicio de la etapa *</label><input aria-label="Inicio de la etapa" type="date" value={mEtapa.fechaInicioEtapa} onChange={e=>setMEtapa(p=>({...p,fechaInicioEtapa:e.target.value}))}/>
+                    <label>Término previsto de la etapa *</label><input aria-label="Término previsto de la etapa" type="date" min={mEtapa.fechaInicioEtapa} value={mEtapa.fechaFinEtapa} onChange={e=>{setMEtapa(p=>({...p,fechaFinEtapa:e.target.value}));setMFecha(e.target.value);}}/>
+                    </>}
                     <label>Fecha compromiso</label>
                     <input
                       type="date"
-                      value={mFecha}
+                      aria-label="Fecha compromiso"
+                      value={mAlcance === "PROYECTO" ? mEtapa.fechaFinEtapa : mFecha}
+                      readOnly={mAlcance === "PROYECTO"}
                       disabled={!modal.sol.loginResponsable}
                       onChange={(e) => setMFecha(e.target.value)}
                     />
                   </div>
-                  <div className="sdp-modal-field">
+                  <div className="sdp-modal-field" hidden={seguimientoExcepcion}>
                     <label>
                       Avance — <strong>{mAvance}%</strong>
                     </label>
@@ -2028,6 +2117,7 @@ export default function SolicitudesDesarrolloPage() {
                       ))}
                     </div>
                   </div>
+                  </div>
                   <div className="sdp-modal-footer">
                     <button
                       className="sdp-btn sdp-btn-ghost"
@@ -2037,12 +2127,7 @@ export default function SolicitudesDesarrolloPage() {
                     </button>
                     <button
                       className="sdp-btn sdp-btn-primary"
-                      disabled={!modal.sol.loginResponsable}
-                      title={
-                        !modal.sol.loginResponsable
-                          ? "Asigna un responsable primero"
-                          : ""
-                      }
+                      disabled={(!modal.sol.loginResponsable && !(seguimientoExcepcion && mEstatus === "6")) || (seguimientoExcepcion && (!mMotivo.trim() || (mEstatus === "6" && !mExplicacion.trim())))}
                       onClick={handleDetalle}
                     >
                       Guardar
@@ -2450,15 +2535,14 @@ export default function SolicitudesDesarrolloPage() {
         ReactDOM.createPortal(
           <div
             className="sdp-modal-backdrop"
-            onClick={() => setModalTipoDesarrollo(null)}
+
           >
             <div className="sdp-modal" onClick={(e) => e.stopPropagation()}>
               <p className="sdp-modal-title">
                 <i className="ti ti-code" /> Tipo de desarrollo
               </p>
               <p className="sdp-modal-subtitle">
-                Responsable asignado. Ahora selecciona cómo clasificar este
-                desarrollo.
+                Selecciona el tipo para confirmar la asignación. Al cancelar, el responsable anterior se conserva.
               </p>
               <div className="sdp-tipo-dev-grid">
                 {TIPOS_DESARROLLO.map((t) => (
@@ -2476,14 +2560,15 @@ export default function SolicitudesDesarrolloPage() {
               <div className="sdp-modal-footer">
                 <button
                   className="sdp-btn sdp-btn-ghost"
+                  disabled={tipoSaving}
                   onClick={() => setModalTipoDesarrollo(null)}
                 >
-                  Omitir por ahora
+                  Cancelar
                 </button>
                 <button
                   className="sdp-btn sdp-btn-primary"
                   onClick={handleGuardarTipoDesarrollo}
-                  disabled={!mTipoDesarrollo}
+                  disabled={!mTipoDesarrollo || tipoSaving}
                 >
                   <i className="ti ti-check" /> Guardar
                 </button>
@@ -2509,6 +2594,7 @@ export default function SolicitudesDesarrolloPage() {
 ══════════════════════════════════════════════════════════════ */
 function PanelExpandido({
   data,
+  onRefresh,
   tab,
   onTabChange,
   comentario,
@@ -2543,7 +2629,17 @@ function PanelExpandido({
     bloqueos = [],
     ...sol
   } = data;
-  const esConcluido = sol.idEstatus === 7;
+  const esConcluido = Number(sol.idEstatus) === 7;
+  if (Number(sol.idEstatus) === 6) return (
+    <div className="sdp-panel sdp-decision-panel">
+      <DecisionAviso data={data}/>
+      <DesarrolloDecision data={data} ingeniero={user?.area === 'SISTEMAS'} onRefresh={onRefresh}/>
+      <h3>Comentarios</h3>
+      <TabComentarios comentarios={comentarios} comentario={comentario} setComentario={setComentario} onPost={onPostComentario}/>
+      <h3>Archivos y evidencias</h3><TabArchivos adjuntos={adjuntos}/>
+      <details><summary>Bitácora del desarrollo</summary>{bitacora.map((b,i)=><p key={b.idBitacora || i}>{fmtDateTime(b.fecha)} · {b.nombreUsuario || b.idUsuario} · {b.nota}</p>)}</details>
+    </div>
+  );
   const sinResponsable = !sol.tecnicoAsignado && !sol.nombreTecnico;
   const puedeAvanzar = !sinResponsable;
   const puedeConcluir = !sinResponsable && [3, 4, 5].includes(sol.idEstatus);
@@ -2631,6 +2727,7 @@ function PanelExpandido({
       </div>
 
       <div className="sdp-tab-content" key={tab}>
+        {tab === "resumen" && data.revisionDecision && <DesarrolloDecision data={data} ingeniero onRefresh={onRefresh}/>}
         {tab === "resumen" && (
           <TabResumen
             sol={sol}
@@ -2748,6 +2845,7 @@ function TabResumen({
             value={<span className="sdp-mono">{sol.folioDesarrollo}</span>}
           />
           <InfoRow label="Tipo" value={sol.tipoNombre || "—"} />
+          <InfoRow label="Tipo de trabajo" value={sol.alcanceDesarrollo === 'CAMBIO_SENCILLO' ? 'Adecuación menor' : 'Proyecto'} />
           <InfoRow
             label="Tipo de desarrollo"
             value={
@@ -2797,29 +2895,34 @@ function TabResumen({
         </div>
       </div>
       <div className="resumen-block resumen-block--desc">
+        {sol.titulo && <p className="resumen-titulo-completo">{sol.titulo}</p>}
         <p className="resumen-block-title">Descripción</p>
         <p className="desc-text">{sol.descripcion || "—"}</p>
-        {sol.objetivo && (
+        {sol.objetivo && sol.objetivo.trim() !== sol.descripcion?.trim() && (
           <>
             <p className="resumen-block-subtitle">Objetivo</p>
             <p className="desc-text">{sol.objetivo}</p>
           </>
         )}
-        {sol.justificacion && (
+        {sol.justificacion && sol.justificacion.trim() !== sol.descripcion?.trim() && sol.justificacion.trim() !== sol.objetivo?.trim() && (
           <>
             <p className="resumen-block-subtitle">Justificación</p>
             <p className="desc-text desc-text--sm">{sol.justificacion}</p>
           </>
         )}
+        {((sol.objetivo && sol.objetivo.trim() === sol.descripcion?.trim()) ||
+          (sol.justificacion && [sol.descripcion?.trim(), sol.objetivo?.trim()].includes(sol.justificacion.trim()))) && (
+          <p className="desc-text desc-text--sm">Los campos con texto idéntico se muestran una sola vez; se conserva el contenido registrado.</p>
+        )}
         {sol.motivoRevision && (
           <div className="desc-alert desc-alert--warn">
             <i className="ti ti-alert-circle" />
             <div>
-              <strong>En revisión:</strong> {sol.motivoRevision}
+              <strong>Información pendiente:</strong> {sol.motivoRevision}
             </div>
           </div>
         )}
-        {sol.motivoRechazo && (
+        {Number(sol.idEstatus) === 6 && sol.motivoRechazo && (
           <div className="desc-alert desc-alert--danger">
             <i className="ti ti-circle-x" />
             <div>
@@ -2866,7 +2969,7 @@ function TabResumen({
             <span className="tiempo-val">{fmtDate(sol.fechaCompromiso)}</span>
           </div>
           <div className="tiempo-row">
-            <span className="tiempo-label">Inicio real</span>
+            <span className="tiempo-label">Inicio</span>
             <span className="tiempo-val">{fmtDate(sol.fechaInicio)}</span>
           </div>
           <div className="tiempo-row">
@@ -2934,16 +3037,9 @@ function TabResumen({
             className="sdp-btn sdp-btn-ghost sdp-btn-sm"
             onClick={stop(onDetalle)}
           >
-            <i className="ti ti-edit" /> Actualizar
+            <i className="ti ti-edit" /> Actualizar seguimiento
           </button>
-          <button
-            className="sdp-btn sdp-btn-ghost sdp-btn-sm"
-            onClick={stop(onEstatus)}
-            disabled={!puedeAvanzar}
-            title={!puedeAvanzar ? "Asigna un responsable primero" : ""}
-          >
-            <i className="ti ti-refresh" /> Estatus
-          </button>
+
           <button
             className="sdp-btn sdp-btn-ghost sdp-btn-sm"
             onClick={stop(onActividad)}
@@ -3051,7 +3147,7 @@ function TabSeguimiento({
             <BarraTiempo row={sol} />
             <div className="seg-tiempo-rows">
               <div className="seg-tiempo-row">
-                <span>Inicio real</span>
+                <span>Inicio</span>
                 <span>{fmtDate(sol.fechaInicio)}</span>
               </div>
               <div className="seg-tiempo-row">

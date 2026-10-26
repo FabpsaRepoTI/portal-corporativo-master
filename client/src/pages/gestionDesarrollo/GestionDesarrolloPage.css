@@ -1,0 +1,105 @@
+/* client/src/pages/gestionDesarrollo/GestionDesarrolloPage.css */
+
+.gd-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  background: var(--bg-base);
+}
+
+/* ── Header ── */
+.gd-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px 16px;
+  gap: 16px;
+}
+
+.gd-header__left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.gd-header__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--secondary) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--secondary) 28%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--secondary);
+  flex-shrink: 0;
+}
+
+.gd-header__title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.gd-header__sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 2px 0 0;
+}
+
+.gd-header__tagline {
+  font-style: italic;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 0;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── Tabs ── */
+.gd-tabs-wrap {
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.gd-tabs {
+  display: flex;
+  padding: 0 24px;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.gd-tabs::-webkit-scrollbar { display: none; }
+
+.gd-tab {
+  padding: 10px 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.gd-tab:hover       { color: var(--text-h); }
+.gd-tab--active     { color: var(--secondary); border-bottom-color: var(--secondary); font-weight: 600; }
+
+/* ── Cuerpo ── */
+.gd-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .gd-header     { padding: 10px 14px 12px; flex-wrap: wrap; }
+  .gd-header__title { font-size: 18px; }
+  .gd-tabs  { padding: 0 14px; }
+  .gd-tab   { padding: 8px 12px; font-size: 12px; }
+}

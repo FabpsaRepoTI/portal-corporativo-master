@@ -1,5 +1,7 @@
 // src/pages/mesaServicio/NuevoDesarrolloPage.jsx  v2
 // Layout sin scroll · acento índigo · previews de archivos
+import arteHero from "../../../assets/visor-desarrollo-hero.svg";
+import PageHero from "../../../components/PageHero";
 import { useState, useEffect, useContext, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../../context/AuthContext";
@@ -220,6 +222,8 @@ export default function NuevoDesarrolloPage() {
   const [idSistema, setIdSistema] = useState("");
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
+  const [objetivo, setObjetivo] = useState("");
+  const [justificacion, setJustificacion] = useState("");
   const [beneficio, setBeneficio] = useState("");
   const [archivos, setArchivos] = useState([]);
 
@@ -265,8 +269,8 @@ export default function NuevoDesarrolloPage() {
       fd.append("idDesarrollo", idSistema);
       fd.append("titulo", titulo.trim());
       fd.append("descripcion", descripcion.trim());
-      fd.append("objetivo", descripcion.trim());
-      fd.append("justificacion", descripcion.trim());
+      if (objetivo.trim()) fd.append("objetivo", objetivo.trim());
+      if (justificacion.trim()) fd.append("justificacion", justificacion.trim());
       fd.append("idPrioridad", "1"); // prioridad por defecto — la asigna Sistemas
       if (beneficio.trim()) fd.append("beneficioEsperado", beneficio.trim());
       archivos.forEach((f) => fd.append("archivos", f));
@@ -297,6 +301,8 @@ export default function NuevoDesarrolloPage() {
     setIdSistema("");
     setTitulo("");
     setDescripcion("");
+    setObjetivo("");
+    setJustificacion("");
     setBeneficio("");
     setArchivos([]);
     setErrores({});
@@ -326,35 +332,15 @@ export default function NuevoDesarrolloPage() {
 
   return (
     <div className="nd-root">
-      {/* ── Encabezado de página ── */}
-      <header className="nd-page-header">
-        <nav className="nd-breadcrumb">
-          <button
-            className="nd-breadcrumb__link"
-            onClick={() => navigate("/mesa-de-servicio")}
-          >
-            <i className="ti ti-layout-dashboard" /> Mesa de Servicio
-          </button>
-          <i className="ti ti-chevron-right nd-breadcrumb__sep" />
-          <span>Desarrollo de Software</span>
-          <i className="ti ti-chevron-right nd-breadcrumb__sep" />
-          <span className="nd-breadcrumb__current">Nueva solicitud</span>
-        </nav>
-        <div className="nd-page-header__body">
-          <div className="nd-page-header__icon">
-            <i className="ti ti-code" />
-          </div>
-          <div>
-            <h1 className="nd-page-header__title">
-              Solicitar desarrollo de software
-            </h1>
-            <p className="nd-page-header__sub">
-              Cuéntanos qué necesitas y el equipo de Sistemas evaluará tu
-              solicitud.
-            </p>
-          </div>
-        </div>
-      </header>
+      {/* Encabezado estándar del portal (mismo que Información Técnica) */}
+      <PageHero
+        arte={arteHero}
+        eyebrow="Mesa de Servicio · Desarrollo de Software"
+        titulo="Solicitar desarrollo de"
+        resalte="software"
+        sub="Cuéntanos qué necesitas y el equipo de Sistemas evaluará tu solicitud."
+        volver={{ to: "/mesa-de-servicio", label: "Volver a la Mesa de Ayuda" }}
+      />
 
       {loadingCat ? (
         <div className="nd-loading">
@@ -517,6 +503,20 @@ export default function NuevoDesarrolloPage() {
                   </div>
                 </div>
 
+                <div className="nd-field" style={{ marginTop: 12 }}>
+                  <label className="nd-label">
+                    Objetivo <span className="nd-opt">(opcional)</span>
+                  </label>
+                  <textarea aria-label="Objetivo" className="nd-textarea" rows={3} maxLength={3000}
+                    placeholder="¿Qué resultado debe lograr el desarrollo?"
+                    value={objetivo} onChange={e => setObjetivo(e.target.value)} />
+                </div>
+                <div className="nd-field" style={{ marginTop: 12 }}>
+                  <label className="nd-label">Justificación <span className="nd-opt">(opcional)</span></label>
+                  <textarea aria-label="Justificación" className="nd-textarea" rows={3} maxLength={3000}
+                    placeholder="¿Por qué es necesario realizar este desarrollo?"
+                    value={justificacion} onChange={e => setJustificacion(e.target.value)} />
+                </div>
                 <div className="nd-field" style={{ marginTop: 12 }}>
                   <label className="nd-label">
                     Beneficio esperado{" "}

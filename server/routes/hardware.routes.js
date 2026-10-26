@@ -144,4 +144,73 @@ router.post("/solicitud", async (req, res) => {
   }
 });
 
+// ─── AGREGAR al archivo de rutas de hardware ─────────────────────────────────
+// Pega este bloque ANTES del module.exports = router;
+// ─────────────────────────────────────────────────────────────────────────────
+
+// POST /api/solicitudes-usuario/hardware/:id/comentario-ti
+// Permite a ingenieros de TI (area = SISTEMAS) comentar en cualquier solicitud
+router.post("/:id/comentario-ti", async (req, res) => {
+  const login = req.user.login;
+  const nombre = req.user.name || login;
+  const area = req.user.area || "";
+  const id = parseInt(req.params.id);
+  const { comentario } = req.body;
+
+  // Solo usuarios del área SISTEMAS
+  if (area.trim().toUpperCase() !== "SISTEMAS") {
+    return res.status(403).json({ error: "No autorizado" });
+  }
+
+  if (!comentario?.trim()) {
+    return res.status(400).json({ error: "Comentario vacío" });
+  }
+
+  try {
+    const db = await getPool();
+
+    // Obtener el folio — sin restricción de loginUsuario
+    const check = await db
+      .request()
+      .input("id", sql.Int, id)
+      .query(`SELECT folio FROM solicitudHardware WHERE idSolicitud = @id`);
+
+    if (!check.recordset.length) {
+      return res.status(404).json({ error: "Solicitud no encontrada" });
+    }
+
+    const folio = check.recordset[0].folio;
+
+    await db
+      .request()
+      .input("folio", sql.VarChar, folio)
+      .input("login", sql.VarChar, login)
+      .input("nombre", sql.VarChar, nombre)
+      .input("rol", sql.VarChar, "sistemas")
+      .input("mensaje", sql.NVarChar, comentario.trim())
+      .input("esEvento", sql.Bit, 0).query(`
+        INSERT INTO solicitudHardwareComentarios
+          (folio, login, nombre, rol, mensaje, esEvento)
+        VALUES
+          (@folio, @login, @nombre, @rol, @mensaje, @esEvento)
+      `);
+
+    const result = await db
+      .request()
+      .input("folio", sql.VarChar, folio)
+      .input("login", sql.VarChar, login).query(`
+        SELECT TOP 1
+          id, folio, login, nombre, rol, mensaje, esEvento, fechaCreacion
+        FROM solicitudHardwareComentarios
+        WHERE folio = @folio AND login = @login AND esEvento = 0
+        ORDER BY fechaCreacion DESC
+      `);
+
+    res.json(result.recordset[0]);
+  } catch (err) {
+    console.error("postComentarioHardwareTI:", err);
+    res.status(500).json({ error: "Error al enviar comentario" });
+  }
+});
+
 module.exports = router;

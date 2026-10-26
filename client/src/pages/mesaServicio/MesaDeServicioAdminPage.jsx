@@ -1,6 +1,9 @@
+import arteHero from "../../assets/visor-ejecutivo-hero.png";
+import PageHero from "../../components/PageHero";
+import {usePendingAttention} from "../../context/PendingAttention";
 // MesaDeServicioAdminPage.jsx
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import MesaAyudaAdminPage from "./atencionIncidencias/AtencionIncidenciasPage";
 import HardwareSolicitudesPage from "./hardware/HardwareSolicitudesPage";
 import SolicitudesDesarrolloPage from "./desarrolloSoftware/SolicitudesDesarrolloPage";
@@ -33,34 +36,23 @@ const TABS = [
 ];
 
 export default function MesaDeServicioAdminPage() {
-  const [activeTab, setActiveTab] = useState("incidencias");
+  const [activeTab, setActiveTab] = useState(() => new URLSearchParams(window.location.search).get("tab") === "desarrollo" ? "desarrollo" : "incidencias");
   const navigate = useNavigate();
+  const {search}=useLocation();
+  const {counts,error}=usePendingAttention();
+  useEffect(()=>{const target=new URLSearchParams(search).get("tab");if(TABS.some(t=>t.key===target))setActiveTab(target);},[search]);
 
   return (
     <div className="mds-shell">
-      {/* ── Header — igual al patrón de otras páginas de la app ── */}
-      <div className="mds-header">
-        <button
-          className="mds-back"
-          onClick={() => navigate("/mesa-de-servicio")}
-        >
-          <i className="ti ti-arrow-left" />
-          Volver a la Mesa de Ayuda
-        </button>
-
-        <div className="mds-hero">
-          <div className="mds-hero-icon">
-            <i className="ti ti-headset" />
-          </div>
-          <div className="mds-hero-text">
-            <h1 className="mds-hero-title">Administración de Solicitudes</h1>
-            <p className="mds-hero-desc">
-              Consulta, da seguimiento y gestiona las solicitudes e incidencias
-              reportadas por los usuarios.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Encabezado estándar del portal (mismo que Información Técnica) */}
+      <PageHero
+        arte={arteHero}
+        eyebrow="Mesa de Servicio · Administración"
+        titulo="Administración de"
+        resalte="Solicitudes"
+        sub="Consulta, da seguimiento y gestiona las solicitudes e incidencias reportadas por los usuarios."
+        volver={{ to: "/mesa-de-servicio", label: "Volver a la Mesa de Ayuda" }}
+      />
 
       {/* ── Tab Bar ──────────────────────────────────────────────── */}
       <div className="mds-tabbar">
@@ -82,6 +74,7 @@ export default function MesaDeServicioAdminPage() {
                   <i className={`ti ${t.icon}`} />
                 </span>
                 <span className="mds-tab-label">{t.label}</span>
+                {!error&&counts?.[t.key]>0&&<span className="mds-pending-count" aria-label={counts[t.key]+" pendientes de atención"}>{counts[t.key]}</span>}
                 {isActive && <span className="mds-tab-indicator" />}
               </button>
             );

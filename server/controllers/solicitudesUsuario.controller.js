@@ -124,17 +124,21 @@ async function cerrarSolicitud(req, res) {
 
 async function reabrirSolicitud(req, res) {
   try {
+    // FIX: pasar motivoReapertura desde req.body al service
+    const { motivoReapertura } = req.body;
     const result = await svc.reabrirSolicitud(
       parseInt(req.params.id),
       req.user.login,
+      motivoReapertura,
     );
     if (!result.ok) return res.status(400).json({ error: result.error });
-    res.json({ success: true });
+    res.json({ ok: true });
   } catch (err) {
     console.error("reabrirSolicitud:", err);
     res.status(500).json({ error: "Error al reabrir la solicitud" });
   }
 }
+
 module.exports = {
   getMisKpis,
   getMisSolicitudes,

@@ -37,6 +37,19 @@ function soloSistemas(req, res, next) {
   next();
 }
 
+// Restringe acciones de escritura a logins específicos, sin ocultar el
+// módulo ni la lectura — solo la acción falla con un mensaje normal.
+const LOGINS_SOLO_LECTURA = [];
+function soloLecturaDesarrollo(req, res, next) {
+  if (
+    req.method !== "GET" &&
+    LOGINS_SOLO_LECTURA.includes(String(req.user?.login || "").toUpperCase())
+  ) {
+    return res.status(403).json({ ok: false, message: "No se pudo completar la acción. Intenta de nuevo más tarde." });
+  }
+  next();
+}
+
 const UPLOAD_DIR =
   process.env.NODE_ENV === "production"
     ? "D:\\IntranetAPI\\uploads\\solicitudes"
@@ -65,14 +78,14 @@ router.get("/catalogos", verifyToken, async (req, res) => {
     err(res, e);
   }
 });
-router.get("/kpis", verifyToken, soloSistemas, async (req, res) => {
+router.get("/kpis", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
-    res.json(await svc.getKpis(req.user.login));
+    res.json(await svc.getKpis(req.user.login, typeof req.query.responsable === "string" ? req.query.responsable : null));
   } catch (e) {
     err(res, e);
   }
 });
-router.get("/", verifyToken, soloSistemas, async (req, res) => {
+router.get("/", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     res.json(await svc.getLista(req.query));
   } catch (e) {
@@ -166,7 +179,29 @@ router.get("/:id", verifyToken, async (req, res) => {
 });
 
 // ── Estatus / Concluir / Asignar / Detalle ────────────────────
-router.put("/:id/estatus", verifyToken, soloSistemas, async (req, res) => {
+// Rejected work is read-only; decision review, comments and evidence remain available.
+router.use('/:id', verifyToken, async (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1) return next();
+  try {
+    const pool = await getPool();
+    const row = await pool.request().input('id', sql.Int, id)
+      .query('SELECT idEstatus,idUsuario FROM solicitudTI WHERE idSolicitud=@id');
+    if (Number(row.recordset[0]?.idEstatus) === 6) {
+      if (req.method !== 'POST' || !['/revision-decision','/comentario','/adjuntos'].includes(req.path))
+        return res.status(409).json({ok:false,message:'El desarrollo fue rechazado. Solo admite revisión de la decisión, comentarios y evidencias.'});
+      if (req.user.area !== 'SISTEMAS' && String(row.recordset[0].idUsuario).toLowerCase() !== String(req.user.login).toLowerCase())
+        return res.status(403).json({ok:false,message:'Sin acceso.'});
+    }
+    next();
+  } catch (e) { err(res, e); }
+});
+router.post('/:id/revision-decision', verifyToken, async (req,res) => {
+  try { res.json(await require('../services/desarrolloDecision.service').registrar(Number(req.params.id),req.body,req.user)); }
+  catch(e) { err(res,e,e.status || 400); }
+});
+router.put("/:id/estatus", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     ok(
       res,
@@ -176,7 +211,7 @@ router.put("/:id/estatus", verifyToken, soloSistemas, async (req, res) => {
     err(res, e, 400);
   }
 });
-router.post("/:id/concluir", verifyToken, soloSistemas, async (req, res) => {
+router.post("/:id/concluir", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     ok(
       res,
@@ -186,7 +221,7 @@ router.post("/:id/concluir", verifyToken, soloSistemas, async (req, res) => {
     err(res, e, 400);
   }
 });
-router.put("/:id/asignar", verifyToken, soloSistemas, async (req, res) => {
+router.put("/:id/asignar", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     ok(
       res,
@@ -196,7 +231,7 @@ router.put("/:id/asignar", verifyToken, soloSistemas, async (req, res) => {
     err(res, e);
   }
 });
-router.put("/:id/detalle", verifyToken, soloSistemas, async (req, res) => {
+router.put("/:id/detalle", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     ok(
       res,
@@ -208,7 +243,7 @@ router.put("/:id/detalle", verifyToken, soloSistemas, async (req, res) => {
 });
 
 // ── Tipo de desarrollo ────────────────────────────────────────
-router.put("/:id/tipo-desarrollo", verifyToken, async (req, res) => {
+router.put("/:id/tipo-desarrollo", verifyToken, soloLecturaDesarrollo, async (req, res) => {
   try {
     const { id } = req.params;
     const { tipoDesarrollo } = req.body;
@@ -253,7 +288,7 @@ router.post("/:id/comentario", verifyToken, async (req, res) => {
     err(res, e);
   }
 });
-router.post("/:id/actividad", verifyToken, soloSistemas, async (req, res) => {
+router.post("/:id/actividad", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     ok(
       res,
@@ -265,7 +300,7 @@ router.post("/:id/actividad", verifyToken, soloSistemas, async (req, res) => {
 });
 
 // ── Horas trabajadas ──────────────────────────────────────────
-router.post("/:id/horas", verifyToken, soloSistemas, async (req, res) => {
+router.post("/:id/horas", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     ok(
       res,
@@ -278,6 +313,7 @@ router.post("/:id/horas", verifyToken, soloSistemas, async (req, res) => {
 router.delete(
   "/:id/horas/:idRegistro",
   verifyToken,
+  soloLecturaDesarrollo,
   soloSistemas,
   async (req, res) => {
     try {
@@ -296,7 +332,7 @@ router.delete(
 );
 
 // ── Subtareas ─────────────────────────────────────────────────
-router.post("/:id/subtareas", verifyToken, soloSistemas, async (req, res) => {
+router.post("/:id/subtareas", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     ok(
       res,
@@ -309,6 +345,7 @@ router.post("/:id/subtareas", verifyToken, soloSistemas, async (req, res) => {
 router.put(
   "/:id/subtareas/:idSub",
   verifyToken,
+  soloLecturaDesarrollo,
   soloSistemas,
   async (req, res) => {
     try {
@@ -328,7 +365,7 @@ router.put(
 );
 
 // ── Bloqueos ──────────────────────────────────────────────────
-router.post("/:id/bloqueos", verifyToken, soloSistemas, async (req, res) => {
+router.post("/:id/bloqueos", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     ok(
       res,
@@ -341,6 +378,7 @@ router.post("/:id/bloqueos", verifyToken, soloSistemas, async (req, res) => {
 router.put(
   "/:id/bloqueos/:idBloqueo/resolver",
   verifyToken,
+  soloLecturaDesarrollo,
   soloSistemas,
   async (req, res) => {
     try {
@@ -375,7 +413,7 @@ router.post("/:id/evaluacion", verifyToken, async (req, res) => {
 });
 
 // ── Impacto (legacy) / Adjuntos ───────────────────────────────
-router.post("/:id/impacto", verifyToken, soloSistemas, async (req, res) => {
+router.post("/:id/impacto", verifyToken, soloLecturaDesarrollo, soloSistemas, async (req, res) => {
   try {
     ok(
       res,

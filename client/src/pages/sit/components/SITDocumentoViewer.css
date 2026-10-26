@@ -1,0 +1,89 @@
+/* Visor protegido: páginas en <canvas> con marca de agua */
+.sit-viewer {
+  height: 75vh;
+  overflow: auto;
+  padding: 16px;
+  background: var(--bg-base);
+  border-radius: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sit-viewer__pagina {
+  position: relative;
+  max-width: 1000px;
+  margin: 0 auto 16px;
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-s);
+  overflow: hidden;
+}
+.sit-viewer__lienzo {
+  min-height: 200px;
+  aspect-ratio: 8.5 / 11;
+}
+.sit-viewer__lienzo canvas {
+  display: block;
+  max-width: 100%;
+  height: auto !important;
+}
+.sit-viewer__lienzo:empty {
+  display: grid;
+  place-items: center;
+}
+.sit-viewer__lienzo:empty::after {
+  content: "Dibujando página…";
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.sit-viewer__marca {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  align-items: center;
+  pointer-events: none;
+  transform: rotate(-28deg) scale(1.3);
+}
+.sit-viewer__marca span {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: rgba(15, 23, 42, 0.09);
+  white-space: nowrap;
+}
+.sit-viewer__estado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+.sit-viewer__estado i { font-size: 30px; }
+.sit-viewer__estado strong { color: var(--text-h); font-size: 15px; }
+.sit-viewer__estado span { max-width: 420px; }
+.sit-viewer__estado--error i { color: var(--sit-rojo, #ef4444); }
+.sit-viewer__aviso {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.sit-viewer__error-accion {
+  margin: 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--sit-rojo, #ef4444);
+}
+
+/* Si alguien intenta imprimir la página del portal con el visor abierto,
+   el documento no sale en la impresión. */
+@media print {
+  .sit-viewer { display: none !important; }
+}

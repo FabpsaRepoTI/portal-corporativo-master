@@ -32,12 +32,34 @@ function fmtFechaCorta(iso) {
     year: "numeric",
   });
 }
-function fmtTiempo(min) {
-  if (min == null) return "—";
-  if (min < 60) return `${min}m`;
-  const h = Math.floor(min / 60),
-    m = min % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+function fmtFechaLarga(iso) {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("es-MX", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+function fmtTiempoTranscurrido(iso) {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 60) return `${min} minuto${min !== 1 ? "s" : ""}`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h} hora${h !== 1 ? "s" : ""}`;
+  const d = Math.floor(h / 24);
+  return `${d} día${d !== 1 ? "s" : ""}`;
+}
+function fmtTiempoEntre(isoInicio, isoFin) {
+  if (!isoInicio || !isoFin) return "—";
+  const diff = new Date(isoFin).getTime() - new Date(isoInicio).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h < 24) return m > 0 ? `${h}h ${m}min` : `${h}h`;
+  const d = Math.floor(h / 24);
+  return `${d} día${d !== 1 ? "s" : ""}`;
 }
 function initials(name) {
   if (!name) return "?";
@@ -47,6 +69,29 @@ function initials(name) {
     .map((w) => w[0])
     .join("")
     .toUpperCase();
+}
+function esHoy(iso) {
+  if (!iso) return false;
+  const d = new Date(iso);
+  const hoy = new Date();
+  return (
+    d.getDate() === hoy.getDate() &&
+    d.getMonth() === hoy.getMonth() &&
+    d.getFullYear() === hoy.getFullYear()
+  );
+}
+function fmtFechaRelativa(iso) {
+  if (!iso) return "—";
+  if (esHoy(iso)) {
+    return (
+      "Hoy, " +
+      new Date(iso).toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    );
+  }
+  return fmtFecha(iso);
 }
 
 const ESTATUS_COLOR = {
@@ -171,6 +216,377 @@ function BarraProgreso({ articulos }) {
           </span>
         )}
       </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAB INFORMACIÓN — Timeline inteligente por estado
+   ═══════════════════════════════════════════════════════════════ */
+function TabInformacion({ detalle, solicitud }) {
+  const estatus = detalle.estatus || solicitud.estatus;
+
+  /* ── Bloque de campo individual ── */
+  function Campo({ icono, label, valor, mono, highlight }) {
+    return (
+      <div
+        className={`hw-info-campo ${highlight ? "hw-info-campo--highlight" : ""}`}
+      >
+        <div className="hw-info-campo-label">
+          {icono && <i className={`ti ${icono}`} />}
+          {label}
+        </div>
+        <div className={`hw-info-campo-val ${mono ? "mono" : ""}`}>
+          {valor || "—"}
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Próximo paso según estatus ── */
+  function proximoPaso(est) {
+    if (est === "Pendiente")
+      return "Revisión y asignación por parte de Ingenería TI";
+    if (est === "En proceso")
+      return "Gestión y entrega de artículos solicitados";
+    if (est === "Completada")
+      return "Solicitud finalizada — puedes dejar tu evaluación";
+    if (est === "Rechazada") return "La solicitud no será procesada";
+    return "—";
+  }
+
+  /* ── Cabecera de estado con gradiente y color dinámico ── */
+  const sc = ESTATUS_COLOR[estatus] || {
+    color: "#64748b",
+    bg: "rgba(100,116,139,0.1)",
+    border: "rgba(100,116,139,0.2)",
+  };
+
+  /* ── ÍCONOS por estado ── */
+  const iconoEstado =
+    {
+      Pendiente: "ti-hourglass",
+      "En proceso": "ti-loader-2",
+      Completada: "ti-circle-check",
+      Rechazada: "ti-circle-x",
+    }[estatus] || "ti-info-circle";
+
+  return (
+    <div className="hw-info-timeline">
+      {/* ── Hero del estado ── */}
+      <div
+        className="hw-info-hero"
+        style={{ borderColor: sc.border, background: sc.bg }}
+      >
+        <div className="hw-info-hero-left">
+          <div
+            className="hw-info-hero-icon"
+            style={{ color: sc.color, background: `${sc.color}22` }}
+          >
+            <i className={`ti ${iconoEstado}`} />
+          </div>
+          <div>
+            <div className="hw-info-hero-label">Estado actual</div>
+            <div className="hw-info-hero-status" style={{ color: sc.color }}>
+              {estatus}
+            </div>
+          </div>
+        </div>
+        <div className="hw-info-hero-folio">
+          <span className="hw-info-hero-folio-label">Folio</span>
+          <span className="hw-info-hero-folio-val">{detalle.folio}</span>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════
+          PENDIENTE
+          ══════════════════════════════════════ */}
+      {estatus === "Pendiente" && (
+        <>
+          <div className="hw-info-section-title">
+            <i className="ti ti-file-text" />
+            Solicitud
+          </div>
+          <div className="hw-info-campos-grid">
+            <Campo
+              icono="ti-calendar-event"
+              label="Fecha de registro"
+              valor={fmtFechaLarga(detalle.fechaRegistro)}
+            />
+            <Campo
+              icono="ti-clock"
+              label="Tiempo transcurrido"
+              valor={fmtTiempoTranscurrido(detalle.fechaRegistro)}
+            />
+            <Campo
+              icono="ti-building"
+              label="Área solicitante"
+              valor={detalle.departamento}
+            />
+          </div>
+
+          <div className="hw-info-section-title">
+            <i className="ti ti-align-left" />
+            Motivo de la solicitud
+          </div>
+          <div className="hw-info-texto-box">
+            {detalle.motivo || "Sin motivo especificado."}
+          </div>
+
+          {detalle.observaciones && (
+            <>
+              <div className="hw-info-section-title">
+                <i className="ti ti-notes" />
+                Observaciones
+              </div>
+              <div className="hw-info-texto-box">{detalle.observaciones}</div>
+            </>
+          )}
+
+          <div className="hw-info-proximo">
+            <i className="ti ti-arrow-right" />
+            <div>
+              <div className="hw-info-proximo-label">Próximo paso esperado</div>
+              <div className="hw-info-proximo-val">{proximoPaso(estatus)}</div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══════════════════════════════════════
+          EN PROCESO
+          ══════════════════════════════════════ */}
+      {estatus === "En proceso" && (
+        <>
+          <div className="hw-info-section-title">
+            <i className="ti ti-progress" />
+            Atención en curso
+          </div>
+          <div className="hw-info-campos-grid">
+            <Campo
+              icono="ti-calendar-event"
+              label="Fecha de solicitud"
+              valor={fmtFechaLarga(detalle.fechaRegistro)}
+            />
+            {detalle.fechaInicioProceso && (
+              <Campo
+                icono="ti-player-play"
+                label="Inicio de atención"
+                valor={fmtFechaLarga(detalle.fechaInicioProceso)}
+              />
+            )}
+            {detalle.fechaInicioProceso && (
+              <Campo
+                icono="ti-clock"
+                label="Tiempo en atención"
+                valor={fmtTiempoTranscurrido(detalle.fechaInicioProceso)}
+              />
+            )}
+            {detalle.tecnico && (
+              <Campo
+                icono="ti-user-check"
+                label="Ingeniero responsable"
+                valor={detalle.tecnico}
+              />
+            )}
+            {detalle.fechaEstimadaAtencion && (
+              <Campo
+                icono="ti-calendar-check"
+                label="Fecha estimada de entrega"
+                valor={fmtFechaLarga(detalle.fechaEstimadaAtencion)}
+              />
+            )}
+            {detalle.ultimaActualizacion && (
+              <Campo
+                icono="ti-refresh"
+                label="Última actualización"
+                valor={fmtFechaRelativa(detalle.ultimaActualizacion)}
+              />
+            )}
+          </div>
+
+          <div className="hw-info-section-title">
+            <i className="ti ti-align-left" />
+            Motivo de la solicitud
+          </div>
+          <div className="hw-info-texto-box">
+            {detalle.motivo || "Sin motivo especificado."}
+          </div>
+
+          {detalle.observaciones && (
+            <>
+              <div className="hw-info-section-title">
+                <i className="ti ti-notes" />
+                Observaciones
+              </div>
+              <div className="hw-info-texto-box">{detalle.observaciones}</div>
+            </>
+          )}
+
+          <div className="hw-info-proximo hw-info-proximo--proceso">
+            <i className="ti ti-arrow-right" />
+            <div>
+              <div className="hw-info-proximo-label">Estado de la atención</div>
+              <div className="hw-info-proximo-val">{proximoPaso(estatus)}</div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══════════════════════════════════════
+          RECHAZADA
+          ══════════════════════════════════════ */}
+      {estatus === "Rechazada" && (
+        <>
+          {/* Banner de rechazo prominente */}
+          <div className="hw-info-rechazo-banner">
+            <div className="hw-info-rechazo-icon">
+              <i className="ti ti-ban" />
+            </div>
+            <div>
+              <div className="hw-info-rechazo-titulo">Solicitud rechazada</div>
+              {detalle.motivoRechazo ? (
+                <div className="hw-info-rechazo-motivo">
+                  {detalle.motivoRechazo}
+                </div>
+              ) : (
+                <div className="hw-info-rechazo-motivo hw-info-rechazo-motivo--empty">
+                  Sin motivo de rechazo registrado.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="hw-info-section-title">
+            <i className="ti ti-info-circle" />
+            Detalle
+          </div>
+          <div className="hw-info-campos-grid">
+            <Campo
+              icono="ti-calendar-event"
+              label="Fecha de solicitud"
+              valor={fmtFechaLarga(detalle.fechaRegistro)}
+            />
+            {detalle.fechaRechazo && (
+              <Campo
+                icono="ti-calendar-x"
+                label="Fecha de rechazo"
+                valor={fmtFechaLarga(detalle.fechaRechazo)}
+              />
+            )}
+            {detalle.rechazadoPor && (
+              <Campo
+                icono="ti-user"
+                label="Acción realizada por"
+                valor={detalle.rechazadoPor}
+              />
+            )}
+            {detalle.ultimaActualizacion && (
+              <Campo
+                icono="ti-refresh"
+                label="Última actualización"
+                valor={fmtFechaRelativa(detalle.ultimaActualizacion)}
+              />
+            )}
+            <Campo
+              icono="ti-building"
+              label="Área solicitante"
+              valor={detalle.departamento}
+            />
+          </div>
+
+          <div className="hw-info-section-title">
+            <i className="ti ti-align-left" />
+            Motivo de la solicitud
+          </div>
+          <div className="hw-info-texto-box">
+            {detalle.motivo || "Sin motivo especificado."}
+          </div>
+        </>
+      )}
+
+      {/* ══════════════════════════════════════
+          COMPLETADA / PARCIALMENTE ATENDIDA
+          ══════════════════════════════════════ */}
+      {(estatus === "Completada" || estatus === "Parcialmente atendida") && (
+        <>
+          <div className="hw-info-section-title">
+            <i className="ti ti-circle-check" />
+            Resolución
+          </div>
+          <div className="hw-info-campos-grid">
+            <Campo
+              icono="ti-calendar-event"
+              label="Fecha de solicitud"
+              valor={fmtFechaLarga(detalle.fechaRegistro)}
+            />
+            {detalle.fechaConcluida && (
+              <Campo
+                icono="ti-calendar-check"
+                label="Fecha de conclusión"
+                valor={fmtFechaLarga(detalle.fechaConcluida)}
+              />
+            )}
+            {detalle.fechaRegistro && detalle.fechaConcluida && (
+              <Campo
+                icono="ti-clock"
+                label="Tiempo total de resolución"
+                valor={fmtTiempoEntre(
+                  detalle.fechaRegistro,
+                  detalle.fechaConcluida,
+                )}
+              />
+            )}
+            {detalle.tecnico && (
+              <Campo
+                icono="ti-user-check"
+                label="Responsable de la atención"
+                valor={detalle.tecnico}
+              />
+            )}
+            {detalle.ultimaActualizacion && (
+              <Campo
+                icono="ti-refresh"
+                label="Última actualización"
+                valor={fmtFechaRelativa(detalle.ultimaActualizacion)}
+              />
+            )}
+            <Campo
+              icono="ti-building"
+              label="Área solicitante"
+              valor={detalle.departamento}
+            />
+          </div>
+
+          {detalle.resumenAtencion && (
+            <>
+              <div className="hw-info-section-title">
+                <i className="ti ti-clipboard-check" />
+                Resultado de la atención
+              </div>
+              <div className="hw-info-texto-box">{detalle.resumenAtencion}</div>
+            </>
+          )}
+
+          <div className="hw-info-section-title">
+            <i className="ti ti-align-left" />
+            Motivo de la solicitud
+          </div>
+          <div className="hw-info-texto-box">
+            {detalle.motivo || "Sin motivo especificado."}
+          </div>
+
+          {detalle.observaciones && (
+            <>
+              <div className="hw-info-section-title">
+                <i className="ti ti-notes" />
+                Observaciones
+              </div>
+              <div className="hw-info-texto-box">{detalle.observaciones}</div>
+            </>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -472,6 +888,7 @@ function DetalleHardware({ solicitud, user }) {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
   useEffect(() => {
     if (mensajesRef.current)
       mensajesRef.current.scrollTop = mensajesRef.current.scrollHeight;
@@ -500,6 +917,7 @@ function DetalleHardware({ solicitud, user }) {
       setEnviando(false);
     }
   }
+
   function onKey(e) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -575,7 +993,6 @@ function DetalleHardware({ solicitud, user }) {
                   };
                   return (
                     <div key={a.idDetalle} className="hw-msp-art-row">
-                      {/* Indicador lateral de color según estatus */}
                       <div
                         className="hw-msp-art-indicator"
                         style={{ background: dc.color }}
@@ -711,53 +1128,10 @@ function DetalleHardware({ solicitud, user }) {
             </div>
           )}
 
-          {/* ── Tab: Información ── */}
+          {/* ── Tab: Información (rediseñada) ── */}
           {tab === "info" && (
-            <div className="hw-msp-tab-content hw-msp-info-grid">
-              <div className="hw-msp-info-section">
-                <div className="hw-msp-info-title">Solicitud</div>
-                <div className="hw-msp-info-row">
-                  <span className="hw-msp-info-label">Folio</span>
-                  <span className="hw-msp-info-val hw-msp-folio-mono">
-                    {detalle.folio}
-                  </span>
-                </div>
-                <div className="hw-msp-info-row">
-                  <span className="hw-msp-info-label">Estado</span>
-                  <EstatusChip label={detalle.estatus} />
-                </div>
-                <div className="hw-msp-info-row">
-                  <span className="hw-msp-info-label">Fecha</span>
-                  <span className="hw-msp-info-val">
-                    {fmtFecha(detalle.fechaRegistro)}
-                  </span>
-                </div>
-                <div className="hw-msp-info-row">
-                  <span className="hw-msp-info-label">Área</span>
-                  <span className="hw-msp-info-val">
-                    {detalle.departamento || "—"}
-                  </span>
-                </div>
-              </div>
-              <div className="hw-msp-info-section">
-                <div className="hw-msp-info-title">Motivo</div>
-                <div className="hw-msp-descripcion-box">
-                  {detalle.motivo || "Sin motivo especificado."}
-                </div>
-                {detalle.observaciones && (
-                  <>
-                    <div
-                      className="hw-msp-info-title"
-                      style={{ marginTop: "0.75rem" }}
-                    >
-                      Observaciones
-                    </div>
-                    <div className="hw-msp-descripcion-box">
-                      {detalle.observaciones}
-                    </div>
-                  </>
-                )}
-              </div>
+            <div className="hw-msp-tab-content">
+              <TabInformacion detalle={detalle} solicitud={solicitud} />
             </div>
           )}
 
@@ -804,7 +1178,7 @@ function DetalleHardware({ solicitud, user }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   COMPONENTE PRINCIPAL — recibe filtros como props desde MisSolicitudesPage
+   COMPONENTE PRINCIPAL
    ═══════════════════════════════════════════════════════════════ */
 export default function HardwareMisSolicitudes({
   buscar = "",

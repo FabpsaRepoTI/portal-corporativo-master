@@ -1,0 +1,116 @@
+.sit-req {
+  --req-verde: #22c55e;
+  --req-amarillo: #f59e0b;
+  --req-rojo: #ef4444;
+  margin-bottom: 24px;
+}
+[data-theme="light"] .sit-req {
+  --req-verde: #16a34a;
+  --req-amarillo: #d97706;
+  --req-rojo: #dc2626;
+}
+
+.sit-req__nota {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.sit-req__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sit-req__prov {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.sit-req__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sit-req__nombre strong {
+  display: block;
+  font-size: 14px;
+  color: var(--text-h);
+}
+.sit-req__nombre small {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.sit-req__avance {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sit-req__barra {
+  --c: var(--req-verde);
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.sit-req__barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--c);
+  transition: width 0.4s ease;
+}
+.sit-req__barra--amarillo { --c: var(--req-amarillo); }
+.sit-req__barra--rojo { --c: var(--req-rojo); }
+
+.sit-req__pct {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sit-req__pct--verde { color: var(--req-verde); }
+.sit-req__pct--amarillo { color: var(--req-amarillo); }
+.sit-req__pct--rojo { color: var(--req-rojo); }
+
+.sit-req__faltantes {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sit-req__faltantes li {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--req-rojo);
+  background: transparent;
+  border: 1px solid var(--border);
+}
+
+.sit-req__completo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--req-verde);
+}
+
+@media (max-width: 640px) {
+  .sit-req__nota {
+    display: none;
+  }
+}

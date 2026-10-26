@@ -1,3 +1,5 @@
+import arteHero from "../../../assets/mesa-operacion-ti.svg";
+import PageHero from "../../../components/PageHero";
 import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -182,27 +184,15 @@ export default function HardwarePage() {
   return (
     <div className="hw-page">
       {/* ── Título de página ────────────────────────── */}
-      <div className="mds-header">
-        <button
-          className="mds-back"
-          onClick={() => navigate("/mesa-de-servicio")}
-        >
-          <i className="ti ti-arrow-left" />
-          Volver a la Mesa de Ayuda
-        </button>
-        <div className="mds-hero">
-          <div className="mds-hero-icon">
-            <i className="ti ti-device-laptop" />
-          </div>
-          <div className="mds-hero-text">
-            <h1 className="mds-hero-title">Nueva solicitud de hardware</h1>
-            <p className="mds-hero-desc">
-              Selecciona los recursos tecnológicos que necesitas. El equipo de
-              Sistemas evaluará y gestionará tu requerimiento.
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Encabezado estándar del portal (mismo que Información Técnica) */}
+      <PageHero
+        arte={arteHero}
+        eyebrow="Mesa de Servicio · Hardware"
+        titulo="Nueva solicitud de"
+        resalte="hardware"
+        sub="Selecciona los recursos tecnológicos que necesitas. El equipo de Sistemas evaluará y gestionará tu requerimiento."
+        volver={{ to: "/mesa-de-servicio", label: "Volver a la Mesa de Ayuda" }}
+      />
 
       {/* ── Layout principal ────────────────────────── */}
       <div className="hw-layout">
@@ -527,13 +517,20 @@ export default function HardwarePage() {
                 className="hw-btn-primary"
                 onClick={() =>
                   (window.location.href =
-                    "/mesa-de-servicio/mis-solicitudes?tab=hardware")
+                    "/portal-corporativo/fabpsa/mesa-de-servicio/mis-solicitudes")
                 }
               >
                 <i className="ti ti-list-check" aria-hidden="true" />
                 Ver mis solicitudes
               </button>
-              <button className="hw-btn-ghost" onClick={resetWizard}>
+              <button
+                className="hw-btn-ghost"
+                onClick={() =>
+                  navigate(
+                    "/portal-corporativo/fabpsa/mesa-de-servicio/mis-solicitudes",
+                  )
+                }
+              >
                 Nuevo requerimiento
               </button>
             </div>

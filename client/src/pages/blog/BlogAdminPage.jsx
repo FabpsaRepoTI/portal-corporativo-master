@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { AuthContext } from "../../context/AuthContext";
 
-// ─── helpers ────────────────────────────────────────────────
 const TOKEN = () => localStorage.getItem("fabpsa_token");
 const apiFetch = (url, opts = {}) =>
   fetch(url, {
@@ -35,7 +34,6 @@ const MESES = [
   "Diciembre",
 ];
 
-// ─── Toast ──────────────────────────────────────────────────
 function useToast() {
   const [toast, setToast] = useState(null);
   const timer = useRef();
@@ -79,7 +77,6 @@ function Toast({ toast }) {
   );
 }
 
-// ─── Modal genérico ─────────────────────────────────────────
 function Modal({ open, onClose, title, children, width = 640 }) {
   if (!open) return null;
   return (
@@ -149,7 +146,6 @@ function Modal({ open, onClose, title, children, width = 640 }) {
   );
 }
 
-// ─── Field ──────────────────────────────────────────────────
 function Field({ label, required, children, hint }) {
   return (
     <div style={{ marginBottom: 16 }}>
@@ -189,7 +185,6 @@ const inputStyle = {
   boxSizing: "border-box",
 };
 
-// ─── Btn ────────────────────────────────────────────────────
 function Btn({
   children,
   onClick,
@@ -226,7 +221,6 @@ function Btn({
   );
 }
 
-// ─── Badge categoría ────────────────────────────────────────
 function CatBadge({ cat }) {
   const c = CAT_MAP[cat] || { label: cat, color: "#94a3b8" };
   return (
@@ -248,7 +242,7 @@ function CatBadge({ cat }) {
 }
 
 // ════════════════════════════════════════════════════════════
-//  MODAL NUEVO / EDITAR ARTÍCULO
+//  MODAL ARTÍCULO
 // ════════════════════════════════════════════════════════════
 function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
   const blank = {
@@ -269,7 +263,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
   useEffect(() => {
     if (open) {
       if (articulo) {
-        // fetch completo para traer extracto y contenido
         apiFetch(`/api/blog/admin/articulos/${articulo.idArticulo}/detalle`)
           .then((r) => (r.ok ? r.json() : null))
           .then((data) => {
@@ -286,8 +279,7 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
               fotoPreview: src.fotoUrl || null,
             });
           })
-          .catch(() => {
-            // fallback con lo que ya tenemos
+          .catch(() =>
             setForm({
               titulo: articulo.titulo || "",
               extracto: articulo.extracto || "",
@@ -298,8 +290,8 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
               destacado: !!articulo.destacado,
               foto: null,
               fotoPreview: articulo.fotoUrl || null,
-            });
-          });
+            }),
+          );
       } else {
         setForm(blank);
       }
@@ -307,7 +299,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
   }, [open, articulo]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-
   const handleFoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -402,7 +393,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
             />
           </Field>
         </div>
-
         <Field label="Categoría" required>
           <select
             style={inputStyle}
@@ -416,7 +406,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
             ))}
           </select>
         </Field>
-
         <Field label="Autor">
           <input
             style={inputStyle}
@@ -426,7 +415,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
             maxLength={100}
           />
         </Field>
-
         <div style={{ gridColumn: "1 / -1" }}>
           <Field
             label="Extracto"
@@ -442,7 +430,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
             />
           </Field>
         </div>
-
         <div style={{ gridColumn: "1 / -1" }}>
           <Field label="Contenido" required hint="HTML básico o texto plano">
             <textarea
@@ -459,7 +446,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
             />
           </Field>
         </div>
-
         <Field label="Tiempo de lectura" hint="Minutos estimados">
           <input
             style={inputStyle}
@@ -471,7 +457,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
             placeholder="5"
           />
         </Field>
-
         <Field label="Foto de portada" hint="JPG, PNG o WebP — máx. 5 MB">
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <Btn
@@ -504,7 +489,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
             )}
           </div>
         </Field>
-
         <div style={{ gridColumn: "1 / -1" }}>
           <label
             style={{
@@ -546,7 +530,6 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
           </label>
         </div>
       </div>
-
       <div
         style={{
           display: "flex",
@@ -577,14 +560,13 @@ function ModalArticulo({ open, onClose, idEdicion, articulo, onSaved, toast }) {
 }
 
 // ════════════════════════════════════════════════════════════
-//  MODAL NUEVA EDICIÓN
+//  MODAL EDICIÓN
 // ════════════════════════════════════════════════════════════
 function ModalEdicion({ open, onClose, onSaved, toast }) {
   const anioActual = new Date().getFullYear();
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [anio, setAnio] = useState(anioActual);
   const [saving, setSaving] = useState(false);
-
   const titulo = `${MESES[mes - 1]} ${anio}`;
 
   const handleSave = async () => {
@@ -887,7 +869,6 @@ function ModalTrivia({ open, onClose, idEdicion, onSaved, toast }) {
           maxLength={200}
         />
       </Field>
-
       {preguntas.map((p, pi) => (
         <div
           key={pi}
@@ -988,7 +969,6 @@ function ModalTrivia({ open, onClose, idEdicion, onSaved, toast }) {
           </div>
         </div>
       ))}
-
       <div
         style={{
           display: "flex",
@@ -1020,18 +1000,6 @@ function ModalTip({ open, onClose, onSaved, toast }) {
     fechaInicio: hoy,
   });
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (open)
-      setForm({
-        texto: "",
-        categoria: "tecnologia",
-        icono: "💡",
-        fechaInicio: hoy,
-      });
-  }, [open]);
-  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-
   const ICONOS = [
     "💡",
     "🔐",
@@ -1046,6 +1014,17 @@ function ModalTip({ open, onClose, onSaved, toast }) {
     "🛡️",
     "📱",
   ];
+
+  useEffect(() => {
+    if (open)
+      setForm({
+        texto: "",
+        categoria: "tecnologia",
+        icono: "💡",
+        fechaInicio: hoy,
+      });
+  }, [open]);
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const handleSave = async () => {
     if (!form.texto.trim()) {
@@ -1149,8 +1128,6 @@ function ModalTip({ open, onClose, onSaved, toast }) {
           onChange={(e) => set("fechaInicio", e.target.value)}
         />
       </Field>
-
-      {/* Preview */}
       <div
         style={{
           background: "var(--bg-elevated)",
@@ -1196,7 +1173,6 @@ function ModalTip({ open, onClose, onSaved, toast }) {
           "{form.texto || "Tu tip aquí…"}"
         </div>
       </div>
-
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
         <Btn outline color="#64748b" onClick={onClose}>
           Cancelar
@@ -1218,11 +1194,10 @@ export default function BlogAdminPage() {
 
   const [ediciones, setEdiciones] = useState([]);
   const [edicionActiva, setEdicionActiva] = useState(null);
-  const [edicionSel, setEdicionSel] = useState(null); // la que estamos viendo en admin
+  const [edicionSel, setEdicionSel] = useState(null);
   const [articulos, setArticulos] = useState([]);
   const [encuesta, setEncuesta] = useState(null);
   const [loadingArts, setLoadingArts] = useState(false);
-
   const [modalArt, setModalArt] = useState(false);
   const [artEditar, setArtEditar] = useState(null);
   const [modalEdicion, setModalEdicion] = useState(false);
@@ -1231,12 +1206,11 @@ export default function BlogAdminPage() {
   const [modalTip, setModalTip] = useState(false);
   const [confirmActivar, setConfirmActivar] = useState(null);
   const [confirmEliminar, setConfirmEliminar] = useState(null);
-  const [tabActivo, setTabActivo] = useState("articulos"); // articulos|encuesta|trivia|tips
+  const [tabActivo, setTabActivo] = useState("articulos");
   const [trivia, setTrivia] = useState(null);
   const [estadTrivia, setEstatTrivia] = useState(null);
   const [tips, setTips] = useState([]);
 
-  // ── carga inicial ──────────────────────────────────────────
   useEffect(() => {
     cargarEdiciones();
   }, []);
@@ -1249,7 +1223,6 @@ export default function BlogAdminPage() {
       ]);
       setEdiciones(rEds);
       setEdicionActiva(rAct);
-      // seleccionar la activa por defecto
       const activa = rEds.find((e) => e.activa) || rEds[0];
       if (activa) setEdicionSel(activa.idEdicion);
     } catch {
@@ -1257,7 +1230,6 @@ export default function BlogAdminPage() {
     }
   };
 
-  // ── artículos de la edición seleccionada ──────────────────
   useEffect(() => {
     if (!edicionSel) return;
     cargarArticulos();
@@ -1352,6 +1324,23 @@ export default function BlogAdminPage() {
     }
   };
 
+  const handleEliminarTrivia = async () => {
+    if (!confirm("¿Eliminar esta trivia? No se puede deshacer.")) return;
+    try {
+      const res = await apiFetch(`/api/blog/admin/trivia/${trivia.idTrivia}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      toast.show("Trivia eliminada");
+      setTrivia(null);
+      setEstatTrivia(null);
+      // recargar desde la API para que el botón + Trivia aparezca
+      await cargarTrivia();
+    } catch (e) {
+      toast.show(e.message || "Error al eliminar", "error");
+    }
+  };
+
   const handlePublicar = async (id) => {
     try {
       await apiFetch(`/api/blog/admin/articulos/${id}/publicar`, {
@@ -1368,7 +1357,6 @@ export default function BlogAdminPage() {
 
   const edSelObj = ediciones.find((e) => e.idEdicion === edicionSel);
 
-  // ── guard ─────────────────────────────────────────────────
   if (user?.area !== "SISTEMAS") {
     return (
       <div
@@ -1385,10 +1373,9 @@ export default function BlogAdminPage() {
     );
   }
 
-  // ─────────────────────────────────────────────────────────
   return (
     <div style={{ padding: "28px 32px", maxWidth: 1100, margin: "0 auto" }}>
-      {/* ── Header ── */}
+      {/* Header */}
       <div
         style={{
           display: "flex",
@@ -1417,7 +1404,7 @@ export default function BlogAdminPage() {
         <Btn onClick={() => setModalEdicion(true)}>+ Nueva edición</Btn>
       </div>
 
-      {/* ── Edición activa chip ── */}
+      {/* Chip edición activa */}
       {edicionActiva && (
         <div
           style={{
@@ -1451,7 +1438,7 @@ export default function BlogAdminPage() {
       <div
         style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 24 }}
       >
-        {/* ── SIDEBAR: lista de ediciones ── */}
+        {/* Sidebar ediciones */}
         <div>
           <div
             style={{
@@ -1490,7 +1477,7 @@ export default function BlogAdminPage() {
                     marginBottom: 4,
                   }}
                 >
-                  {ed.activa === true || ed.activa === 1 ? (
+                  {(ed.activa === true || ed.activa === 1) && (
                     <span
                       style={{
                         fontSize: 9,
@@ -1504,7 +1491,7 @@ export default function BlogAdminPage() {
                     >
                       ACTIVA
                     </span>
-                  ) : null}
+                  )}
                   <span
                     style={{
                       fontSize: 13,
@@ -1581,11 +1568,11 @@ export default function BlogAdminPage() {
           </div>
         </div>
 
-        {/* ── MAIN ── */}
+        {/* Main */}
         <div>
           {edicionSel && edSelObj ? (
             <>
-              {/* Header */}
+              {/* Header edición */}
               <div
                 style={{
                   display: "flex",
@@ -1616,7 +1603,6 @@ export default function BlogAdminPage() {
                     borradores
                   </div>
                 </div>
-                {/* Botón contextual según tab */}
                 {tabActivo === "articulos" && (
                   <Btn
                     small
@@ -2047,7 +2033,6 @@ export default function BlogAdminPage() {
                 <div>
                   {trivia ? (
                     <div>
-                      {/* Info trivia */}
                       <div
                         style={{
                           background: "var(--bg-card)",
@@ -2057,6 +2042,7 @@ export default function BlogAdminPage() {
                           marginBottom: 16,
                         }}
                       >
+                        {/* Header con botón eliminar */}
                         <div
                           style={{
                             display: "flex",
@@ -2087,23 +2073,46 @@ export default function BlogAdminPage() {
                               {trivia.perfectos} perfectos
                             </div>
                           </div>
-                          <span
+                          <div
                             style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              padding: "3px 10px",
-                              borderRadius: 6,
-                              background: trivia.activa
-                                ? "rgba(76,201,166,.12)"
-                                : "rgba(100,116,139,.12)",
-                              color: trivia.activa ? "#4cc9a6" : "#64748b",
+                              display: "flex",
+                              gap: 8,
+                              alignItems: "center",
                             }}
                           >
-                            {trivia.activa ? "Activa" : "Inactiva"}
-                          </span>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: "3px 10px",
+                                borderRadius: 6,
+                                background: trivia.activa
+                                  ? "rgba(76,201,166,.12)"
+                                  : "rgba(100,116,139,.12)",
+                                color: trivia.activa ? "#4cc9a6" : "#64748b",
+                              }}
+                            >
+                              {trivia.activa ? "Activa" : "Inactiva"}
+                            </span>
+                            <button
+                              onClick={handleEliminarTrivia}
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                padding: "4px 10px",
+                                borderRadius: 6,
+                                background: "rgba(251,113,133,.1)",
+                                color: "#fb7185",
+                                border: "1px solid rgba(251,113,133,.25)",
+                                cursor: "pointer",
+                              }}
+                            >
+                              🗑 Eliminar trivia
+                            </button>
+                          </div>
                         </div>
 
-                        {/* Estadísticas por pregunta */}
+                        {/* Estadísticas */}
                         {estadTrivia ? (
                           <div
                             style={{
@@ -2144,7 +2153,7 @@ export default function BlogAdminPage() {
                                   style={{
                                     background: "var(--bg-elevated)",
                                     borderRadius: 8,
-                                    padding: "12px",
+                                    padding: 12,
                                     textAlign: "center",
                                     border: "1px solid var(--border)",
                                   }}
@@ -2477,7 +2486,7 @@ export default function BlogAdminPage() {
         </div>
       </div>
 
-      {/* ── Modales ── */}
+      {/* Modales */}
       <ModalArticulo
         open={modalArt}
         onClose={() => {
@@ -2503,7 +2512,7 @@ export default function BlogAdminPage() {
         toast={toast}
       />
 
-      {/* ── Confirm activar edición ── */}
+      {/* Confirm activar */}
       <Modal
         open={!!confirmActivar}
         onClose={() => setConfirmActivar(null)}
@@ -2531,7 +2540,7 @@ export default function BlogAdminPage() {
         </div>
       </Modal>
 
-      {/* ── Confirm eliminar edición ── */}
+      {/* Confirm eliminar edición */}
       <Modal
         open={!!confirmEliminar}
         onClose={() => setConfirmEliminar(null)}
@@ -2582,7 +2591,7 @@ export default function BlogAdminPage() {
         </div>
       </Modal>
 
-      {/* ── Modal Trivia ── */}
+      {/* Modal Trivia */}
       <ModalTrivia
         open={modalTrivia}
         onClose={() => setModalTrivia(false)}
@@ -2594,7 +2603,7 @@ export default function BlogAdminPage() {
         toast={toast}
       />
 
-      {/* ── Modal Tip ── */}
+      {/* Modal Tip */}
       <ModalTip
         open={modalTip}
         onClose={() => setModalTip(false)}

@@ -1,1419 +1,1922 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import DevelopmentExecutive from "../components/DevelopmentExecutive";
+import ExecutiveAnalysis from "../components/ExecutiveAnalysis";
+/**
+ * VisorEjecutivoPage.jsx — FABPSA Portal Corporativo v4
+ * ══════════════════════════════════════════════════════════════════════
+ * Datos 100% reales de /api/ejecutivo/* según ejecutivo.routes.js
+ * y ejecutivo.controller.js que ya vienen en el proyecto.
+ *
+ * MAPA imagen → endpoint (NO hay datos inventados):
+ *
+ * Banner situación     → GET /api/ejecutivo/resumen   .nivel derivado
+ * Banner bullets       → resumen.sitioTopActivo/pctSitioTop
+ *                        + escalamientos (promedioHrs > 168)
+ * KPI Activos ahora    → resumen.activosAhora + enProceso + escalados
+ * KPI Sin asignar      → resumen.sinAsignar
+ * KPI SLA vencidos     → resumen.vencidosSLA + porVencer
+ * KPI Cumplimiento SLA → resumen.pctSLA
+ * KPI Críticos         → resumen.criticas
+ * Sparklines KPI       → /tendencia .total (única serie histórica diaria real)
+ * Atención inmediata   → GET /api/ejecutivo/alertas (top 5, score DESC)
+ * Carga equipo         → GET /api/ejecutivo/equipo .tecnicos / .sinAsignar
+ * Donut estado         → resumen: enProceso/pendientes/sinAsignar/
+ *                        enDiagnostico/escalados  (activos reales)
+ * Donut prioridad      → GET /api/ejecutivo/distribucion .prioridad
+ * Donut SLA            → resumen: vencidosSLA / porVencer / resto activos
+ * Ubicación barras     → /distribucion .sitio (ya normalizado SUR 121)
+ * Tendencia            → GET /api/ejecutivo/tendencia .total / .resueltos
+ * Modal KPI click      → GET /api/ejecutivo/detalle-indicador?tipo=&sitio=
+ * Modal ticket         → datos del objeto ya cargado en /alertas o /detalle
+ * Modal IA             → POST /api/ejecutivo/analisis-ia  (conexión REAL:
+ *                        el controller llama a Claude si tiene API key;
+ *                        si no, devuelve {ok:false,sinApiKey:true} y el
+ *                        frontend lo muestra con un mensaje claro)
+ *
+ * SUR 121 = CEDIS + IAFSA: normalización en el controller (sitioClause),
+ * el frontend NO reagrupa nada por su cuenta.
+ *
+ * El JSX importa ./VisorEjecutivoPage.css que usa los tokens del Portal:
+ * --bg-base, --bg-surface, --secondary, --danger, --warning, --success,
+ * --text-h, --text-body, --text-muted, --border, etc.
+ * No se redefine ningún color corporativo aquí.
+ * ══════════════════════════════════════════════════════════════════════
+ */
 
-// ─── apiFetch local ──────────────────────────────────────────────────────────
-const apiFetch = async (path, options = {}) => {
-  const token = localStorage.getItem("fabpsa_token");
-  const res = await fetch(`/api${path}`, {
-    ...options,
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  useReducer,
+} from "react";
+import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
+import "./VisorEjecutivoPage.css";
+import visorEjecutivoHero from "../assets/visor-ejecutivo-hero.png";
+
+/* ══════════════════════════════════════════════════════════════════
+   1. CLIENTE HTTP  (usa axios del proyecto si existe, sino fetch)
+   ══════════════════════════════════════════════════════════════════ */
+async function apiFetch(path, opts = {}) {
+  const base =
+    window.__PORTAL_API_BASE__ ||
+    (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_BASE) ||
+    "/api";
+  const url = `${base}${path}`;
+  const res = await fetch(url, {
+    ...opts,
+    // La API exige la sesión del portal (verifyToken + equipo de TI)
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...options.headers,
+      Authorization: "Bearer " + (localStorage.getItem("fabpsa_token") || ""),
+      ...opts.headers,
     },
+    credentials: "include",
   });
-  if (res.status === 401) {
-    window.location.href = "/login";
-    return null;
+  const json = await res.json();
+  if (!res.ok || json.ok === false) {
+    throw new Error(json.error || `HTTP ${res.status}`);
   }
-  return res.json();
+  return json.data;
+}
+
+const GET = (path, params = {}) => {
+  const qs = new URLSearchParams(
+    Object.fromEntries(
+      Object.entries(params).filter(([, v]) => v !== "" && v !== undefined),
+    ),
+  ).toString();
+  return apiFetch(`${path}${qs ? `?${qs}` : ""}`);
 };
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-function fmt(min) {
-  if (min == null) return "—";
-  if (min < 0)
-    return `Vencido ${Math.abs(Math.floor(min / 60))}h ${Math.abs(min % 60)}m`;
-  const h = Math.floor(min / 60),
-    m = min % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+const POST = (path, body) =>
+  apiFetch(path, { method: "POST", body: JSON.stringify(body) });
+
+/* ══════════════════════════════════════════════════════════════════
+   2. CONSTANTES
+   ══════════════════════════════════════════════════════════════════ */
+const TABS = [{ id: "situacional", label: "Operaciones TI" },{id:"desarrollo",label:"Desarrollo TI"}];
+
+const PERIODOS = [
+  { id: "1", label: "Hoy" },
+  { id: "7", label: "7 días" },
+  { id: "30", label: "30 días" },
+  { id: "90", label: "3 meses" },
+];
+
+const SITIOS = [
+  { id: "", label: "CORPORATIVO" },
+  { id: "PLANTA", label: "PLANTA" },
+  { id: "SUR 121", label: "SUR 121" },
+  { id: "FDNC", label: "FDNC" },
+];
+
+const NAV = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: "ti-layout-dashboard",
+    activo: true,
+    to: null,
+  },
+  {
+    id: "atencion",
+    label: "Atención de tickets",
+    icon: "ti-ticket",
+    activo: false,
+    to: "/portal-corporativo/fabpsa/atencion-incidencias",
+  },
+  {
+    id: "solicitudes",
+    label: "Solicitudes",
+    icon: "ti-clipboard-list",
+    activo: false,
+    to: "/portal-corporativo/fabpsa/solicitudes",
+  },
+  {
+    id: "catalogo",
+    label: "Catálogo de servicios",
+    icon: "ti-list-details",
+    activo: false,
+    to: "/portal-corporativo/fabpsa/catalogo-servicios",
+  },
+  {
+    id: "reportes",
+    label: "Reportes",
+    icon: "ti-file-analytics",
+    activo: false,
+    to: "/portal-corporativo/fabpsa/reportes-ti",
+  },
+  {
+    id: "kb",
+    label: "Base de conocimiento",
+    icon: "ti-book",
+    activo: false,
+    to: "/portal-corporativo/fabpsa/base-conocimiento",
+  },
+  {
+    id: "usuarios",
+    label: "Usuarios",
+    icon: "ti-users",
+    activo: false,
+    to: "/portal-corporativo/fabpsa/usuarios",
+  },
+];
+
+/* Tipos del indicador → query param del controller */
+const IND = {
+  activosAhora: "activos",
+  sinAsignar: "sinAsignar",
+  vencidosSLA: "vencidosSLA",
+  porVencer: "porVencer",
+  criticas: "criticas",
+  escalados: "escalados",
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   3. UTILIDADES PURAS
+   ══════════════════════════════════════════════════════════════════ */
+function fmtMin(m) {
+  if (m == null || Number.isNaN(m)) return "—";
+  const abs = Math.abs(m);
+  const h = Math.floor(abs / 60);
+  const min = abs % 60;
+  const s = h > 0 ? `${h} h ${String(min).padStart(2, "0")} min` : `${min} min`;
+  return m < 0 ? `-${s}` : s;
 }
-function fmtAbierto(min) {
-  const h = Math.floor(min / 60),
-    m = min % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+
+function colorSLA(m) {
+  if (m == null) return "var(--text-faint)";
+  if (m < 0) return "var(--danger)";
+  if (m <= 30) return "var(--danger)";
+  if (m <= 240) return "var(--warning)";
+  return "var(--success)";
 }
-function delta(val, invert = false) {
-  if (val === 0) return null;
-  const up = val > 0;
-  const good = invert ? !up : up;
-  return { val, up, good };
+
+function pctSLABarra(restantes, total) {
+  if (restantes == null || !total) return 4;
+  const usado = (total - restantes) / total;
+  return Math.max(4, Math.min(100, Math.round(usado * 100)));
 }
-function DeltaBadge({ value, invert = false }) {
-  const d = delta(value, invert);
-  if (!d)
-    return (
-      <span style={{ color: "var(--text-faint)", fontSize: 11 }}>igual</span>
-    );
+
+function colorPri(prioridad, hex) {
+  if (hex) return hex;
+  const m = {
+    Crítica: "var(--danger)",
+    Alta: "var(--warning)",
+    Media: "var(--secondary)",
+  };
+  return m[prioridad] || "var(--success)";
+}
+
+function bgBadge(color) {
+  if (!color?.startsWith("#")) return "var(--bg-elevated)";
+  const r = parseInt(color.slice(1, 3), 16);
+  const g = parseInt(color.slice(3, 5), 16);
+  const b = parseInt(color.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},0.16)`;
+}
+
+function iniciales(n) {
   return (
-    <span
-      style={{
-        fontSize: 11,
-        color: d.good ? "#4cc9a6" : "#f38ba8",
-        display: "flex",
-        alignItems: "center",
-        gap: 2,
-      }}
-    >
-      <i
-        className={`ti ti-trending-${d.up ? "up" : "down"}`}
-        style={{ fontSize: 12 }}
-      />
-      {Math.abs(d.val)}% vs. anterior
-    </span>
+    (n || "")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((p) => p[0] || "")
+      .join("")
+      .toUpperCase() || "?"
   );
 }
 
-// ─── Sparkline SVG simple ────────────────────────────────────────────────────
-function Sparkline({ data = [], color = "#4cc9a6", height = 36, width = 120 }) {
-  if (!data.length) return null;
-  const max = Math.max(...data, 1);
-  const pts = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * width;
-      const y = height - (v / max) * height;
-      return `${x},${y}`;
-    })
-    .join(" ");
-  return (
-    <svg width={width} height={height} style={{ overflow: "visible" }}>
-      <polyline
-        points={pts}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+function pct(a, b) {
+  return b ? Math.round((a / b) * 100) : 0;
 }
 
-// ─── Mini line chart (tendencia 30d) ─────────────────────────────────────────
-function TendenciaChart({ data = [] }) {
-  if (!data.length)
-    return (
-      <div style={{ color: "var(--text-faint)", fontSize: 13 }}>Sin datos</div>
-    );
-  const W = 340,
-    H = 100,
-    PAD = 8;
-  const vals = data.map((d) => d.total);
-  const max = Math.max(...vals, 1);
+function fmtHora(d) {
+  return d
+    ? new Date(d).toLocaleTimeString("es-MX", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+}
+
+function fmtFechaCorta(v) {
+  if (!v) return "—";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime())
+    ? "—"
+    : d.toLocaleString("es-MX", {
+        day: "2-digit",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   4. HOOK PRINCIPAL — carga todo en paralelo
+   ══════════════════════════════════════════════════════════════════ */
+const INIT = {
+  resumen: null,
+  alertas: null,
+  equipo: null,
+  distribucion: null,
+  tendencia: null,
+  escalamientos: null,
+  pausados: null,
+};
+
+function useVisor(periodo, sitio) {
+  const [state, setState] = useState(INIT);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState(null);
+  const [ts, setTs] = useState(null);
+  const seq = useRef(0);
+
+  const load = useCallback(async () => {
+    const id = ++seq.current;
+    setLoading(true);
+    setErr(null);
+    try {
+      const [resumen, alertas, equipo, distribucion, tendencia, escalamientos, pausados] =
+        await Promise.all([
+          GET("/ejecutivo/resumen", { periodo, sitio }),
+          GET("/ejecutivo/alertas", { sitio }),
+          GET("/ejecutivo/equipo", { sitio }),
+          GET("/ejecutivo/distribucion", { periodo, sitio }),
+          GET("/ejecutivo/tendencia", { periodo, sitio }),
+          GET("/ejecutivo/escalamientos"),
+          GET("/ejecutivo/pausados", { sitio }),
+        ]);
+      if (id !== seq.current) return;
+      setState({
+        resumen,
+        alertas: alertas ?? [],
+        equipo: equipo ?? { tecnicos: [], sinAsignar: 0 },
+        distribucion,
+        tendencia: tendencia ?? [],
+        escalamientos: escalamientos ?? [],
+        pausados: pausados ?? [],
+      });
+      setTs(new Date());
+    } catch (e) {
+      if (id !== seq.current) return;
+      setErr(e.message);
+    } finally {
+      if (id === seq.current) setLoading(false);
+    }
+  }, [periodo, sitio]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+  return { ...state, loading, err, ts, reload: load };
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   5. SUBCOMPONENTES VISUALES PUROS
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ─ Sparkline ─────────────────────────────────────────────────── */
+function Spark({ vals, color, w = 82, h = 34 }) {
+  if (!vals || vals.length < 3) return <span style={{ width: w }} />;
+  const mn = Math.min(...vals),
+    mx = Math.max(...vals),
+    span = mx - mn || 1;
   const pts = vals
     .map((v, i) => {
-      const x = PAD + (i / (vals.length - 1 || 1)) * (W - PAD * 2);
-      const y = PAD + ((max - v) / max) * (H - PAD * 2);
-      return `${x},${y}`;
+      const x = (i / (vals.length - 1)) * w;
+      const y = h - 3 - ((v - mn) / span) * (h - 6);
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
     })
     .join(" ");
-  const lastX = PAD + (W - PAD * 2);
-  const lastY = PAD + ((max - vals[vals.length - 1]) / max) * (H - PAD * 2);
-
-  const labels =
-    data.length > 1
-      ? [data[0], data[Math.floor(data.length / 2)], data[data.length - 1]]
-      : [data[0]];
-  const labelIdxs =
-    data.length > 1 ? [0, Math.floor(data.length / 2), data.length - 1] : [0];
-
   return (
     <svg
-      width="100%"
-      viewBox={`0 0 ${W} ${H + 20}`}
-      style={{ overflow: "visible" }}
+      className="vje-kpi-spark"
+      width={w}
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      aria-hidden="true"
     >
-      <defs>
-        <linearGradient id="tg" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#4cc9a6" stopOpacity="0.15" />
-          <stop offset="100%" stopColor="#4cc9a6" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {/* Grid lines */}
-      {[0, 0.5, 1].map((t, i) => (
-        <line
-          key={i}
-          x1={PAD}
-          x2={W - PAD}
-          y1={PAD + t * (H - PAD * 2)}
-          y2={PAD + t * (H - PAD * 2)}
-          stroke="var(--border)"
-          strokeWidth={0.5}
-          strokeDasharray="3,3"
-        />
-      ))}
-      {/* Area fill */}
-      <polygon
-        points={`${PAD},${H - PAD} ${pts} ${lastX},${H - PAD}`}
-        fill="url(#tg)"
-      />
-      {/* Line */}
       <polyline
         points={pts}
         fill="none"
-        stroke="#4cc9a6"
-        strokeWidth={2}
-        strokeLinejoin="round"
+        stroke={color}
+        strokeWidth="1.6"
         strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      {/* Last dot */}
-      <circle cx={lastX} cy={lastY} r={3} fill="#4cc9a6" />
-      {/* X labels */}
-      {labelIdxs.map((idx, i) => {
-        const x = PAD + (idx / (vals.length - 1 || 1)) * (W - PAD * 2);
-        const fecha = new Date(data[idx].fecha);
-        const label = `${fecha.getDate()} ${["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"][fecha.getMonth()]}`;
-        return (
-          <text
-            key={i}
-            x={x}
-            y={H + 16}
-            textAnchor="middle"
-            fontSize={9}
-            fill="var(--text-faint)"
-          >
-            {label}
-          </text>
-        );
-      })}
     </svg>
   );
 }
 
-// ─── Skeleton ────────────────────────────────────────────────────────────────
-function Skeleton({ w = "100%", h = 16, radius = 4, style = {} }) {
-  return (
-    <div
-      style={{
-        width: w,
-        height: h,
-        borderRadius: radius,
-        background:
-          "linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-hover) 50%, var(--bg-elevated) 75%)",
-        backgroundSize: "200% 100%",
-        animation: "shimmer 1.5s infinite",
-        ...style,
-      }}
-    />
-  );
-}
-
-// ─── KPI Card ────────────────────────────────────────────────────────────────
-function KpiCard({
-  label,
-  value,
-  icon,
-  color = "var(--primary)",
-  delta: d,
-  loading,
-  accentBad,
-}) {
-  return (
-    <div
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-        borderRadius: 10,
-        padding: "16px 20px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        borderTop: `3px solid ${color}`,
-        flex: 1,
-        minWidth: 0,
-      }}
-    >
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <i className={`ti ${icon}`} style={{ fontSize: 18, color }} />
-        <span
-          style={{
-            fontSize: 11,
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            letterSpacing: "0.06em",
-            fontWeight: 600,
-          }}
-        >
-          {label}
-        </span>
-      </div>
-      {loading ? (
-        <Skeleton h={32} w={60} />
-      ) : (
-        <span
-          style={{
-            fontSize: 32,
-            fontWeight: 700,
-            color: "var(--text-h)",
-            lineHeight: 1,
-          }}
-        >
-          {value ?? "—"}
-        </span>
-      )}
-      {d !== undefined && !loading && (
-        <DeltaBadge value={d} invert={accentBad} />
-      )}
-    </div>
-  );
-}
-
-// ─── Alerta item ─────────────────────────────────────────────────────────────
-function AlertaItem({ a, onClick }) {
-  const colorMap = {
-    critica: "#f38ba8",
-    vencida: "#f38ba8",
-    urgente: "#fab387",
-    warning: "#f9e2af",
-  };
-  const iconMap = {
-    critica: "ti-alert-octagon",
-    vencida: "ti-clock-x",
-    urgente: "ti-clock-exclamation",
-    warning: "ti-clock",
-  };
-  const color = colorMap[a.tipo] || "#f9e2af";
-  const icon = iconMap[a.tipo] || "ti-clock";
-
-  return (
-    <div
-      onClick={onClick}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "32px 1fr auto",
-        gap: 12,
-        alignItems: "center",
-        padding: "10px 14px",
-        borderRadius: 8,
-        background: "var(--bg-elevated)",
-        cursor: "pointer",
-        borderLeft: `3px solid ${color}`,
-        transition: "background 0.15s",
-      }}
-      onMouseEnter={(e) =>
-        (e.currentTarget.style.background = "var(--bg-hover)")
-      }
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.background = "var(--bg-elevated)")
-      }
-    >
-      <div
-        style={{
-          width: 32,
-          height: 32,
-          borderRadius: 8,
-          background: `${color}20`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <i className={`ti ${icon}`} style={{ fontSize: 16, color }} />
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <span
-            style={{ fontWeight: 600, fontSize: 13, color: "var(--text-h)" }}
-          >
-            {a.folio}
-          </span>
-          <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-            {a.servicio}
-          </span>
-          {a.sitio && (
-            <span
-              style={{
-                fontSize: 11,
-                color: "var(--text-faint)",
-                background: "var(--bg-base)",
-                borderRadius: 4,
-                padding: "1px 6px",
-              }}
-            >
-              {a.sitio}
-            </span>
-          )}
-        </div>
-        <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
-          Abierta {fmtAbierto(a.minutosAbierto)} · {a.responsable}
-        </div>
-      </div>
-      <div style={{ textAlign: "right", flexShrink: 0 }}>
-        <span
-          style={{
-            fontSize: 11,
-            fontWeight: 700,
-            color,
-            background: `${color}15`,
-            borderRadius: 6,
-            padding: "3px 8px",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {a.etiqueta || a.prioridad}
-        </span>
-        {a.minutosRestantesSLA !== null && a.minutosRestantesSLA > 30 && (
-          <div
-            style={{ fontSize: 10, color: "var(--text-faint)", marginTop: 3 }}
-          >
-            SLA: {fmt(a.minutosRestantesSLA)}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Estado de servicios item ─────────────────────────────────────────────────
-function ServicioItem({ s, onClick }) {
-  const estadoColor = {
-    Operando: "#4cc9a6",
-    Intermitencia: "#fab387",
-    Caído: "#f38ba8",
-    Mantenimiento: "#cba6f7",
-  };
-  const estadoIcon = {
-    Operando: "ti-circle-check",
-    Intermitencia: "ti-alert-triangle",
-    Caído: "ti-circle-x",
-    Mantenimiento: "ti-tool",
-  };
-  const color = estadoColor[s.estado] || "#cdd6f4";
-  const icon = estadoIcon[s.estado] || "ti-circle";
-
-  return (
-    <div
-      onClick={s.incidenciasActivas > 0 ? onClick : undefined}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "9px 12px",
-        borderRadius: 8,
-        background: "var(--bg-elevated)",
-        cursor: s.incidenciasActivas > 0 ? "pointer" : "default",
-        transition: "background 0.15s",
-      }}
-      onMouseEnter={(e) =>
-        s.incidenciasActivas > 0 &&
-        (e.currentTarget.style.background = "var(--bg-hover)")
-      }
-      onMouseLeave={(e) =>
-        (e.currentTarget.style.background = "var(--bg-elevated)")
-      }
-    >
-      <i
-        className={`ti ${icon}`}
-        style={{ fontSize: 16, color, flexShrink: 0 }}
-      />
-      <span
-        style={{
-          flex: 1,
-          fontSize: 13,
-          color: "var(--text-h)",
-          fontWeight: 500,
-        }}
-      >
-        {s.nombreServicio}
-      </span>
-      <span style={{ fontSize: 12, color, fontWeight: 600 }}>{s.estado}</span>
-      {s.incidenciasActivas > 0 && (
-        <span
-          style={{
-            fontSize: 11,
-            color: "#f38ba8",
-            background: "#f38ba820",
-            borderRadius: 5,
-            padding: "2px 7px",
-            marginLeft: 4,
-          }}
-        >
-          {s.incidenciasActivas}{" "}
-          {s.criticasActivas > 0 ? `· ${s.criticasActivas} crít.` : ""}
-        </span>
-      )}
-    </div>
-  );
-}
-
-// ─── Barra horizontal ─────────────────────────────────────────────────────────
-function BarraH({ label, value, max, color = "var(--primary)", delta: d }) {
-  const pct = max > 0 ? (value / max) * 100 : 0;
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "120px 1fr 48px",
-        alignItems: "center",
-        gap: 10,
-      }}
-    >
-      <span
-        style={{
-          fontSize: 12,
-          color: "var(--text-muted)",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-        title={label}
-      >
-        {label}
-      </span>
-      <div
-        style={{
-          background: "var(--bg-elevated)",
-          borderRadius: 4,
-          height: 8,
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            width: `${pct}%`,
-            height: "100%",
-            background: color,
-            borderRadius: 4,
-            transition: "width 0.6s ease",
-          }}
-        />
-      </div>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-          justifyContent: "flex-end",
-        }}
-      >
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-h)" }}>
-          {value}
-        </span>
-        {d !== null && d !== undefined && (
-          <span style={{ fontSize: 10, color: d > 0 ? "#f38ba8" : "#4cc9a6" }}>
-            {d > 0 ? "↑" : "↓"}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Panel card wrapper ───────────────────────────────────────────────────────
-function Panel({ title, icon, children, action, style = {}, headerColor }) {
-  return (
-    <div
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-        borderRadius: 10,
-        overflow: "hidden",
-        display: "flex",
-        flexDirection: "column",
-        ...style,
-      }}
-    >
-      <div
-        style={{
-          padding: "12px 16px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          borderBottom: "1px solid var(--border)",
-          background: headerColor ? `${headerColor}08` : undefined,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {icon && (
-            <i
-              className={`ti ${icon}`}
-              style={{
-                fontSize: 15,
-                color: headerColor || "var(--text-muted)",
-              }}
-            />
-          )}
-          <span
-            style={{
-              fontSize: 12,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.07em",
-              color: "var(--text-muted)",
-            }}
-          >
-            {title}
-          </span>
-        </div>
-        {action}
-      </div>
-      <div
-        style={{
-          padding: 14,
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          gap: 8,
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─── SLA Ring ────────────────────────────────────────────────────────────────
-function SLARing({ pct }) {
-  const r = 36,
+/* ─ Donut ──────────────────────────────────────────────────────── */
+export function Donut({ datos, total, etiqueta = "Tickets", sz = 112 }) {
+  const r = sz / 2 - 13,
+    c = sz / 2,
     circ = 2 * Math.PI * r;
-  const dash = ((pct ?? 0) / 100) * circ;
-  const color = pct >= 90 ? "#4cc9a6" : pct >= 75 ? "#fab387" : "#f38ba8";
+  const suma = datos.reduce((a, d) => a + (d.valor || 0), 0);
+  let off = 0;
   return (
-    <svg width={90} height={90}>
+    <svg
+      width={sz}
+      height={sz}
+      viewBox={`0 0 ${sz} ${sz}`}
+      role="img"
+      aria-label={`${etiqueta}: ${total}`}
+    >
       <circle
-        cx={45}
-        cy={45}
+        cx={c}
+        cy={c}
         r={r}
         fill="none"
-        stroke="var(--bg-elevated)"
-        strokeWidth={8}
+        stroke="var(--border)"
+        strokeWidth="13"
       />
-      <circle
-        cx={45}
-        cy={45}
-        r={r}
-        fill="none"
-        stroke={color}
-        strokeWidth={8}
-        strokeDasharray={`${dash} ${circ}`}
-        strokeLinecap="round"
-        transform="rotate(-90 45 45)"
-        style={{ transition: "stroke-dasharray 0.8s ease" }}
-      />
-      <text
-        x={45}
-        y={49}
-        textAnchor="middle"
-        fontSize={16}
-        fontWeight={700}
-        fill={color}
-      >
-        {pct ?? "—"}%
+      {suma > 0 &&
+        datos.map((d, i) => {
+          const dash = ((d.valor || 0) / suma) * circ;
+          const el = (
+            <circle
+              key={i}
+              cx={c}
+              cy={c}
+              r={r}
+              fill="none"
+              stroke={d.color}
+              strokeWidth="13"
+              strokeDasharray={`${dash.toFixed(2)} ${(circ - dash).toFixed(2)}`}
+              strokeDashoffset={(circ / 4 - off).toFixed(2)}
+              transform={`rotate(-90 ${c} ${c})`}
+            />
+          );
+          off += dash;
+          return el;
+        })}
+      <text x={c} y={c - 2} textAnchor="middle" className="vje-donut-num">
+        {total}
+      </text>
+      <text x={c} y={c + 13} textAnchor="middle" className="vje-donut-lbl">
+        {etiqueta}
       </text>
     </svg>
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════════
-// PÁGINA PRINCIPAL
-// ════════════════════════════════════════════════════════════════════════════
-export default function VisorEjecutivoPage() {
-  const navigate = useNavigate();
-  const [periodo, setPeriodo] = useState("30");
-  const [sitio, setSitio] = useState("");
-  const [tab, setTab] = useState("sitio"); // sitio | area
-  const [loading, setLoading] = useState(true);
-  const [lastUpdate, setLastUpdate] = useState(null);
-
-  const [resumen, setResumen] = useState(null);
-  const [alertas, setAlertas] = useState([]);
-  const [tendencia, setTendencia] = useState([]);
-  const [servicios, setServicios] = useState([]);
-  const [dist, setDist] = useState(null);
-  const [recurrentes, setRecurrentes] = useState([]);
-  const [equipo, setEquipo] = useState(null);
-  const [sla, setSla] = useState([]);
-  const [alertasExpanded, setAlertasExpanded] = useState(false);
-
-  const intervalRef = useRef(null);
-
-  const cargar = useCallback(async () => {
-    const q = `?periodo=${periodo}${sitio ? `&sitio=${sitio}` : ""}`;
-    try {
-      const [r, al, tr, sv, di, rc, eq, sl] = await Promise.all([
-        apiFetch(`/ejecutivo/resumen${q}`),
-        apiFetch(`/ejecutivo/alertas${sitio ? `?sitio=${sitio}` : ""}`),
-        apiFetch(`/ejecutivo/tendencia${q}`),
-        apiFetch("/ejecutivo/servicios"),
-        apiFetch(`/ejecutivo/distribucion${q}`),
-        apiFetch(`/ejecutivo/recurrentes${q}`),
-        apiFetch("/ejecutivo/equipo"),
-        apiFetch(`/ejecutivo/sla${q}`),
-      ]);
-      if (r?.ok) setResumen(r.data);
-      if (al?.ok) setAlertas(al.data);
-      if (tr?.ok) setTendencia(tr.data);
-      if (sv?.ok) setServicios(sv.data);
-      if (di?.ok) setDist(di.data);
-      if (rc?.ok) setRecurrentes(rc.data);
-      if (eq?.ok) setEquipo(eq.data);
-      if (sl?.ok) setSla(sl.data);
-      setLastUpdate(new Date());
-    } finally {
-      setLoading(false);
-    }
-  }, [periodo, sitio]);
-
-  useEffect(() => {
-    setLoading(true);
-    cargar();
-    intervalRef.current = setInterval(cargar, 5 * 60 * 1000);
-    return () => clearInterval(intervalRef.current);
-  }, [cargar]);
-
-  const maxDist = (arr) =>
-    arr?.length ? Math.max(...arr.map((a) => a.total)) : 1;
-
-  const alertasVisibles = alertasExpanded ? alertas : alertas.slice(0, 5);
-  const hayCriticas = alertas.some(
-    (a) => a.tipo === "critica" || a.tipo === "vencida",
+export function Leyenda({ datos, total }) {
+  return (
+    <div className="vje-donut-legend">
+      {datos.map((d) => (
+        <div className="vje-leg-row" key={d.nombre}>
+          <span className="vje-leg-left">
+            <span className="vje-leg-dot" style={{ background: d.color }} />
+            <span className="vje-leg-name">{d.nombre}</span>
+          </span>
+          <span className="vje-leg-val">
+            {d.valor}{" "}
+            <span className="vje-leg-pct">({pct(d.valor, total)}%)</span>
+          </span>
+        </div>
+      ))}
+    </div>
   );
+}
 
-  const irATickets = (filtro = "") =>
-    navigate(`/atencion-incidencias${filtro}`);
+/* ─ Tendencia SVG ──────────────────────────────────────────────── */
+function TendChart({ serie }) {
+  if (!serie || serie.length < 2)
+    return (
+      <div className="vje-empty">
+        <i className="ti ti-chart-line" />
+        Sin datos suficientes
+      </div>
+    );
+  const W = 300,
+    H = 100,
+    px = 4,
+    py = 8;
+  const max = Math.max(
+    1,
+    ...serie.map((p) => Math.max(p.total || 0, p.resueltos || 0)),
+  );
+  const X = (i) => px + (i / (serie.length - 1)) * (W - px * 2);
+  const Y = (v) => H - py - (v / max) * (H - py * 2);
+  const line = (key) =>
+    serie
+      .map(
+        (p, i) =>
+          `${i === 0 ? "M" : "L"}${X(i).toFixed(1)},${Y(p[key] || 0).toFixed(1)}`,
+      )
+      .join(" ");
+  const muestras = serie.filter(
+    (_, i) =>
+      i === 0 || i === serie.length - 1 || i === Math.floor(serie.length / 2),
+  );
+  return (
+    <>
+      <svg
+        className="vje-trend-svg"
+        viewBox={`0 0 ${W} ${H + 14}`}
+        preserveAspectRatio="none"
+        aria-label="Tendencia de tickets"
+      >
+        {[0.25, 0.5, 0.75].map((f) => (
+          <line
+            key={f}
+            x1={px}
+            x2={W - px}
+            y1={py + f * (H - py * 2)}
+            y2={py + f * (H - py * 2)}
+            stroke="var(--grid-line)"
+            strokeWidth="1"
+          />
+        ))}
+        <path
+          d={line("total")}
+          fill="none"
+          stroke="var(--secondary)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        <path
+          d={line("resueltos")}
+          fill="none"
+          stroke="var(--success)"
+          strokeWidth="2"
+          strokeLinejoin="round"
+        />
+        {serie.map((p, i) => (
+          <g key={i}>
+            <circle
+              cx={X(i)}
+              cy={Y(p.total || 0)}
+              r="2.5"
+              fill="var(--secondary)"
+            />
+            <circle
+              cx={X(i)}
+              cy={Y(p.resueltos || 0)}
+              r="2.5"
+              fill="var(--success)"
+            />
+          </g>
+        ))}
+        {muestras.map((p) => {
+          const i = serie.indexOf(p);
+          const anchor =
+            i === 0 ? "start" : i === serie.length - 1 ? "end" : "middle";
+          return (
+            <text
+              key={i}
+              x={X(i)}
+              y={H + 10}
+              textAnchor={anchor}
+              className="vje-trend-axis"
+            >
+              {new Date(p.fecha).toLocaleDateString("es-MX", {
+                day: "2-digit",
+                month: "short",
+              })}
+            </text>
+          );
+        })}
+      </svg>
+      <div className="vje-trend-legend">
+        <span className="vje-legend-it">
+          <span
+            className="vje-legend-line"
+            style={{ background: "var(--secondary)" }}
+          />
+          Recibidos
+        </span>
+        <span className="vje-legend-it">
+          <span
+            className="vje-legend-line"
+            style={{ background: "var(--success)" }}
+          />
+          Resueltos
+        </span>
+      </div>
+    </>
+  );
+}
 
-  // ─── Sitios conocidos para filtro
-  const SITIOS = ["", "PFV", "IAFSA", "FDNC", "CEDIS"];
+/* ─ Barra SLA ──────────────────────────────────────────────────── */
+function SLABar({ min: restantes, total: slaTotal }) {
+  const col = colorSLA(restantes);
+  const ancho = pctSLABarra(restantes, slaTotal);
+  return (
+    <span className="vje-sla">
+      <span className="vje-sla-val" style={{ color: col }}>
+        {restantes == null
+          ? "Sin SLA"
+          : restantes < 0
+            ? "Vencido"
+            : fmtMin(restantes)}
+      </span>
+      <span className="vje-sla-track">
+        <span
+          className="vje-sla-fill"
+          style={{ width: `${ancho}%`, background: col }}
+        />
+      </span>
+    </span>
+  );
+}
+
+/* ─ Badge prioridad ────────────────────────────────────────────── */
+function PriBadge({ prioridad, colorHex }) {
+  const col = colorPri(prioridad, colorHex);
+  return (
+    <span
+      className="vje-badge"
+      style={{ color: col, background: bgBadge(col) }}
+    >
+      {prioridad || "—"}
+    </span>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   6. MODAL BASE  (portal + ESC + scroll interno)
+   ══════════════════════════════════════════════════════════════════ */
+function Modal({ onClose, ancho, labelledBy, children, variant = "", busy = false }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const esc = (e) => {
+      if (e.key === "Escape") onClose?.();
+    };
+    document.addEventListener("keydown", esc);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    ref.current?.focus();
+    return () => {
+      document.removeEventListener("keydown", esc);
+      document.body.style.overflow = prev;
+    };
+  }, [onClose]);
+
+  return createPortal(
+    <div
+      className="vje-overlay"
+      onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}
+    >
+      <div
+        ref={ref}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-busy={busy || undefined}
+        aria-labelledby={labelledBy}
+        className={`vje-modal${busy ? " vje-modal--loading" : ""}${ancho ? " vje-modal--ancho" : ""}${variant ? " vje-modal--"+variant : ""}`}
+      >
+        {children}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
+function ModalHead({ id, title, sub, onClose, ia }) {
+  return (
+    <div className={`vje-modal-head${ia ? " vje-modal-head--ia" : ""}`}>
+      <div className="vje-modal-head-txt">
+        <div className="vje-modal-title" id={id}>
+          {title}
+        </div>
+        {sub && <div className="vje-modal-sub">{sub}</div>}
+      </div>
+      {onClose && (
+        <button
+          className="vje-modal-close"
+          onClick={onClose}
+          aria-label="Cerrar"
+        >
+          <i className="ti ti-x" aria-hidden="true" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   7. MODAL DETALLE DE TICKET
+      datos: objeto de /alertas o de /detalle-indicador .tickets[]
+   ══════════════════════════════════════════════════════════════════ */
+function ModalTicket({ t, onClose }) {
+  const col = colorPri(t.prioridad, t.colorHex);
+  const min = t.minutosRestantesSLA;
+
+  const motivos = [];
+  if (t.prioridad === "Crítica") motivos.push("Prioridad Crítica");
+  if (min != null && min < 0)
+    motivos.push(`SLA vencido hace ${fmtMin(Math.abs(min))}`);
+  else if (min != null && min <= 240)
+    motivos.push(`SLA vence en ${fmtMin(min)}`);
+  if (!t.loginTecnico && !t.responsable) motivos.push("Sin técnico asignado");
 
   return (
-    <div
-      style={{
-        padding: "20px 24px",
-        maxWidth: 1400,
-        margin: "0 auto",
-        display: "flex",
-        flexDirection: "column",
-        gap: 16,
-      }}
-    >
-      {/* ── Animación shimmer ─────────────────────────────────────── */}
-      <style>{`
-        @keyframes shimmer {
-          0%   { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
+    <Modal onClose={onClose} labelledBy="vje-tk-id">
+      <ModalHead
+        id="vje-tk-id"
+        title={
+          <>
+            <span className="vje-sem" style={{ background: col }} />
+            {t.folio}
+          </>
         }
-        .visor-periodo-btn {
-          padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
-          border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
-          background: var(--bg-elevated); color: var(--text-muted);
-        }
-        .visor-periodo-btn.active {
-          background: var(--primary); color: #0f1117; border-color: var(--primary);
-        }
-        .visor-sitio-btn {
-          padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
-          border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
-          background: var(--bg-elevated); color: var(--text-muted);
-        }
-        .visor-sitio-btn.active {
-          background: var(--secondary); color: #fff; border-color: var(--secondary);
-        }
-      `}</style>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          ENCABEZADO
-      ═══════════════════════════════════════════════════════════════ */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 12,
-        }}
-      >
-        <div>
-          <h1
+        sub={t.servicio || "Sin servicio"}
+        onClose={onClose}
+      />
+      <div className="vje-modal-body">
+        <div className="vje-tk-chips">
+          <PriBadge prioridad={t.prioridad} colorHex={t.colorHex} />
+          <span
+            className="vje-badge"
             style={{
-              fontSize: 22,
-              fontWeight: 700,
-              color: "var(--text-h)",
-              margin: 0,
+              color: "var(--text-muted)",
+              background: "var(--bg-elevated)",
             }}
           >
-            Panel de Operación TI
-          </h1>
-          <div
-            style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 4 }}
-          >
-            {lastUpdate ? (
-              <>
-                Actualizado{" "}
-                {lastUpdate.toLocaleTimeString("es-MX", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}{" "}
-                ·{" "}
-                <span
-                  style={{ cursor: "pointer", color: "var(--primary)" }}
-                  onClick={cargar}
-                >
-                  Actualizar ahora
-                </span>
-              </>
-            ) : (
-              "Cargando datos..."
-            )}
-          </div>
+            {t.estatus || "—"}
+          </span>
         </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: 8,
-          }}
-        >
-          {/* Periodo */}
-          <div style={{ display: "flex", gap: 4 }}>
-            {[
-              ["1", "Hoy"],
-              ["7", "7d"],
-              ["30", "30d"],
-              ["90", "3m"],
-            ].map(([v, l]) => (
-              <button
-                key={v}
-                className={`visor-periodo-btn${periodo === v ? " active" : ""}`}
-                onClick={() => setPeriodo(v)}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-          {/* Sitio */}
-          <div style={{ display: "flex", gap: 4 }}>
-            {SITIOS.map((s) => (
-              <button
-                key={s || "todos"}
-                className={`visor-sitio-btn${sitio === s ? " active" : ""}`}
-                onClick={() => setSitio(s)}
-              >
-                {s || "Todos"}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          KPIs
-      ═══════════════════════════════════════════════════════════════ */}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        <KpiCard
-          label="Abiertas"
-          icon="ti-ticket"
-          color="#7c8cf8"
-          value={resumen?.abiertas}
-          delta={resumen?.deltas?.abiertas}
-          loading={loading}
-          accentBad
-        />
-        <KpiCard
-          label="Críticas"
-          icon="ti-alert-octagon"
-          color="#f38ba8"
-          value={resumen?.criticas}
-          delta={resumen?.deltas?.criticas}
-          loading={loading}
-          accentBad
-        />
-        <KpiCard
-          label="En proceso"
-          icon="ti-loader"
-          color="#fab387"
-          value={resumen?.enProceso}
-          loading={loading}
-        />
-        <KpiCard
-          label="Fuera de SLA"
-          icon="ti-clock-x"
-          color="#f38ba8"
-          value={resumen?.fueraSLA}
-          delta={resumen?.deltas?.fueraSLA}
-          loading={loading}
-          accentBad
-        />
-        <KpiCard
-          label="Resueltas"
-          icon="ti-circle-check"
-          color="#4cc9a6"
-          value={resumen?.resueltas}
-          loading={loading}
-        />
-        <KpiCard
-          label="Cumpl. SLA"
-          icon="ti-shield-check"
-          color="#4cc9a6"
-          value={resumen?.pctSLA != null ? `${resumen.pctSLA}%` : "—"}
-          loading={loading}
-        />
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          FILA PRINCIPAL — Alertas + Servicios
-      ═══════════════════════════════════════════════════════════════ */}
-      <div
-        style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 14 }}
-      >
-        {/* ── Alertas ── */}
-        <Panel
-          title="Requieren atención"
-          icon="ti-alert-triangle"
-          headerColor={hayCriticas ? "#f38ba8" : "#fab387"}
-          action={
-            <button
-              onClick={() => irATickets("?prioridad=critica")}
-              style={{
-                fontSize: 11,
-                color: "var(--primary)",
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                fontWeight: 600,
-              }}
-            >
-              Ver todas →
-            </button>
-          }
-        >
-          {loading ? (
-            [1, 2, 3, 4].map((i) => <Skeleton key={i} h={56} radius={8} />)
-          ) : alertas.length === 0 ? (
-            <div
-              style={{
-                textAlign: "center",
-                padding: "24px 0",
-                color: "var(--text-faint)",
-                fontSize: 13,
-              }}
-            >
-              <i
-                className="ti ti-circle-check"
-                style={{
-                  fontSize: 32,
-                  display: "block",
-                  marginBottom: 8,
-                  color: "#4cc9a6",
-                }}
-              />
-              Sin alertas activas
-            </div>
-          ) : (
-            <>
-              {alertasVisibles.map((a) => (
-                <AlertaItem
-                  key={a.idSolicitud}
-                  a={a}
-                  onClick={() =>
-                    navigate(`/atencion-incidencias?folio=${a.folio}`)
+        <h3 className="vje-tk-titulo">
+          {t.titulo || t.servicio || "Sin título"}
+        </h3>
+        {t.descripcion && <p className="vje-tk-desc">{t.descripcion}</p>}
+        <dl className="vje-tk-grid">
+          {[
+            ["Usuario", t.nombreUsuario || "—"],
+            ["Ubicación", t.sitio || t.sitioRaw || "—"],
+            ["Área", t.area || "—"],
+            ["Responsable", t.responsable || "Sin asignar", !t.responsable],
+            [
+              "SLA restante",
+              min == null
+                ? "Sin SLA"
+                : min < 0
+                  ? `Vencido hace ${fmtMin(Math.abs(min))}`
+                  : fmtMin(min),
+              true,
+              colorSLA(min),
+            ],
+            ["Tiempo transcurrido", fmtMin(t.minutosAbierto)],
+            ["Sin actividad", fmtMin(t.minutosDesdeUltAct)],
+            ["Creado", fmtFechaCorta(t.fechaCreacion)],
+            [
+              "Última actividad",
+              fmtFechaCorta(t.ultimaActividad || t.fechaActualizacion),
+            ],
+            t.escalaA ? ["Escalado a", t.escalaA] : null,
+          ]
+            .filter(Boolean)
+            .map(([lbl, val, isRisk, forceColor]) => (
+              <div className="vje-tk-cell" key={lbl}>
+                <dt>{lbl}</dt>
+                <dd
+                  style={
+                    forceColor
+                      ? { color: forceColor }
+                      : isRisk && val === "Sin asignar"
+                        ? { color: "var(--danger)" }
+                        : undefined
                   }
-                />
-              ))}
-              {alertas.length > 5 && (
-                <button
-                  onClick={() => setAlertasExpanded((x) => !x)}
-                  style={{
-                    background: "none",
-                    border: "1px solid var(--border)",
-                    borderRadius: 8,
-                    color: "var(--text-muted)",
-                    fontSize: 12,
-                    padding: "6px",
-                    cursor: "pointer",
-                    width: "100%",
-                  }}
                 >
-                  {alertasExpanded
-                    ? "Ver menos ↑"
-                    : `Ver ${alertas.length - 5} más ↓`}
-                </button>
-              )}
-            </>
-          )}
-        </Panel>
-
-        {/* ── Estado de servicios ── */}
-        <Panel title="Estado de servicios" icon="ti-server">
-          {loading ? (
-            [1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} h={36} radius={8} />
-            ))
-          ) : servicios.length === 0 ? (
-            <span style={{ color: "var(--text-faint)", fontSize: 12 }}>
-              Sin servicios configurados
-            </span>
-          ) : (
-            servicios.map((s) => (
-              <ServicioItem
-                key={s.idServicio}
-                s={s}
-                onClick={() =>
-                  navigate(`/atencion-incidencias?servicio=${s.idServicio}`)
-                }
-              />
-            ))
-          )}
-          {/* Leyenda */}
-          <div
-            style={{
-              display: "flex",
-              gap: 12,
-              marginTop: 4,
-              paddingTop: 8,
-              borderTop: "1px solid var(--border)",
-            }}
-          >
-            {[
-              ["#4cc9a6", "Operando"],
-              ["#fab387", "Intermitencia"],
-              ["#f38ba8", "Caído"],
-            ].map(([c, l]) => (
-              <div
-                key={l}
-                style={{ display: "flex", alignItems: "center", gap: 4 }}
-              >
-                <div
-                  style={{
-                    width: 7,
-                    height: 7,
-                    borderRadius: "50%",
-                    background: c,
-                  }}
-                />
-                <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-                  {l}
-                </span>
+                  {val}
+                </dd>
               </div>
             ))}
-          </div>
-        </Panel>
-      </div>
-
-      {/* ═══════════════════════════════════════════════════════════════
-          FILA SECUNDARIA — Tendencia + Distribución + Servicios
-      ═══════════════════════════════════════════════════════════════ */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.1fr 0.9fr 1fr",
-          gap: 14,
-        }}
-      >
-        {/* ── Tendencia ── */}
-        <Panel title="Tendencia de incidencias" icon="ti-chart-line">
-          {loading ? (
-            <Skeleton h={100} radius={4} />
-          ) : (
-            <>
-              <TendenciaChart data={tendencia} />
-              {resumen && (
-                <div style={{ display: "flex", gap: 20, marginTop: 4 }}>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: "var(--text-faint)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                      }}
-                    >
-                      Periodo actual
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 18,
-                        fontWeight: 700,
-                        color: "var(--text-h)",
-                      }}
-                    >
-                      {resumen.total}
-                    </div>
-                  </div>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 10,
-                        color: "var(--text-faint)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                      }}
-                    >
-                      vs. anterior
-                    </div>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: resumen.deltas.total > 0 ? "#f38ba8" : "#4cc9a6",
-                      }}
-                    >
-                      {resumen.deltas.total > 0 ? "↑" : "↓"}{" "}
-                      {Math.abs(resumen.deltas.total)}%
-                    </div>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </Panel>
-
-        {/* ── Distribución por prioridad ── */}
-        <Panel title="Por prioridad" icon="ti-flag">
-          {loading
-            ? [1, 2, 3, 4].map((i) => <Skeleton key={i} h={20} />)
-            : dist?.prioridad?.map((p) => (
-                <BarraH
-                  key={p.prioridad}
-                  label={p.prioridad}
-                  value={p.total}
-                  max={maxDist(dist.prioridad)}
-                  color={`#${p.colorHex?.replace("#", "") || "7c8cf8"}`}
-                />
-              ))}
-        </Panel>
-
-        {/* ── Sitio / Área toggle ── */}
-        <Panel
-          title={tab === "sitio" ? "Por sitio" : "Por área"}
-          icon={tab === "sitio" ? "ti-building-factory" : "ti-users"}
-          action={
-            <div style={{ display: "flex", gap: 4 }}>
-              {["sitio", "area"].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  style={{
-                    fontSize: 10,
-                    padding: "3px 8px",
-                    borderRadius: 5,
-                    border: "1px solid var(--border)",
-                    background:
-                      tab === t ? "var(--secondary)" : "var(--bg-elevated)",
-                    color: tab === t ? "#fff" : "var(--text-faint)",
-                    cursor: "pointer",
-                    fontWeight: 600,
-                  }}
-                >
-                  {t === "sitio" ? "Sitio" : "Área"}
-                </button>
-              ))}
+        </dl>
+        {motivos.length > 0 && (
+          <div className="vje-tk-motivo">
+            <i className="ti ti-alert-triangle" aria-hidden="true" />
+            <div className="vje-tk-motivo-txt">
+              <b>Por qué requiere atención</b>
+              {motivos.join(" · ")}
             </div>
-          }
-        >
-          {loading
-            ? [1, 2, 3, 4, 5].map((i) => <Skeleton key={i} h={20} />)
-            : (tab === "sitio" ? dist?.sitio : dist?.area)?.map((item, i) => (
-                <BarraH
-                  key={i}
-                  label={tab === "sitio" ? item.sitio : item.area}
-                  value={item.total}
-                  max={maxDist(tab === "sitio" ? dist?.sitio : dist?.area)}
-                  color="var(--secondary)"
-                />
-              ))}
-        </Panel>
+          </div>
+        )}
       </div>
+    </Modal>
+  );
+}
 
-      {/* ═══════════════════════════════════════════════════════════════
-          FILA INFERIOR — Servicios recurrentes + Equipo + SLA
-      ═══════════════════════════════════════════════════════════════ */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.4fr 1fr 0.8fr",
-          gap: 14,
-        }}
-      >
-        {/* ── Servicios con más incidencias ── */}
-        <Panel
-          title="Servicios con más incidencias"
-          icon="ti-apps"
-          action={
-            <span style={{ fontSize: 10, color: "var(--text-faint)" }}>
-              ↑ subió · ↓ bajó vs. periodo ant.
-            </span>
-          }
-        >
-          {loading ? (
-            [1, 2, 3, 4, 5].map((i) => <Skeleton key={i} h={28} />)
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {recurrentes.map((r, i) => (
-                <div
-                  key={r.idServicio}
-                  onClick={() =>
-                    navigate(`/atencion-incidencias?servicio=${r.idServicio}`)
-                  }
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "20px 1fr auto auto",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "7px 10px",
-                    borderRadius: 8,
-                    background: "var(--bg-elevated)",
-                    cursor: "pointer",
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) =>
-                    (e.currentTarget.style.background = "var(--bg-hover)")
-                  }
-                  onMouseLeave={(e) =>
-                    (e.currentTarget.style.background = "var(--bg-elevated)")
-                  }
-                >
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: "var(--text-faint)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {i + 1}
-                  </span>
-                  <div>
-                    <div
-                      style={{
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: "var(--text-h)",
-                      }}
-                    >
-                      {r.servicio}
+/* ══════════════════════════════════════════════════════════════════
+   8. MODAL DE INDICADOR
+      Llama a GET /ejecutivo/detalle-indicador?tipo=&sitio=
+      Luego permite abrir el ticket individual.
+   ══════════════════════════════════════════════════════════════════ */
+const TITULOS_IND = {
+  atencion: "Tickets que requieren atención inmediata",
+  activos: "Tickets activos ahora",
+  sinAsignar: "Tickets sin asignar",
+  vencidosSLA: "Tickets con SLA vencido",
+  porVencer: "Tickets por vencer (próx. 4 h)",
+  criticas: "Tickets críticos",
+  escalados: "Tickets escalados",
+  enPausa: "Tickets en pausa",
+};
+
+function ModalIndicador({ tipo, sitio, onClose, onTicket }) {
+  const [st, setSt] = useState({ loading: true, data: null, err: null });
+
+  useEffect(() => {
+    let vivo = true;
+    setSt({ loading: true, data: null, err: null });
+    GET("/ejecutivo/detalle-indicador", { tipo, sitio })
+      .then((d) => {
+        if (vivo) setSt({ loading: false, data: d, err: null });
+      })
+      .catch((e) => {
+        if (vivo) setSt({ loading: false, data: null, err: e.message });
+      });
+    return () => {
+      vivo = false;
+    };
+  }, [tipo, sitio]);
+
+  const { loading, data, err } = st;
+
+  return (
+    <Modal onClose={onClose} ancho labelledBy="vje-ind-id">
+      <ModalHead
+        id="vje-ind-id"
+        title={
+          <>
+            <i className="ti ti-list-search" aria-hidden="true" />
+            {TITULOS_IND[tipo]}
+          </>
+        }
+        sub={
+          loading
+            ? "Consultando…"
+            : `${data?.total ?? 0} registros${sitio ? ` · ${sitio}` : ""}`
+        }
+        onClose={onClose}
+      />
+      <div className="vje-modal-body">
+        {loading && (
+          <div className="vje-skel" style={{ height: 280, borderRadius: 10 }} />
+        )}
+        {err && (
+          <div className="vje-error" role="alert">
+            <i className="ti ti-alert-circle" />
+            <span>{err}</span>
+          </div>
+        )}
+        {!loading && !err && data && (
+          <>
+            <div className="vje-mini-grid">
+              {[
+                ["Por ubicación", data.porSitio, "sitio"],
+                ["Por servicio", data.porServicio, "servicio"],
+                ["Por área", data.porArea, "area"],
+              ].map(([tit, lista, campo]) => (
+                <div className="vje-mini" key={tit}>
+                  <div className="vje-mini-title">{tit}</div>
+                  {(lista || []).slice(0, 5).map((r, i) => (
+                    <div className="vje-mini-row" key={i}>
+                      <span>{r[campo] || "Sin especificar"}</span>
+                      <b>{r.total}</b>
                     </div>
-                    {r.activas > 0 && (
-                      <div style={{ fontSize: 11, color: "#fab387" }}>
-                        {r.activas} activas ahora
-                      </div>
-                    )}
-                  </div>
-                  <span
-                    style={{
-                      fontSize: 15,
-                      fontWeight: 700,
-                      color: "var(--text-h)",
-                    }}
-                  >
-                    {r.total}
-                  </span>
-                  {r.delta !== null && (
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: r.delta > 0 ? "#f38ba8" : "#4cc9a6",
-                        width: 40,
-                        textAlign: "right",
-                      }}
-                    >
-                      {r.delta > 0 ? "↑" : "↓"}
-                      {Math.abs(r.delta)}%
-                    </span>
+                  ))}
+                  {!lista?.length && (
+                    <div className="vje-mini-row">
+                      <span>Sin datos</span>
+                    </div>
                   )}
                 </div>
               ))}
             </div>
-          )}
-        </Panel>
-
-        {/* ── Carga del equipo ── */}
-        <Panel title="Carga del equipo" icon="ti-users-group">
-          {loading ? (
-            [1, 2, 3].map((i) => <Skeleton key={i} h={36} />)
-          ) : (
-            <>
-              {equipo?.sinAsignar > 0 && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "8px 10px",
-                    borderRadius: 8,
-                    background: "#f38ba815",
-                    border: "1px solid #f38ba830",
-                  }}
-                >
-                  <span
-                    style={{ fontSize: 12, color: "#f38ba8", fontWeight: 600 }}
-                  >
-                    <i className="ti ti-user-x" style={{ marginRight: 6 }} />
-                    Sin asignar
-                  </span>
-                  <span
-                    style={{ fontSize: 15, fontWeight: 700, color: "#f38ba8" }}
-                  >
-                    {equipo.sinAsignar}
-                  </span>
-                </div>
-              )}
-              {equipo?.tecnicos?.map((t) => {
-                const max = Math.max(
-                  ...equipo.tecnicos.map((x) => x.activas),
-                  1,
-                );
-                const pct = (t.activas / max) * 100;
-                return (
-                  <div
-                    key={t.login}
-                    style={{ display: "flex", flexDirection: "column", gap: 4 }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <span
-                        style={{
-                          fontSize: 12,
-                          color: "var(--text-muted)",
-                          fontWeight: 500,
-                        }}
-                      >
-                        {t.nombre || t.login}
-                      </span>
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          alignItems: "center",
-                        }}
-                      >
-                        {t.criticas > 0 && (
-                          <span style={{ fontSize: 10, color: "#f38ba8" }}>
-                            {t.criticas} crít.
-                          </span>
-                        )}
-                        {t.fueraSLA > 0 && (
-                          <span style={{ fontSize: 10, color: "#fab387" }}>
-                            {t.fueraSLA} SLA
-                          </span>
-                        )}
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 700,
-                            color: "var(--text-h)",
-                          }}
-                        >
-                          {t.activas}
-                        </span>
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        background: "var(--bg-elevated)",
-                        borderRadius: 4,
-                        height: 5,
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${pct}%`,
-                          height: "100%",
-                          background: "var(--secondary)",
-                          borderRadius: 4,
-                          transition: "width 0.6s ease",
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </>
-          )}
-        </Panel>
-
-        {/* ── SLA ── */}
-        <Panel title="Cumplimiento SLA" icon="ti-shield-check">
-          {loading ? (
-            <Skeleton h={90} w={90} radius={50} style={{ margin: "0 auto" }} />
-          ) : (
-            <>
-              <div style={{ display: "flex", justifyContent: "center" }}>
-                <SLARing pct={resumen?.pctSLA} />
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 4,
-                  marginTop: 4,
-                }}
-              >
-                {sla.slice(0, 4).map((s) => (
-                  <div
-                    key={s.servicio}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      fontSize: 11,
-                      padding: "4px 0",
-                      borderBottom: "1px solid var(--border)",
-                    }}
+            {data.tickets?.length ? (
+              <div className="vje-lista">
+                {data.tickets.map((t) => (
+                  <button
+                    className="vje-lista-it"
+                    key={t.idSolicitud}
+                    onClick={() => onTicket(t)}
                   >
                     <span
-                      style={{
-                        color: "var(--text-muted)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        maxWidth: 100,
-                      }}
-                    >
-                      {s.servicio}
-                    </span>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      {s.fueraSLA > 0 && (
-                        <span style={{ color: "#f38ba8", fontWeight: 600 }}>
-                          {s.fueraSLA} fuera
+                      className="vje-sem"
+                      style={{ background: colorPri(t.prioridad, t.colorHex) }}
+                      aria-hidden="true"
+                    />
+                    <span className="vje-lista-main">
+                      <span className="vje-lista-top">
+                        <span className="vje-folio">{t.folio}</span>
+                        <span className="vje-asunto">
+                          {t.titulo || t.servicio || "—"}
                         </span>
-                      )}
-                      <span style={{ color: "#4cc9a6", fontWeight: 600 }}>
-                        {s.dentroSLA} ok
                       </span>
-                    </div>
-                  </div>
+                      <span className="vje-lista-sub">
+                        <span>
+                          <i className="ti ti-map-pin" aria-hidden="true" />
+                          {t.sitio || "—"}
+                        </span>
+                        <span>
+                          <i className="ti ti-user" aria-hidden="true" />
+                          {t.responsable || "Sin asignar"}
+                        </span>
+                        <span>
+                          <i className="ti ti-circle-dot" aria-hidden="true" />
+                          {t.estatus}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="vje-lista-sla">
+                      <b style={{ color: colorSLA(t.minutosRestantesSLA) }}>
+                        {t.minutosRestantesSLA == null
+                          ? "—"
+                          : t.minutosRestantesSLA < 0
+                            ? "Vencido"
+                            : fmtMin(t.minutosRestantesSLA)}
+                      </b>
+                      <span>SLA</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="vje-empty">
+                <i className="ti ti-checks" />
+                No hay tickets en este indicador
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   9. MODAL DE ANÁLISIS IA
+      Llama REAL a POST /api/ejecutivo/analisis-ia
+      El controller de tu proyecto llama a Claude con los datos
+      reales y devuelve { ok, analisis } o { ok:false, sinApiKey }
+   ══════════════════════════════════════════════════════════════════ */
+const PASOS = [
+  "Analizando tickets…",
+  "Evaluando SLA…",
+  "Detectando riesgos…",
+  "Analizando carga del equipo…",
+  "Identificando tendencias…",
+];
+
+function nivelLabel(n) {
+  if (!n) return null;
+  const map = {
+    CRITICO: { txt: "Crítico", col: "var(--danger)" },
+    ATENCION: { txt: "Con atención", col: "var(--warning)" },
+    ESTABLE: { txt: "Estable", col: "var(--success)" },
+  };
+  return map[n?.toUpperCase()] || null;
+}
+
+export function ModalIA({ periodo, sitio, onClose, requestAnalysis, development = false, maintenance = false }) {
+  const pasos=maintenance?["Consultando mantenimientos…","Revisando trabajos detenidos…","Analizando la carga del personal…","Preparando el resumen…"]:development?["Consultando desarrollos…","Revisando compromisos…","Evaluando bloqueos…","Analizando responsables…","Preparando el resumen…"]:PASOS;
+  const [paso, setPaso] = useState(0);
+  const [listo, setListo] = useState(false);
+  const [res, setRes] = useState(null); // { ok, analisis?, error?, sinApiKey? }
+
+  useEffect(() => {
+    if (paso < pasos.length) {
+      const t = setTimeout(() => setPaso((p) => p + 1), 580);
+      return () => clearTimeout(t);
+    }
+    // Cuando terminan los pasos, llamamos al endpoint real
+    (requestAnalysis ? requestAnalysis() : POST("/ejecutivo/analisis-ia", { periodo: parseInt(periodo, 10), sitio }))
+      .then((data) => {
+        // El controller devuelve { ok, analisis, generadoEn } o { ok:false, sinApiKey, error }
+        setRes(
+          data && typeof data === "object"
+            ? data
+            : { ok: false, error: "Respuesta inesperada" },
+        );
+        setListo(true);
+      })
+      .catch((e) => {
+        setRes({ ok: false, error: e.message });
+        setListo(true);
+      });
+  }, [paso]); // eslint-disable-line
+
+  const niv = res?.analisis ? nivelLabel(res.analisis.nivelRiesgo) : null;
+
+  return (
+    <Modal ancho busy={!listo} variant={development?"development":""} onClose={listo ? onClose : undefined} labelledBy="vje-ia-id">
+      <ModalHead
+        id="vje-ia-id"
+        title={
+          <>
+            <i className="ti ti-sparkles" aria-hidden="true" />
+            Análisis
+          </>
+        }
+        sub={
+          listo
+            ? res?.generadoEn
+              ? `Generado · ${fmtFechaCorta(res.generadoEn)}`
+              : null
+            : "Procesando datos reales…"
+        }
+        onClose={onClose}
+        ia
+      />
+      <div className="vje-modal-body">
+        {/* Pasos de animación */}
+        {!listo && (
+          <div className="vje-ia-steps" aria-live="polite">
+            {pasos.map((txt, i) => (
+              <div
+                key={i}
+                className={`vje-ia-step${i < paso ? " vje-ia-step--hecho" : i === paso ? " vje-ia-step--activo" : ""}`}
+              >
+                {i < paso ? (
+                  <i className="ti ti-circle-check" aria-hidden="true" />
+                ) : i === paso ? (
+                  <i className="ti ti-loader-2 vje-spin" aria-hidden="true" />
+                ) : (
+                  <i className="ti ti-circle" aria-hidden="true" />
+                )}
+                <span>{txt}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Sin API key configurada */}
+        {listo && res?.sinApiKey && (
+          <div className="vje-ia-config">
+            <i className="ti ti-key" aria-hidden="true" />
+            <div>
+              <b>ANTHROPIC_API_KEY no configurada</b>
+              <p>
+                Define la variable de entorno en el servidor para activar el
+                análisis con IA. El endpoint{" "}
+                <code>POST /ejecutivo/analisis-ia</code> ya está listo.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Error de red u otro */}
+        {listo && !res?.sinApiKey && !res?.ok && (
+          <div className="vje-error" role="alert">
+            <i className="ti ti-alert-circle" />
+            <span>
+              {res?.error || "Error desconocido al generar el análisis."}
+            </span>
+          </div>
+        )}
+
+        {/* Resultado real */}
+        {listo && res?.ok && res?.analisis && (
+          <ExecutiveAnalysis analysis={res.analisis} nivel={niv} periodo={periodo} sitio={sitio} contextLabel={maintenance?"Mantenimiento · Estado actual":development?"Desarrollo TI · Estado actual":undefined}/>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   10. PÁGINA PRINCIPAL
+   ══════════════════════════════════════════════════════════════════ */
+/* ─ Alerta de tickets pausados ─────────────────────────────────
+   Nivel por la pausa más antigua: ≥30 días crítico, ≥7 días alerta. */
+const DIA_MIN = 1440;
+
+function fmtPausa(m) {
+  if (m == null) return "—";
+  const d = Math.floor(m / DIA_MIN);
+  if (d >= 60) return `${Math.floor(d / 30)} meses`;
+  if (d >= 30) return `${d} días (+1 mes)`;
+  if (d >= 1) return `${d} día${d > 1 ? "s" : ""}`;
+  return fmtMin(m);
+}
+
+function nivelPausa(m) {
+  if (m >= 30 * DIA_MIN) return "critico";
+  if (m >= 7 * DIA_MIN) return "alerta";
+  return "normal";
+}
+
+function AlertaPausados({ pausados, onVer }) {
+  if (!pausados?.length) return null;
+  const maxMin = pausados[0].minutosPausado || 0;
+  const nivel = nivelPausa(maxMin);
+  const masMes = pausados.filter((t) => t.minutosPausado >= 30 * DIA_MIN).length;
+  const masSemana = pausados.filter((t) => t.minutosPausado >= 7 * DIA_MIN).length;
+  const n = pausados.length;
+  const pl = (k) => (k > 1 ? "s" : "");
+
+  const titulo =
+    nivel === "critico"
+      ? `${masMes} ticket${pl(masMes)} pausado${pl(masMes)} desde hace más de un mes`
+      : nivel === "alerta"
+        ? `${masSemana} ticket${pl(masSemana)} pausado${pl(masSemana)} hace más de una semana`
+        : `${n} ticket${pl(n)} en pausa`;
+
+  return (
+    <div className={`vje-pausa vje-pausa--${nivel}`}>
+      <button
+        className="vje-pausa-bar"
+        onClick={onVer}
+        aria-describedby="vje-pausa-tip"
+      >
+        <span className="vje-pausa-icon" aria-hidden="true">
+          <i className="ti ti-player-pause" />
+        </span>
+        <span className="vje-pausa-txt">
+          <strong>{titulo}</strong>
+          <span>
+            {nivel === "normal"
+              ? `El más antiguo lleva ${fmtPausa(maxMin)} detenido.`
+              : `¡Requieren atención inmediata! El más antiguo lleva ${fmtPausa(maxMin)} sin atención.`}
+          </span>
+        </span>
+        <span className="vje-pausa-count">{n}</span>
+        <i className="ti ti-chevron-right" aria-hidden="true" />
+      </button>
+
+      <div className="vje-pausa-tip" id="vje-pausa-tip" role="tooltip">
+        <div className="vje-pausa-tip-head">
+          <i className="ti ti-alarm" aria-hidden="true" />
+          Tickets en pausa · {n}
+        </div>
+        <ul>
+          {pausados.slice(0, 6).map((t) => {
+            const nv = nivelPausa(t.minutosPausado || 0);
+            return (
+              <li key={t.idSolicitud} className={`vje-pausa-item--${nv}`}>
+                <span className="vje-pausa-folio">{t.folio}</span>
+                <span className="vje-pausa-resp">
+                  {t.titulo || t.servicio} · {t.responsable}
+                </span>
+                <span className="vje-pausa-tiempo">
+                  {nv === "critico" && (
+                    <i className="ti ti-flame" aria-hidden="true" />
+                  )}
+                  {fmtPausa(t.minutosPausado)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+        {n > 6 && <div className="vje-pausa-more">y {n - 6} más…</div>}
+        <div className="vje-pausa-foot">Clic para ver el detalle</div>
+      </div>
+    </div>
+  );
+}
+
+export default function VisorEjecutivoPage() {
+  const navigate = useNavigate();
+
+  const [tab, setTab] = useState("situacional");
+  const [periodo, setPeriodo] = useState("30");
+  const [sitio, setSitio] = useState("");
+  const [colaps, setColaps] = useState(false);
+  const [reloj, setReloj] = useState(new Date());
+
+  // Modales
+  const [tkModal, setTkModal] = useState(null); // objeto ticket
+  const [indModal, setIndModal] = useState(null); // string tipo indicador
+  const [iaOpen, setIaOpen] = useState(false);
+
+  const {
+    resumen,
+    alertas,
+    equipo,
+    distribucion,
+    tendencia,
+    escalamientos,
+    pausados,
+    loading,
+    err,
+    ts,
+    reload,
+  } = useVisor(periodo, sitio);
+
+  useEffect(() => {
+    const t = setInterval(() => setReloj(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  /* ── Nivel operativo derivado de resumen ─────────────────────── */
+  const nivel = useMemo(() => {
+    if (!resumen) return null;
+    const {
+      criticas = 0,
+      vencidosSLA = 0,
+      sinAsignar = 0,
+      activosAhora = 0,
+    } = resumen;
+    if (criticas >= 5 || (activosAhora > 0 && vencidosSLA / activosAhora > 0.5))
+      return {
+        id: "critico",
+        label: "Crítico",
+        icono: "ti-alert-octagon",
+        texto:
+          "La operación está bajo presión. Se requiere intervención inmediata en tickets críticos y SLA vencidos.",
+      };
+    if (criticas > 0 || vencidosSLA > 0 || sinAsignar > 0)
+      return {
+        id: "atencion",
+        label: "Con atención",
+        icono: "ti-alert-triangle",
+        texto:
+          "Operación funcionando con puntos de atención concentrados en SLA y tickets sin responsable.",
+      };
+    return {
+      id: "estable",
+      label: "Estable",
+      icono: "ti-circle-check",
+      texto:
+        "Operación estable. Sin incidencias críticas ni SLA vencidos actualmente.",
+    };
+  }, [resumen]);
+
+  /* ── Proveedores sin actualización > 7 días ─────────────────── */
+  const provSinAct = useMemo(
+    () =>
+      (escalamientos || []).filter((e) => (e.promedioHrs || 0) > 168).length,
+    [escalamientos],
+  );
+
+  /* ── KPIs (5 tarjetas) ───────────────────────────────────────── */
+  const kpis = useMemo(() => {
+    if (!resumen) return [];
+    return [
+      {
+        id: "activosAhora",
+        tono: "info",
+        icono: "ti-activity",
+        label: "Activos ahora",
+        valor: resumen.activosAhora,
+        sub: `${resumen.enProceso} en proceso · ${resumen.escalados} escalados`,
+        delta: resumen.deltas?.abiertas,
+      },
+      {
+        id: "sinAsignar",
+        tono: "risk",
+        icono: "ti-user-question",
+        label: "Sin asignar",
+        valor: resumen.sinAsignar,
+        sub: "SLA corriendo sin responsable",
+      },
+      {
+        id: "vencidosSLA",
+        tono: "warn",
+        icono: "ti-clock-exclamation",
+        label: "SLA vencidos",
+        valor: resumen.vencidosSLA,
+        sub: `${resumen.porVencer} más en riesgo próximas 4 h`,
+      },
+      {
+        id: "cumplimiento",
+        tono: "ok",
+        icono: "ti-circle-check",
+        label: "Cumplimiento SLA",
+        valor: resumen.pctSLA == null ? "—" : `${resumen.pctSLA}%`,
+        sub:
+          resumen.pctSLA == null
+            ? "Sin resueltos con SLA en el periodo"
+            : resumen.pctSLA >= 95
+              ? "Dentro de la meta (95%)"
+              : "Por debajo de la meta (95%)",
+        sinModal: true,
+      },
+      {
+        id: "criticas",
+        tono: "accent",
+        icono: "ti-flame",
+        label: "Tickets críticos",
+        valor: resumen.criticas,
+        sub: "Requieren atención inmediata",
+      },
+    ];
+  }, [resumen]);
+
+  /* ── Donuts ──────────────────────────────────────────────────── */
+
+  // Estado: usa los cortes reales que devuelve getResumen
+  const donutEstado = useMemo(() => {
+    if (!resumen) return [];
+    return [
+      {
+        nombre: "En proceso",
+        valor: resumen.enProceso || 0,
+        color: "var(--secondary)",
+      },
+      {
+        nombre: "Pendientes",
+        valor: resumen.pendientes || 0,
+        color: "var(--warning)",
+      },
+      {
+        nombre: "Sin asignar",
+        valor: resumen.sinAsignar || 0,
+        color: "var(--danger)",
+      },
+      {
+        nombre: "En diagnóstico",
+        valor: resumen.enDiagnostico || 0,
+        color: "var(--accent-l)",
+      },
+      {
+        nombre: "Escalados",
+        valor: resumen.escalados || 0,
+        color: "var(--text-faint)",
+      },
+    ].filter((d) => d.valor > 0);
+  }, [resumen]);
+
+  // Prioridad: viene de /distribucion
+  const donutPri = useMemo(
+    () =>
+      (distribucion?.prioridad || [])
+        .filter((p) => p.prioridad)
+        .map((p) => ({
+          nombre: p.prioridad,
+          valor: p.total,
+          color: colorPri(p.prioridad, p.colorHex),
+        })),
+    [distribucion],
+  );
+
+  // SLA: derivado de resumen activos
+  const donutSLA = useMemo(() => {
+    if (!resumen) return [];
+    const venc = resumen.vencidosSLA || 0;
+    const riesgo = resumen.porVencer || 0;
+    const enTiempo = Math.max(0, (resumen.activosAhora || 0) - venc - riesgo);
+    return [
+      { nombre: "En tiempo", valor: enTiempo, color: "var(--success)" },
+      { nombre: "En riesgo < 4 h", valor: riesgo, color: "var(--warning)" },
+      { nombre: "Vencidos", valor: venc, color: "var(--danger)" },
+    ];
+  }, [resumen]);
+
+  // Ubicación: viene de /distribucion .sitio (normalizado en el controller)
+  const ubicaciones = useMemo(() => {
+    const lista = distribucion?.sitio || [];
+    const total = lista.reduce((a, s) => a + s.total, 0);
+    const cols = [
+      "var(--secondary)",
+      "var(--accent-l)",
+      "var(--success)",
+      "var(--text-faint)",
+    ];
+    return lista.map((s, i) => ({
+      nombre: s.sitio || "Sin ubicación",
+      valor: s.total,
+      pct: pct(s.total, total),
+      color: cols[i % cols.length],
+    }));
+  }, [distribucion]);
+
+  // Sparkline: serie histórica real de /tendencia (total creado por día)
+  const sparkVals = useMemo(
+    () => (tendencia || []).map((p) => p.total || 0),
+    [tendencia],
+  );
+
+  // Carga equipo: escala relativa al máximo de activos del equipo
+  const maxCarga = useMemo(
+    () => Math.max(1, ...(equipo?.tecnicos || []).map((t) => t.activas || 0)),
+    [equipo],
+  );
+
+  // Top 5 alertas para la tabla de atención inmediata
+  const top5 = (alertas || []).slice(0, 5);
+
+  // Color de sparkline por tono de KPI
+  const sparkColor = {
+    info: "var(--secondary)",
+    risk: "var(--danger)",
+    warn: "var(--warning)",
+    ok: "var(--success)",
+    accent: "var(--accent)",
+  };
+
+  /* ════════════════════════════════════════════════════════════════
+     RENDER
+     ════════════════════════════════════════════════════════════════ */
+  return (
+    <div className={"vje-root"+(tab==="desarrollo"?" vje-root--development":"")}>
+      {/* ══════════ MAIN ══════════ */}
+      <div className="vje-main">
+        <div className="vje-scroll">
+          {/* ── TOOLBAR ── */}
+          <div className="vje-toolbar">
+            <div className="vje-pillgroup" role="tablist">
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  role="tab"
+                  aria-selected={tab === t.id}
+                  className={`vje-pill${tab === t.id ? " vje-pill--active" : ""}`}
+                  onClick={() => setTab(t.id)}
+                >
+                  {t.icon && (
+                    <i className={`ti ${t.icon}`} aria-hidden="true" />
+                  )}
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <div className="vje-toolbar-right" hidden={tab !== "situacional"}>
+              <div className="vje-pillgroup" role="group" aria-label="Periodo">
+                {PERIODOS.map((p) => (
+                  <button
+                    key={p.id}
+                    aria-pressed={periodo === p.id}
+                    className={`vje-pill${periodo === p.id ? " vje-pill--active" : ""}`}
+                    onClick={() => setPeriodo(p.id)}
+                  >
+                    {p.label}
+                  </button>
                 ))}
               </div>
               <div
-                style={{
-                  fontSize: 10,
-                  color: "var(--text-faint)",
-                  textAlign: "center",
-                  marginTop: 4,
-                }}
+                className="vje-pillgroup vje-pillgroup--sitio"
+                role="group"
+                aria-label="Ubicación"
               >
-                Basado en tickets cerrados con SLA definido
+                {SITIOS.map((s) => (
+                  <button
+                    key={s.id || "todos"}
+                    aria-pressed={sitio === s.id}
+                    className={`vje-pill${sitio === s.id ? " vje-pill--active" : ""}`}
+                    onClick={() => setSitio(s.id)}
+                  >
+                    {s.label}
+                  </button>
+                ))}
               </div>
-            </>
-          )}
-        </Panel>
-      </div>
+              <div className="vje-clock">
+                <span className="vje-dot-live" aria-hidden="true" />
+                <span>{fmtHora(reloj)}</span>
+                <button
+                  onClick={reload}
+                  disabled={loading}
+                  aria-label="Actualizar datos"
+                >
+                  <i
+                    className={`ti ti-refresh${loading ? " vje-spin" : ""}`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
 
-      {/* Footer */}
-      <div
-        style={{
-          fontSize: 10,
-          color: "var(--text-faint)",
-          textAlign: "center",
-          paddingTop: 4,
-        }}
-      >
-        Los datos se actualizan automáticamente cada 5 minutos
+          {tab === "desarrollo" ? <DevelopmentExecutive Donut={Donut} Leyenda={Leyenda} Modal={Modal} ModalHead={ModalHead} ModalIA={ModalIA}/> : <>
+          {/* ── ERROR GLOBAL ── */}
+          {err && (
+            <div className="vje-error" role="alert">
+              <i className="ti ti-alert-circle" aria-hidden="true" />
+              <span>{err}</span>
+              <button onClick={reload}>Reintentar</button>
+            </div>
+          )}
+
+          {/* ══ BANNER EJECUTIVO ══ */}
+          {loading && !resumen ? (
+            <div
+              className="vje-skel"
+              style={{ height: 128, borderRadius: 14 }}
+            />
+          ) : (
+            nivel &&
+            resumen && (
+              <section className="vje-banner" aria-label="Resumen ejecutivo">
+                {/* Col izquierda: situación */}
+                <div>
+                  <div className="vje-banner-eyebrow">Situación general</div>
+                  <div
+                    className={`vje-banner-estado vje-banner-estado--${nivel.id}`}
+                  >
+                    {nivel.label}
+                    <i className={`ti ${nivel.icono}`} aria-hidden="true" />
+                  </div>
+                  <p className="vje-banner-texto">{nivel.texto}</p>
+                </div>
+
+                {/* Col centro: ilustración + botón IA */}
+                <div className="vje-banner-centro">
+                  <div className="vje-banner-ilustracion" aria-hidden="true">
+                    <img src={visorEjecutivoHero} alt="" />
+                  </div>
+                  <button
+                    className="vje-btn-ia"
+                    onClick={() => setIaOpen(true)}
+                  >
+                    <i className="ti ti-sparkles" aria-hidden="true" />
+                    Analizar con IA
+                  </button>
+                  <div className="vje-banner-iahint">
+                    Obtén un análisis inteligente
+                    <br />
+                    de la situación actual
+                  </div>
+                </div>
+
+                {/* Col derecha: bullets con datos reales */}
+                <div className="vje-banner-bullets">
+                  {!sitio && resumen.sitioTopActivo && (
+                    <div className="vje-bullet vje-bullet--info">
+                      <i className="ti ti-target" aria-hidden="true" />
+                      <span>
+                        <strong>{resumen.sitioTopActivo}</strong> concentra el{" "}
+                        <strong>{resumen.pctSitioTop}%</strong> de los tickets
+                        activos
+                      </span>
+                    </div>
+                  )}
+                  <div className="vje-bullet vje-bullet--warn">
+                    <i className="ti ti-clock-exclamation" aria-hidden="true" />
+                    <span>
+                      <strong>{resumen.vencidosSLA}</strong> SLA vencidos
+                      requieren atención
+                    </span>
+                  </div>
+                  <div className="vje-bullet vje-bullet--risk">
+                    <i className="ti ti-flame" aria-hidden="true" />
+                    <span>
+                      <strong>{resumen.criticas}</strong> tickets críticos
+                      abiertos
+                    </span>
+                  </div>
+                  <div className="vje-bullet vje-bullet--muted">
+                    <i className="ti ti-truck-delivery" aria-hidden="true" />
+                    <span>
+                      <strong>{provSinAct}</strong> proveedores sin
+                      actualización &gt; 7 días
+                    </span>
+                  </div>
+                </div>
+              </section>
+            )
+          )}
+
+          <AlertaPausados
+            pausados={pausados}
+            onVer={() => setIndModal("enPausa")}
+          />
+
+          {/* ══ KPIs ══ */}
+          <section className="vje-kpis" aria-label="Indicadores clave">
+            {loading && !resumen
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="vje-skel"
+                    style={{ height: 108, borderRadius: 12 }}
+                  />
+                ))
+              : kpis.map((k) => (
+                  <button
+                    key={k.id}
+                    className={`vje-kpi vje-kpi--${k.tono}`}
+                    onClick={
+                      k.sinModal ? undefined : () => setIndModal(IND[k.id])
+                    }
+                    style={k.sinModal ? { cursor: "default" } : undefined}
+                  >
+                    <div className="vje-kpi-top">
+                      <div className="vje-kpi-label">
+                        <i className={`ti ${k.icono}`} aria-hidden="true" />
+                        <span>{k.label}</span>
+                      </div>
+                      {typeof k.delta === "number" && k.delta !== 0 && (
+                        <span
+                          className={`vje-kpi-delta vje-kpi-delta--${k.delta > 0 ? "up" : "down"}`}
+                        >
+                          {k.delta > 0 ? "▲" : "▼"} {Math.abs(k.delta)}%
+                        </span>
+                      )}
+                    </div>
+                    <div className="vje-kpi-body">
+                      <span className="vje-kpi-num">{k.valor}</span>
+                      <Spark vals={sparkVals} color={sparkColor[k.tono]} />
+                    </div>
+                    <div className="vje-kpi-sub">{k.sub}</div>
+                  </button>
+                ))}
+          </section>
+
+          {/* ══ ATENCIÓN INMEDIATA + CARGA EQUIPO ══ */}
+          <section className="vje-row-media">
+            {/* Atención inmediata */}
+            {loading && !alertas ? (
+              <div
+                className="vje-skel"
+                style={{ height: 280, borderRadius: 14 }}
+              />
+            ) : (
+              <div className="vje-card">
+                <div className="vje-card-head">
+                  <div className="vje-card-title">
+                    <i
+                      className="ti ti-alert-triangle vje-i-warn"
+                      aria-hidden="true"
+                    />
+                    Requieren atención inmediata
+                  </div>
+                  <button
+                    className="vje-card-link"
+                    onClick={() => setIndModal("atencion")}
+                  >
+                    Ver todos
+                  </button>
+                </div>
+                {top5.length ? (
+                  <>
+                    <div className="vje-tabla-wrap">
+                      <table className="vje-tabla">
+                        <thead>
+                          <tr>
+                            <th>Ticket</th>
+                            <th>Asunto</th>
+                            <th>SLA restante</th>
+                            <th>Prioridad</th>
+                            <th>Asignado a</th>
+                            <th>Ubicación</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {top5.map((t) => (
+                            <tr
+                              key={t.idSolicitud}
+                              tabIndex={0}
+                              onClick={() => setTkModal(t)}
+                              onKeyDown={(e) =>
+                                e.key === "Enter" && setTkModal(t)
+                              }
+                            >
+                              <td className="vje-td-folio">
+                                <span className="vje-folio-wrap">
+                                  <span
+                                    className="vje-sem"
+                                    style={{
+                                      background: colorPri(
+                                        t.prioridad,
+                                        t.colorHex,
+                                      ),
+                                    }}
+                                    aria-hidden="true"
+                                  />
+                                  <span className="vje-folio">{t.folio}</span>
+                                </span>
+                              </td>
+                              <td className="vje-td-asunto">
+                                <span
+                                  className="vje-asunto"
+                                  title={t.titulo || t.servicio}
+                                >
+                                  {t.titulo || t.servicio || "—"}
+                                </span>
+                              </td>
+                              <td className="vje-td-sla">
+                                <SLABar
+                                  min={t.minutosRestantesSLA}
+                                  total={t.slaResolucionMin}
+                                />
+                              </td>
+                              <td>
+                                <PriBadge
+                                  prioridad={t.prioridad}
+                                  colorHex={t.colorHex}
+                                />
+                              </td>
+                              <td
+                                className={`vje-td-resp${!t.responsable ? " vje-resp--sin" : ""}`}
+                              >
+                                {t.responsable || "Sin asignar"}
+                              </td>
+                              <td className="vje-td-sitio">{t.sitio || "—"}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="vje-card-foot">
+                      <button
+                        className="vje-btn-foot"
+                        onClick={() => setIndModal("atencion")}
+                      >
+                        Ver todos los que requieren atención
+                        <i className="ti ti-arrow-right" aria-hidden="true" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="vje-empty">
+                    <i className="ti ti-checks" aria-hidden="true" />
+                    Nada requiere atención inmediata
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Carga del equipo */}
+            {loading && !equipo ? (
+              <div
+                className="vje-skel"
+                style={{ height: 280, borderRadius: 14 }}
+              />
+            ) : (
+              <div className="vje-card">
+                <div className="vje-card-head">
+                  <div className="vje-card-title">
+                    <i className="ti ti-users vje-i-info" aria-hidden="true" />
+                    Carga del equipo TI
+                  </div>
+                  <button
+                    className="vje-card-link"
+                    onClick={() => setIndModal("activos")}
+                  >
+                    Ver detalle
+                  </button>
+                </div>
+                {equipo?.tecnicos?.length ? (
+                  <>
+                    <div className="vje-equipo">
+                      {equipo.tecnicos.slice(0, 6).map((t) => {
+                        const proc =
+                          (t.enProceso || 0) + (t.enDiagnostico || 0);
+                        const pend = t.pendientes || 0;
+                        const risk = t.fueraSLA || 0;
+                        const esc = (v) =>
+                          `${((v / maxCarga) * 100).toFixed(1)}%`;
+                        return (
+                          <div className="vje-tec" key={t.login}>
+                            <div className="vje-tec-av" aria-hidden="true">
+                              {t.picture ? (
+                                <img src={t.picture} alt="" />
+                              ) : (
+                                iniciales(t.nombre)
+                              )}
+                            </div>
+                            <div className="vje-tec-body">
+                              <div className="vje-tec-top">
+                                <div className="vje-tec-ident">
+                                  <span className="vje-tec-nombre">
+                                    {t.nombre || t.login}
+                                  </span>
+                                  <span className="vje-tec-area">
+                                    {t.criticas > 0
+                                      ? `${t.criticas} crítico${t.criticas > 1 ? "s" : ""}`
+                                      : "Sin críticos"}
+                                  </span>
+                                </div>
+                                <div className="vje-tec-nums">
+                                  <div className="vje-tec-num vje-tec-num--total">
+                                    <b>{t.activas || 0}</b>
+                                    <span>Activos</span>
+                                  </div>
+                                  <div className="vje-tec-num vje-tec-num--proc">
+                                    <b>{proc}</b>
+                                    <span>En proc.</span>
+                                  </div>
+                                  <div className="vje-tec-num vje-tec-num--pend">
+                                    <b>{pend}</b>
+                                    <span>Pend.</span>
+                                  </div>
+                                  <div className="vje-tec-num vje-tec-num--risk">
+                                    <b>{risk}</b>
+                                    <span>Riesgo</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div
+                                className="vje-carga"
+                                role="img"
+                                aria-label={`${t.nombre}: ${t.activas} tickets activos`}
+                              >
+                                <span
+                                  className="vje-carga-proc"
+                                  style={{ width: esc(proc) }}
+                                />
+                                <span
+                                  className="vje-carga-pend"
+                                  style={{ width: esc(pend) }}
+                                />
+                                <span
+                                  className="vje-carga-risk"
+                                  style={{ width: esc(risk) }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="vje-legend">
+                      {[
+                        ["var(--success)", "En proceso"],
+                        ["var(--warning)", "Pendientes"],
+                        ["var(--danger)", "En riesgo"],
+                        ["var(--border)", `Sin asignar (${equipo.sinAsignar})`],
+                      ].map(([bg, lbl]) => (
+                        <span key={lbl} className="vje-legend-it">
+                          <span
+                            className="vje-legend-sq"
+                            style={{ background: bg }}
+                          />
+                          {lbl}
+                        </span>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="vje-empty">
+                    <i className="ti ti-users-off" aria-hidden="true" />
+                    Sin tickets asignados
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+
+          {/* ══ GRÁFICAS ══ */}
+          <section
+            className="vje-row-charts"
+            aria-label="Distribuciones y tendencias"
+          >
+            {loading && !resumen ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="vje-skel"
+                  style={{ height: 246, borderRadius: 14 }}
+                />
+              ))
+            ) : (
+              <>
+                {/* Donut estado */}
+                <div className="vje-chart">
+                  <div className="vje-chart-title">Distribución por estado</div>
+                  <div className="vje-donut-wrap">
+                    <Donut
+                      datos={donutEstado}
+                      total={donutEstado.reduce((a, d) => a + d.valor, 0)}
+                    />
+                  </div>
+                  <Leyenda
+                    datos={donutEstado}
+                    total={donutEstado.reduce((a, d) => a + d.valor, 0)}
+                  />
+                </div>
+                {/* Donut prioridad */}
+                <div className="vje-chart">
+                  <div className="vje-chart-title">
+                    Distribución por prioridad
+                  </div>
+                  <div className="vje-donut-wrap">
+                    <Donut
+                      datos={donutPri}
+                      total={donutPri.reduce((a, d) => a + d.valor, 0)}
+                    />
+                  </div>
+                  <Leyenda
+                    datos={donutPri}
+                    total={donutPri.reduce((a, d) => a + d.valor, 0)}
+                  />
+                </div>
+                {/* Donut SLA */}
+                <div className="vje-chart">
+                  <div className="vje-chart-title">SLA</div>
+                  <div className="vje-donut-wrap">
+                    <Donut
+                      datos={donutSLA}
+                      total={donutSLA.reduce((a, d) => a + d.valor, 0)}
+                    />
+                  </div>
+                  <Leyenda
+                    datos={donutSLA}
+                    total={donutSLA.reduce((a, d) => a + d.valor, 0)}
+                  />
+                </div>
+                {/* Barras ubicación */}
+                <div className="vje-chart">
+                  <div className="vje-chart-title">Tickets por ubicación</div>
+                  {ubicaciones.length ? (
+                    ubicaciones.map((u) => (
+                      <div className="vje-loc" key={u.nombre}>
+                        <div className="vje-loc-top">
+                          <span className="vje-loc-name">{u.nombre}</span>
+                          <span className="vje-loc-val">
+                            {u.valor}{" "}
+                            <span className="vje-leg-pct">({u.pct}%)</span>
+                          </span>
+                        </div>
+                        <div className="vje-loc-track">
+                          <div
+                            className="vje-loc-fill"
+                            style={{ width: `${u.pct}%`, background: u.color }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="vje-empty">
+                      <i className="ti ti-map-off" />
+                      Sin datos de ubicación
+                    </div>
+                  )}
+                </div>
+                {/* Tendencia */}
+                <div className="vje-chart">
+                  <div className="vje-chart-title">
+                    Tendencia{" "}
+                    {PERIODOS.find(
+                      (p) => p.id === periodo,
+                    )?.label.toLowerCase()}
+                  </div>
+                  <TendChart serie={tendencia} />
+                </div>
+              </>
+            )}
+          </section>
+
+          {/* Pie */}
+          <div className="vje-footer">
+            <span className="vje-dot-live" aria-hidden="true" />
+            Datos en tiempo real · Última actualización:{" "}
+            {ts ? fmtHora(ts) : "—"}
+          </div>
+          </>}
+        </div>
+        {/* /vje-scroll */}
       </div>
+      {/* /vje-main */}
+
+      {/* ══ MODALES ══ */}
+      {tkModal && <ModalTicket t={tkModal} onClose={() => setTkModal(null)} />}
+
+      {indModal && !tkModal && (
+        <ModalIndicador
+          tipo={indModal}
+          sitio={sitio}
+          onClose={() => setIndModal(null)}
+          onTicket={(t) => setTkModal(t)}
+        />
+      )}
+
+      {iaOpen && (
+        <ModalIA
+          periodo={periodo}
+          sitio={sitio}
+          onClose={() => setIaOpen(false)}
+        />
+      )}
     </div>
   );
 }

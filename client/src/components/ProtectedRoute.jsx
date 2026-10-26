@@ -2,7 +2,8 @@ import { Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
-export default function ProtectedRoute({ modulo, children }) {
+// soloSistemas: además del módulo, exige el área SISTEMAS (equipo de TI)
+export default function ProtectedRoute({ modulo, soloSistemas = false, children }) {
   const { user, loading, modulos = [] } = useContext(AuthContext);
 
   if (loading) {
@@ -19,6 +20,9 @@ export default function ProtectedRoute({ modulo, children }) {
 
   // Si se especificó un módulo, verificar que tenga acceso
   if (modulo && !modulos.includes(modulo)) {
+    return <Navigate to="/" replace />;
+  }
+  if (soloSistemas && !["SISTEMAS", "SYSTEMS"].includes(String(user.area || "").trim().toUpperCase())) {
     return <Navigate to="/" replace />;
   }
 

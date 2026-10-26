@@ -1,11 +1,21 @@
 // src/pages/HomePage.jsx
-import { useContext, useState, useEffect, useRef, useCallback } from "react";
+import { useContext, useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { QUICK_APPS } from "../data/staticData";
-//import "../style/HomePage.css"
+import "../style/HomePage.css";
+import "../style/HomeNube.css";
+import { esTemporadaDiaMuertos } from "../utils/temporada";
+import FabpsiFlotante from "./mesaServicio/paginaPrincipal/FabpsiFlotante";
+import robotFabi from "../assets/fabi.png";
 
 const getToken = () => localStorage.getItem("fabpsa_token");
+const birthdaysUrl = (month) => {
+  const base = process.env.REACT_APP_API_URL
+    ? `${process.env.REACT_APP_API_URL}/birthdays`
+    : "/api/birthdays";
+  return `${base}?month=${month}`;
+};
 const apiFetch = async (path, opts = {}) => {
   const res = await fetch(path, {
     ...opts,
@@ -71,21 +81,16 @@ const fmtFecha = (iso) =>
         year: "numeric",
       })
     : "";
-const fmtAgo = (iso) => {
-  if (!iso) return "";
-  const d = Math.floor((Date.now() - new Date(iso)) / 86400000);
-  return d === 0 ? "Hoy" : d === 1 ? "Ayer" : `${d} ago`;
-};
 
 const AVS = [
-  { bg: "#dbeafe", c: "#1d4ed8" },
-  { bg: "#dcfce7", c: "#15803d" },
-  { bg: "#fce7f3", c: "#be185d" },
-  { bg: "#ede9fe", c: "#6d28d9" },
-  { bg: "#fef3c7", c: "#b45309" },
-  { bg: "#fee2e2", c: "#b91c1c" },
-  { bg: "#f0fdf4", c: "#166534" },
-  { bg: "#fdf4ff", c: "#7e22ce" },
+  { bg: "#ede9fe", c: "#5b21b6" },
+  { bg: "#d1fae5", c: "#065f46" },
+  { bg: "#fce7f3", c: "#9d174d" },
+  { bg: "#dbeafe", c: "#1e3a8a" },
+  { bg: "#fef3c7", c: "#78350f" },
+  { bg: "#fee2e2", c: "#7f1d1d" },
+  { bg: "#f0fdf4", c: "#14532d" },
+  { bg: "#fdf4ff", c: "#581c87" },
 ];
 const initials = (b) =>
   ((b.nombre?.[0] || "") + (b.apellidoPaterno?.[0] || "")).toUpperCase();
@@ -114,7 +119,6 @@ const CAT_EMOJIS = {
   industria: "🏭",
   ia: "🤖",
 };
-
 const SVC_ICONS = {
   "Correo / Microsoft 365": "ti-mail",
   "ERP Multivisión": "ti-database",
@@ -123,266 +127,306 @@ const SVC_ICONS = {
   "Telefonía y comunicaciones": "ti-phone",
 };
 const EST = {
-  operando: { label: "Operando", color: "#16a34a" },
-  intermitencia: { label: "Intermitencia", color: "#d97706" },
-  incidente: { label: "Incidente", color: "#dc2626" },
+  operando: { label: "Operando", color: "#10b981" },
+  intermitencia: { label: "Intermitencia", color: "#f59e0b" },
+  incidente: { label: "Incidente", color: "#ef4444" },
 };
 
-/* ── Ilustración isométrica SVG ─────────────────────────────────── */
-function HeroIllustration() {
-  return (
-    <svg
-      viewBox="0 0 280 200"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="hx-illu"
-      aria-hidden="true"
-    >
-      {/* Base platform */}
-      <ellipse
-        cx="140"
-        cy="165"
-        rx="90"
-        ry="20"
-        fill="var(--hx-illu-shadow)"
-        opacity=".12"
-      />
-      {/* Laptop base */}
-      <rect
-        x="70"
-        y="105"
-        width="140"
-        height="8"
-        rx="4"
-        fill="var(--hx-illu-base)"
-      />
-      <rect
-        x="62"
-        y="113"
-        width="156"
-        height="5"
-        rx="2.5"
-        fill="var(--hx-illu-base2)"
-      />
-      {/* Laptop screen */}
-      <rect
-        x="80"
-        y="35"
-        width="120"
-        height="72"
-        rx="8"
-        fill="var(--hx-illu-screen)"
-      />
-      <rect
-        x="85"
-        y="40"
-        width="110"
-        height="62"
-        rx="5"
-        fill="var(--hx-illu-inner)"
-      />
-      {/* Screen UI */}
-      <rect
-        x="91"
-        y="47"
-        width="55"
-        height="5"
-        rx="2"
-        fill="var(--hx-illu-bar1)"
-        opacity=".6"
-      />
-      <rect
-        x="91"
-        y="56"
-        width="38"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar2)"
-        opacity=".35"
-      />
-      <rect
-        x="91"
-        y="65"
-        width="98"
-        height="22"
-        rx="4"
-        fill="var(--hx-illu-card)"
-      />
-      <rect
-        x="97"
-        y="70"
-        width="28"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar1)"
-        opacity=".4"
-      />
-      <rect
-        x="97"
-        y="77"
-        width="44"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar2)"
-        opacity=".25"
-      />
-      <circle cx="166" cy="76" r="7" fill="#3b82f6" opacity=".15" />
-      <rect
-        x="91"
-        y="91"
-        width="42"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar2)"
-        opacity=".25"
-      />
-      <rect
-        x="137"
-        y="91"
-        width="26"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar2)"
-        opacity=".15"
-      />
-      {/* Floating card top-right */}
-      <rect
-        x="198"
-        y="22"
-        width="64"
-        height="40"
-        rx="8"
-        fill="var(--hx-illu-card)"
-        style={{ filter: "drop-shadow(0 4px 12px rgba(59,130,246,.18))" }}
-      />
-      <circle cx="211" cy="36" r="8" fill="#3b82f6" opacity=".15" />
-      <rect
-        x="224"
-        y="32"
-        width="30"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar1)"
-        opacity=".4"
-      />
-      <rect
-        x="224"
-        y="39"
-        width="20"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar2)"
-        opacity=".25"
-      />
-      <rect
-        x="204"
-        y="50"
-        width="50"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar2)"
-        opacity=".18"
-      />
-      {/* Floating card left */}
-      <rect
-        x="14"
-        y="65"
-        width="56"
-        height="32"
-        rx="8"
-        fill="var(--hx-illu-card)"
-        style={{ filter: "drop-shadow(0 4px 12px rgba(16,185,129,.14))" }}
-      />
-      <circle cx="26" cy="81" r="6" fill="#10b981" opacity=".2" />
-      <rect
-        x="37"
-        y="77"
-        width="24"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar1)"
-        opacity=".4"
-      />
-      <rect
-        x="37"
-        y="84"
-        width="18"
-        height="3"
-        rx="1.5"
-        fill="var(--hx-illu-bar2)"
-        opacity=".25"
-      />
-      {/* Plant decoration */}
-      <ellipse cx="212" cy="108" rx="12" ry="5" fill="#10b981" opacity=".15" />
-      <path
-        d="M212 108 Q206 92 215 82 Q208 90 212 108Z"
-        fill="#10b981"
-        opacity=".3"
-      />
-      <path
-        d="M212 108 Q220 88 226 80 Q218 92 212 108Z"
-        fill="#10b981"
-        opacity=".25"
-      />
-      <path
-        d="M212 108 Q205 95 200 85 Q210 97 212 108Z"
-        fill="#10b981"
-        opacity=".2"
-      />
-      {/* Dots */}
-      <circle cx="248" cy="130" r="4" fill="#3b82f6" opacity=".2" />
-      <circle cx="258" cy="140" r="2.5" fill="#3b82f6" opacity=".12" />
-      <circle cx="242" cy="142" r="2" fill="#3b82f6" opacity=".1" />
-      <circle cx="40" cy="118" r="3" fill="#10b981" opacity=".18" />
-      <circle cx="30" cy="128" r="2" fill="#10b981" opacity=".1" />
-    </svg>
-  );
+const ACCESOS = [
+  {
+    icon: "ti-ticket",
+    label: "Solicitudes de TI",
+    desc: "Solicita un servicio de TI o soporte.",
+    color: "#7c8cf8",
+    bg: "#ede9fe",
+    path: "/mesa-de-servicio",
+  },
+  {
+    icon: "ti-alert-circle",
+    label: "Reportar incidencia",
+    desc: "Informa rápidamente una falla.",
+    color: "#ef4444",
+    bg: "#fee2e2",
+    path: "/mesa-de-servicio",
+  },
+  {
+    icon: "ti-book",
+    label: "Base de conocimiento",
+    desc: "Encuentra guías y soluciones.",
+    color: "#4cc9a6",
+    bg: "#d1fae5",
+    path: "/cultura-digital",
+  },
+  {
+    icon: "ti-users",
+    label: "Directorio de personal",
+    color: "#7c8cf8",
+    bg: "#ede9fe",
+    path: null,
+    url: "http://201.151.218.138:3550/fabp/Directorio",
+  },
+  {
+    icon: "ti-file-text",
+    label: "Manuales y guías",
+    color: "#f59e0b",
+    bg: "#fef3c7",
+    path: "/",
+  },
+  {
+    icon: "ti-shield-check",
+    label: "Normativas y políticas",
+    color: "#f59e0b",
+    bg: "#fef3c7",
+    path: "/",
+  },
+];
+
+/* ── Confetti ────────────────────────────────────────────────────── */
+function launchConfetti() {
+  const canvas = document.createElement("canvas");
+  canvas.style.cssText =
+    "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:99999";
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const COLORS = [
+    "#4cc9a6",
+    "#7c8cf8",
+    "#f59e0b",
+    "#ef4444",
+    "#3b82f6",
+    "#a855f7",
+    "#ec4899",
+    "#10b981",
+  ];
+  const pieces = Array.from({ length: 120 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -10 - Math.random() * 200,
+    w: 6 + Math.random() * 8,
+    h: 10 + Math.random() * 6,
+    color: COLORS[Math.floor(Math.random() * COLORS.length)],
+    rot: Math.random() * Math.PI * 2,
+    vx: (Math.random() - 0.5) * 3,
+    vy: 2 + Math.random() * 4,
+    vrot: (Math.random() - 0.5) * 0.18,
+    opacity: 1,
+  }));
+
+  let frame;
+  let start = null;
+  const DURATION = 3200;
+
+  function draw(ts) {
+    if (!start) start = ts;
+    const elapsed = ts - start;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    pieces.forEach((p) => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vrot;
+      p.vy += 0.06; // gravedad suave
+      if (elapsed > DURATION * 0.6) p.opacity = Math.max(0, p.opacity - 0.012);
+
+      ctx.save();
+      ctx.globalAlpha = p.opacity;
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+
+    if (elapsed < DURATION) {
+      frame = requestAnimationFrame(draw);
+    } else {
+      canvas.remove();
+    }
+  }
+  frame = requestAnimationFrame(draw);
+  // limpieza de seguridad
+  setTimeout(() => {
+    cancelAnimationFrame(frame);
+    canvas.remove();
+  }, DURATION + 500);
 }
 
-/* ── Modal cumpleaños ────────────────────────────────────────────── */
+/* ── Modal cumpleaños ───────────────────────────────────────────── */
 function ModalCumpleanos({ data, onClose }) {
+  const hoy = new Date();
+  const [cursor, setCursor] = useState(
+    () => new Date(hoy.getFullYear(), hoy.getMonth(), 1),
+  );
+  const [monthData, setMonthData] = useState([]);
+  const [loadingMonth, setLoadingMonth] = useState(false);
+  const cursorMonth = cursor.getMonth() + 1;
+
+  useEffect(() => {
+    const local = data.filter((b) => Number(b.mesNacimiento) === cursorMonth);
+    if (local.length) {
+      setMonthData(local);
+      return;
+    }
+    setLoadingMonth(true);
+    fetch(birthdaysUrl(cursorMonth), {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((rows) => setMonthData(Array.isArray(rows) ? rows : []))
+      .catch(() => setMonthData([]))
+      .finally(() => setLoadingMonth(false));
+  }, [cursorMonth, data]);
+
+  const diaHoy = hoy.getDate();
+  const grupos = monthData.reduce((acc, b) => {
+    const dia = parseInt(b.diaNacimiento);
+    if (!acc[dia]) acc[dia] = [];
+    acc[dia].push(b);
+    return acc;
+  }, {});
+  const diasOrdenados = Object.keys(grupos)
+    .map(Number)
+    .sort((a, b) => a - b);
+  const mesLabel = cursor.toLocaleDateString("es-MX", {
+    month: "long",
+    year: "numeric",
+  });
+  const MESES = [
+    "ene",
+    "feb",
+    "mar",
+    "abr",
+    "may",
+    "jun",
+    "jul",
+    "ago",
+    "sep",
+    "oct",
+    "nov",
+    "dic",
+  ];
+  const mesCorto = MESES[cursor.getMonth()];
   return (
     <div className="hx-modal-overlay" onClick={onClose}>
-      <div className="hx-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="hx-modal-hdr">
-          <div className="hx-modal-hdr-left">
-            <span className="hx-modal-ico">🎂</span>
-            <span className="hx-modal-title">Cumpleaños del mes</span>
-          </div>
-          <button className="hx-modal-close" onClick={onClose}>
-            <i className="ti ti-x" />
-          </button>
-        </div>
-        <div className="hx-modal-body">
-          {data.length === 0 ? (
-            <div className="hx-empty">Sin cumpleaños este mes.</div>
-          ) : (
-            <div className="hx-bday-modal-grid">
-              {data.map((b, i) => {
-                const av = AVS[i % AVS.length];
-                const ini = initials(b);
-                return (
-                  <div key={i} className="hx-bday-modal-item">
-                    <div
-                      className="hx-bday-modal-av"
-                      style={{ background: av.bg, color: av.c }}
-                    >
-                      {ini}
-                    </div>
-                    <div className="hx-bday-modal-info">
-                      <div className="hx-bday-modal-name">
-                        {b.nombre} {b.apellidoPaterno}
-                      </div>
-                      <div className="hx-bday-modal-meta">
-                        {b.diaNacimiento} ago · {b.departamento || b.sitio}
-                      </div>
-                    </div>
-                    <span className="hx-bday-modal-cake">🎂</span>
-                  </div>
-                );
-              })}
+      <div className="hx-bday2-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="hx-bday2-head">
+          <div className="hx-bday2-head-top">
+            <div>
+              <div className="hx-bday2-head-label">
+                <div className="hx-bday2-icon">🎂</div>
+                <span className="hx-bday2-title">Cumpleaños FABPSA</span>
+              </div>
+              <div className="hx-bday2-sub">
+                Celebremos a quienes cumplen años este mes
+              </div>
             </div>
+            <button className="hx-bday2-close" onClick={onClose}>
+              <i className="ti ti-x" />
+            </button>
+          </div>
+          <div className="hx-bday2-month-bar">
+            <button
+              className="hx-bday2-nav"
+              onClick={() =>
+                setCursor((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1))
+              }
+              aria-label="Mes anterior"
+            >
+              <i className="ti ti-chevron-left" />
+            </button>
+            <span className="hx-bday2-month-text">
+              {mesLabel.charAt(0).toUpperCase() + mesLabel.slice(1)}
+            </span>
+            <button
+              className="hx-bday2-nav"
+              onClick={() =>
+                setCursor((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1))
+              }
+              aria-label="Mes siguiente"
+            >
+              <i className="ti ti-chevron-right" />
+            </button>
+            <span className="hx-bday2-month-count">
+              <i className="ti ti-cake" /> {monthData.length} cumpleaños
+            </span>
+          </div>
+        </div>
+        <div className="hx-bday2-divider" />
+        <div className="hx-bday2-body">
+          {loadingMonth ? (
+            <div className="hx-empty" style={{ padding: "28px 22px" }}>
+              Cargando cumpleaños…
+            </div>
+          ) : monthData.length === 0 ? (
+            <div className="hx-empty" style={{ padding: "28px 22px" }}>
+              Sin cumpleaños este mes.
+            </div>
+          ) : (
+            diasOrdenados.map((dia) => {
+              const esHoy =
+                dia === diaHoy && cursor.getMonth() === hoy.getMonth();
+              return (
+                <div key={dia} className="hx-bday2-group">
+                  <div
+                    className={`hx-bday2-group-label ${esHoy ? "hx-bday2-today-lbl" : ""}`}
+                  >
+                    {esHoy ? (
+                      <>
+                        <i className="ti ti-cake" />
+                        Hoy
+                      </>
+                    ) : (
+                      `${dia} ${mesCorto}`
+                    )}
+                  </div>
+                  {grupos[dia].map((b, i) => {
+                    const av =
+                      AVS[(parseInt(b.diaNacimiento) + i) % AVS.length];
+                    return (
+                      <div
+                        key={i}
+                        className={`hx-bday2-person ${esHoy ? "hx-bday2-today-row" : ""}`}
+                      >
+                        <div
+                          className="hx-bday2-av"
+                          style={{ background: av.bg, color: av.c }}
+                        >
+                          {initials(b)}
+                        </div>
+                        <div className="hx-bday2-info">
+                          <div className="hx-bday2-name">
+                            {b.nombre} {b.apellidoPaterno}
+                          </div>
+                          <div className="hx-bday2-dept">
+                            {b.departamento || b.sitio}
+                          </div>
+                        </div>
+                        <div className="hx-bday2-right">
+                          {esHoy ? (
+                            <span className="hx-bday2-chip-today">
+                              <i className="ti ti-confetti" />
+                              Hoy
+                            </span>
+                          ) : (
+                            <span className="hx-bday2-chip-date">
+                              {dia} {mesCorto}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })
           )}
+        </div>
+        <div className="hx-bday2-foot">
+          <button className="hx-bday2-btn-close" onClick={onClose}>
+            Cerrar
+          </button>
         </div>
       </div>
     </div>
@@ -396,10 +440,105 @@ export default function HomePage() {
   const nav = useNavigate();
   const { user } = useContext(AuthContext);
   const name = user?.name?.split(" ")[0] ?? "Usuario";
+  const lastName = user?.name?.split(" ").slice(1).join(" ") ?? "";
   const msg = MENSAJES[new Date().getDay()] ?? MENSAJES[0];
   const ops = user?.area === "SISTEMAS";
+  const canvasRef = useRef(null);
+  const heroRef = useRef(null);
 
-  // Data states
+  /* ── Partículas ─────────────────────────────────────────────── */
+  useEffect(() => {
+    const canvas = canvasRef.current,
+      hero = heroRef.current;
+    if (!canvas || !hero) return;
+    const ctx = canvas.getContext("2d");
+    const mouse = { x: -999, y: -999 };
+    const N = 32;
+    const pts = Array.from({ length: N }, () => ({
+      x: Math.random() * 100,
+      y: Math.random() * 100,
+      vx: (Math.random() - 0.5) * 0.18,
+      vy: (Math.random() - 0.5) * 0.18,
+      r: Math.random() * 1.6 + 0.7,
+    }));
+    let W, H, raf;
+    const resize = () => {
+      W = canvas.width = hero.offsetWidth;
+      H = canvas.height = hero.offsetHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    const onMove = (e) => {
+      const r = hero.getBoundingClientRect();
+      mouse.x = e.clientX - r.left;
+      mouse.y = e.clientY - r.top;
+    };
+    const onLeave = () => {
+      mouse.x = -999;
+      mouse.y = -999;
+    };
+    hero.addEventListener("mousemove", onMove);
+    hero.addEventListener("mouseleave", onLeave);
+    const CONN = 80,
+      MOUSE_R = 100,
+      PUSH = 16;
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      const px = mouse.x,
+        py = mouse.y;
+      pts.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > 100) p.vx *= -1;
+        if (p.y < 0 || p.y > 100) p.vy *= -1;
+        const ax = (p.x / 100) * W,
+          ay = (p.y / 100) * H;
+        const dx = ax - px,
+          dy = ay - py,
+          dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < MOUSE_R && dist > 0) {
+          const f = (MOUSE_R - dist) / MOUSE_R;
+          p.x += (((dx / dist) * f * PUSH) / W) * 100;
+          p.y += (((dy / dist) * f * PUSH) / H) * 100;
+        }
+      });
+      for (let i = 0; i < N; i++)
+        for (let j = i + 1; j < N; j++) {
+          const ax = (pts[i].x / 100) * W,
+            ay = (pts[i].y / 100) * H;
+          const bx = (pts[j].x / 100) * W,
+            by = (pts[j].y / 100) * H;
+          const d = Math.sqrt((ax - bx) ** 2 + (ay - by) ** 2);
+          if (d < CONN) {
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(bx, by);
+            ctx.strokeStyle = `rgba(76,201,166,${(1 - d / CONN) * 0.18})`;
+            ctx.lineWidth = 0.7;
+            ctx.stroke();
+          }
+        }
+      pts.forEach((p) => {
+        const ax = (p.x / 100) * W,
+          ay = (p.y / 100) * H;
+        const near = Math.sqrt((ax - px) ** 2 + (ay - py) ** 2) < MOUSE_R;
+        ctx.beginPath();
+        ctx.arc(ax, ay, p.r * (near ? 1.8 : 1), 0, Math.PI * 2);
+        ctx.fillStyle = near ? "rgba(76,201,166,0.7)" : "rgba(76,201,166,0.26)";
+        ctx.fill();
+      });
+      raf = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+      hero.removeEventListener("mousemove", onMove);
+      hero.removeEventListener("mouseleave", onLeave);
+    };
+  }, []);
+
+  /* ── States ─────────────────────────────────────────────────── */
   const [coms, setComs] = useState([]);
   const [svcs, setSvcs] = useState([]);
   const [svcCat, setSvcCat] = useState([]);
@@ -410,11 +549,10 @@ export default function HomePage() {
   const [lSvc, setLSvc] = useState(true);
   const [lBday, setLBday] = useState(true);
   const [lArts, setLArts] = useState(true);
-
-  // Modal states
   const [mCom, setMCom] = useState(false);
   const [mSvc, setMSvc] = useState(false);
   const [mBdays, setMBdays] = useState(false);
+  const [busca, setBusca] = useState(""); // lanzador: filtra herramientas mientras se escribe
   const [fCom, setFCom] = useState({ encabezado: "", cuerpo: "" });
   const [fSvc, setFSvc] = useState({
     idServicio: "",
@@ -460,13 +598,18 @@ export default function HomePage() {
   async function loadBdays() {
     setLBday(true);
     try {
-      const url = process.env.REACT_APP_API_URL
-        ? `${process.env.REACT_APP_API_URL}/birthdays`
-        : "/api/birthdays";
-      const d = await fetch(url, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      }).then((r) => r.json());
-      setBdays(Array.isArray(d) ? d : []);
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const nextMonth = (currentMonth % 12) + 1;
+      const headers = { Authorization: `Bearer ${getToken()}` };
+      const [current, next] = await Promise.all([
+        fetch(birthdaysUrl(currentMonth), { headers }).then((r) => r.json()),
+        fetch(birthdaysUrl(nextMonth), { headers }).then((r) => r.json()),
+      ]);
+      setBdays([
+        ...(Array.isArray(current) ? current : []),
+        ...(Array.isArray(next) ? next : []),
+      ]);
     } catch {
       setBdays([]);
     } finally {
@@ -489,6 +632,7 @@ export default function HomePage() {
       setLArts(false);
     }
   }
+
   async function pubCom() {
     if (!fCom.encabezado.trim()) return;
     setSCom(true);
@@ -526,438 +670,521 @@ export default function HomePage() {
   }
 
   const allOk = svcs.length > 0 && svcs.every((s) => s.estado === "operando");
-
-  // Cumpleaños: próximos del mes
   const hoy = new Date();
-  const bdayProximos = bdays
-    .sort((a, b) => parseInt(a.diaNacimiento) - parseInt(b.diaNacimiento))
-    .slice(0, 4);
+  const mesActual = hoy.getMonth() + 1;
+  const cumpleHoy = bdays.filter(
+    (b) =>
+      Number(b.mesNacimiento) === mesActual &&
+      Number(b.diaNacimiento) === hoy.getDate(),
+  );
+  const futuros = bdays
+    .filter((b) => {
+      const monthOffset = (Number(b.mesNacimiento) - mesActual + 12) % 12;
+      return monthOffset > 0 || Number(b.diaNacimiento) > hoy.getDate();
+    })
+    .sort((a, b) => {
+      const aOffset = (Number(a.mesNacimiento) - mesActual + 12) % 12;
+      const bOffset = (Number(b.mesNacimiento) - mesActual + 12) % 12;
+      return aOffset - bOffset || Number(a.diaNacimiento) - Number(b.diaNacimiento);
+    });
+  const bdayProximos = cumpleHoy.length
+    ? [
+        ...cumpleHoy,
+        ...(cumpleHoy.length === 1 ? futuros.slice(0, 2) : []),
+      ].slice(0, 4)
+    : futuros.slice(0, 4);
+  const bdayResumen = bdayProximos.slice(0, 3);
+  const totalCumpleRelevantes = cumpleHoy.length || bdayProximos.length;
+  const bdayRestantes = Math.max(0, totalCumpleRelevantes - bdayResumen.length);
+  const artDestacado = arts[0] ?? null;
+  const artSecundarios = arts.slice(1, 3);
 
   return (
-    <div className="hx">
-      {/* ══ ROW 1: Hero + Cumpleaños ═══════════════════════════ */}
-      <div className="hx-row1">
-        {/* Hero */}
-        <div className="hx-hero">
-          <div className="hx-hero-left">
-            <div className="hx-date">{fmtHoy()}</div>
-            <h1 className="hx-h1">
-              {saludo()}, <span className="hx-name">{name}</span> 👋
-            </h1>
-            <p className="hx-msg">{msg.a}</p>
-            <p className="hx-sub">{msg.b}</p>
-            <nav className="hx-dock">
-              {QUICK_APPS.map((a, i) => (
-                <a
-                  key={i}
-                  className="hx-dock-item"
-                  href={a.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  title={a.desc}
-                >
-                  <span className="hx-dock-ico" style={{ background: a.bg }}>
-                    <i className={`ti ${a.icon}`} style={{ color: a.color }} />
-                  </span>
-                  <span className="hx-dock-lbl">{a.name}</span>
-                </a>
-              ))}
-            </nav>
-          </div>
-          <div className="hx-hero-right">
-            <HeroIllustration />
-          </div>
+    <div className={"hx hx--nube" + (esTemporadaDiaMuertos() ? " hx--dm" : "")}>
+      {/* ══ HERO ════════════════════════════════════════════════ */}
+      <div className="hap" ref={heroRef}>
+        <canvas
+          ref={canvasRef}
+          style={{
+            display: "none",
+          }}
+        />
+        <div className="hap-bg">
+          <div className="hap-stripe" />
+          <div className="hap-dot1" />
+          <div className="hap-dot2" />
         </div>
-
-        {/* Cumpleaños */}
-        <div className="hx-card hx-bday-panel">
-          <div className="hx-panel-hdr">
-            <div className="hx-panel-hdr-left">
-              <i className="ti ti-cake hx-panel-ico" />
-              <span className="hx-panel-label">PRÓXIMOS CUMPLEAÑOS</span>
+        <div className="hap-inner">
+          <div className="hap-row1">
+            <div className="hap-id">
+              <div className="hap-work-label">
+                Tu espacio de trabajo <span />
+              </div>
+              <span className="hap-greet">{saludo()},</span>
+              <div className="hap-name">
+                {name} <span>{lastName}</span>
+              </div>
+              <div className="hap-msgs">
+                <p className="hap-msg-a">{msg.a}</p>
+                <p className="hap-msg-b">{msg.b}</p>
+              </div>
             </div>
-            <button className="hx-ver-btn" onClick={() => setMBdays(true)}>
-              Ver todos
-            </button>
+            {/* Fabi, el robot de la Mesa de Servicio, en el espacio libre del saludo */}
+            <div className="hap-fabpsi">
+              <FabpsiFlotante robot={robotFabi} />
+            </div>
+            <span className="hap-fecha">
+              <i className="ti ti-calendar" /> {fmtHoy()}
+            </span>
           </div>
-
-          {lBday ? (
-            <div className="hx-loading">Cargando…</div>
-          ) : bdayProximos.length === 0 ? (
-            <div className="hx-empty">Sin cumpleaños próximos.</div>
-          ) : (
-            <div className="hx-bday-list">
-              {bdayProximos.map((b, i) => {
-                const av = AVS[i % AVS.length];
-                return (
-                  <div key={i} className="hx-bday-row">
-                    <div
-                      className="hx-bday-av"
-                      style={{ background: av.bg, color: av.c }}
-                    >
-                      {initials(b)}
-                    </div>
-                    <div className="hx-bday-info">
-                      <div className="hx-bday-name">
-                        {b.nombre} {b.apellidoPaterno}
-                      </div>
-                      <div className="hx-bday-meta">
-                        {b.diaNacimiento} ago · {b.departamento || b.sitio}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Cake decoration */}
-          <div className="hx-bday-deco" aria-hidden="true">
-            <svg viewBox="0 0 80 80" fill="none" width="80" height="80">
-              <circle cx="56" cy="56" r="30" fill="#fef3c7" opacity=".4" />
-              <text x="44" y="62" fontSize="26" textAnchor="middle">
-                🎂
-              </text>
-            </svg>
+          <div className="hap-row2">
+            <button
+              className="hap-cta"
+              onClick={() => nav("/mesa-de-servicio")}
+            >
+              <i className="ti ti-plus" aria-hidden="true" />
+              <span>Reportar Incidente</span>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* ══ ROW 2: Comunicados + Servicios TI + Soporte ═════════ */}
-      <div className="hx-row2">
-        {/* Comunicados */}
-        <div className="hx-card hx-col-com">
-          <div className="hx-panel-hdr" style={{ marginBottom: 10 }}>
-            <span className="hx-panel-label">COMUNICADOS</span>
+
+      {/* ══ AVISOS: un comunicado importante reciente (≤ 15 días) y los cumpleaños de hoy, en una línea ══ */}
+      {(() => {
+        const aviso = coms.find((c) => /importante/i.test(c.tipo || "") && Date.now() - new Date(c.fechaPublicacion) < 15 * 864e5);
+        if (!aviso && !cumpleHoy.length && !ops) return null;
+        const nombres = cumpleHoy.slice(0, 2).map((b) => (b.nombre + " " + (b.apellidoPaterno || "")).toLowerCase()).join(" y ");
+        return (
+          <div className="hx-avisos">
+            {aviso && (
+              <span className="hx-aviso">
+                <i className="ti ti-speakerphone" aria-hidden="true" />
+                <b>Aviso</b> {aviso.encabezado}
+              </span>
+            )}
+            {cumpleHoy.length > 0 && (
+              <button type="button" className="hx-cumple-chip" onClick={() => setMBdays(true)} title="Ver cumpleaños">
+                <span aria-hidden="true">🎂</span>
+                Hoy {cumpleHoy.length > 1 ? "cumplen" : "cumple"} <b>{nombres}</b>
+                {cumpleHoy.length > 2 ? " y " + (cumpleHoy.length - 2) + " más" : ""}
+                <span className="hx-cumple-ver">Ver próximos →</span>
+              </button>
+            )}
             {ops && (
-              <button className="hx-add-btn" onClick={() => setMCom(true)}>
-                <i className="ti ti-plus" /> Nuevo
+              <button type="button" className="hx-aviso-nuevo" onClick={() => setMCom(true)}>
+                <i className="ti ti-plus" aria-hidden="true" /> Comunicado
               </button>
             )}
           </div>
+        );
+      })()}
 
-          {lCom ? (
-            <div className="hx-loading">Cargando…</div>
-          ) : coms.length === 0 ? (
-            <div className="hx-empty">Sin comunicados.</div>
-          ) : (
-            coms.slice(0, 2).map((c, i) => (
-              <div key={i} className="hx-com-item">
-                <div className="hx-com-thumb">
-                  {c.imagenUrl ? (
-                    <img src={c.imagenUrl} alt={c.encabezado} />
-                  ) : (
-                    <div className="hx-com-thumb-placeholder">
-                      <i
-                        className={`ti ${i === 0 ? "ti-windmill" : "ti-device-desktop"}`}
-                      />
-                    </div>
-                  )}
-                </div>
-                <div className="hx-com-body">
-                  {c.tipo && (
-                    <span
-                      className="hx-com-tag"
-                      style={{
-                        color: i === 0 ? "#ef4444" : "#3b82f6",
-                        background: i === 0 ? "#fee2e2" : "#dbeafe",
-                      }}
-                    >
-                      {c.tipo || (i === 0 ? "Importante" : "Actualización")}
-                    </span>
-                  )}
-                  {!c.tipo && (
-                    <span
-                      className="hx-com-tag"
-                      style={{
-                        color: i === 0 ? "#ef4444" : "#3b82f6",
-                        background: i === 0 ? "#fee2e2" : "#dbeafe",
-                      }}
-                    >
-                      {i === 0 ? "Importante" : "Actualización"}
-                    </span>
-                  )}
-                  <div className="hx-com-title">{c.encabezado}</div>
-                  {c.cuerpo && <div className="hx-com-desc">{c.cuerpo}</div>}
-                  <div className="hx-com-date">
-                    {fmtFecha(c.fechaPublicacion)}
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-
-          <button className="hx-see-all">
-            Ver todos los comunicados <i className="ti ti-arrow-right" />
-          </button>
-        </div>
-
-        {/* Servicios TI */}
-        <div className="hx-card hx-col-svc">
-          <div className="hx-panel-hdr" style={{ marginBottom: 8 }}>
-            <span className="hx-panel-label">SERVICIOS TI</span>
-            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-              {ops && (
-                <button className="hx-add-btn" onClick={() => setMSvc(true)}>
-                  <i className="ti ti-refresh" /> Actualizar
-                </button>
-              )}
-              <button className="hx-ver-btn">Ver catálogo</button>
-            </div>
-          </div>
-
-          {!lSvc && svcs.length > 0 && (
-            <div className={`hx-svc-status-bar ${allOk ? "ok" : "warn"}`}>
-              <span className="hx-svc-dot-sm" />
-              {allOk
-                ? "Todos los servicios operando"
-                : "Hay incidencias activas"}
-            </div>
-          )}
-
-          {lSvc ? (
-            <div className="hx-loading">Cargando…</div>
-          ) : (
-            svcs.map((s, i) => {
-              const e = EST[s.estado] ?? EST.operando;
-              const ico = SVC_ICONS[s.nombre] || "ti-server";
-              return (
-                <div key={i} className="hx-svc-row">
-                  <div className="hx-svc-ico">
-                    <i className={`ti ${ico}`} />
-                  </div>
-                  <span className="hx-svc-name">{s.nombre}</span>
-                  <span className="hx-svc-badge" style={{ color: e.color }}>
-                    <span
-                      className="hx-svc-dot"
-                      style={{ background: e.color }}
-                    />
-                    {e.label}
-                  </span>
-                </div>
-              );
-            })
-          )}
-
-          <button className="hx-see-all">
-            Ver todos los servicios <i className="ti ti-arrow-right" />
-          </button>
-        </div>
-
-        {/* Tu Soporte */}
-        <div className="hx-col-soporte">
-          {/* Mesa */}
-          <div className="hx-card hx-mesa-card">
-            <div className="hx-panel-label" style={{ marginBottom: 10 }}>
-              TU SOPORTE
-            </div>
-            <div className="hx-mesa-inner">
-              <div className="hx-mesa-text">
-                <div className="hx-mesa-title">Mesa de Servicios</div>
-                <div className="hx-mesa-desc">
-                  Reporta incidencias, solicita soporte o consulta tus
-                  solicitudes.
-                </div>
-                <button
-                  className="hx-mesa-btn"
-                  onClick={() => nav("/mesa-de-servicio")}
-                >
-                  Ir a Mesa de Servicios <i className="ti ti-arrow-right" />
-                </button>
-              </div>
-              <div className="hx-mesa-illo" aria-hidden="true">
-                <svg viewBox="0 0 70 70" width="70" height="70">
-                  <circle cx="35" cy="35" r="30" fill="#dbeafe" />
-                  <text x="35" y="46" fontSize="26" textAnchor="middle">
-                    🎧
-                  </text>
-                </svg>
-              </div>
-            </div>
-          </div>
-          {/* Contacto */}
-          <div className="hx-card hx-contacto-card">
-            <div className="hx-panel-label" style={{ marginBottom: 10 }}>
-              CONTACTO DIRECTO
-            </div>
-            <a
-              className="hx-contact"
-              href="https://teams.microsoft.com/l/chat/0/0?users=jorge.gonzalez@fabpsa.com.mx"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <div
-                className="hx-contact-av"
-                style={{ background: "#dcfce7", color: "#15803d" }}
+      {/* ══ MIS HERRAMIENTAS: apps de la empresa + soporte, en un solo lugar ══ */}
+      <section className="hx-lanzador" aria-label="Mis herramientas">
+        {(() => {
+          const norm = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+          const todas = [
+            ...QUICK_APPS.map((a) => ({ id: "app-" + a.name, nombre: a.name, icon: a.icon, bg: a.bg, color: a.color, abrir: () => window.open(a.url, "_blank") })),
+            ...ACCESOS.filter((a) => !/reportar/i.test(a.label)).map((a) => ({ id: "acc-" + a.label, nombre: a.label, icon: a.icon, bg: a.bg, color: a.color, abrir: () => (a.url ? window.open(a.url, "_blank") : nav(a.path)) })),
+          ];
+          const q = norm(busca.trim());
+          const vis = q ? todas.filter((t) => norm(t.nombre).includes(q)) : todas;
+          return (
+            <>
+              <form
+                className="hx-lz-barra"
+                role="search"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (vis[0]) vis[0].abrir();
+                  else if (busca.trim()) nav("/mesa-de-servicio");
+                }}
               >
-                JG
+                <i className="ti ti-search" aria-hidden="true" />
+                <input
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  placeholder="¿Qué necesitas abrir? Escribe PGI, SISAP, directorio…"
+                  aria-label="Buscar herramienta"
+                  maxLength={60}
+                />
+                <kbd>Enter</kbd>
+              </form>
+              <div className="hx-dock">
+                {vis.map((t) => (
+                  <button key={t.id} type="button" className="hx-dock-item" onClick={t.abrir} title={t.nombre}>
+                    <span className="hx-dock-ico" style={{ background: t.bg, color: t.color }}>
+                      <i className={"ti " + t.icon} aria-hidden="true" />
+                    </span>
+                    <span className="hx-dock-lbl">{t.nombre}</span>
+                  </button>
+                ))}
+                {!vis.length && (
+                  <button type="button" className="hx-dock-vacio" onClick={() => nav("/mesa-de-servicio")}>
+                    No hay una herramienta con «{busca.trim()}». Pedir ayuda en Mesa de Servicio →
+                  </button>
+                )}
               </div>
-              <div className="hx-contact-info">
-                <span className="hx-contact-site">Planta</span>
-                <span className="hx-contact-name">Jorge González</span>
-              </div>
-              <i className="ti ti-brand-teams hx-teams" />
-            </a>
-            <a
-              className="hx-contact"
-              href="https://teams.microsoft.com/l/chat/0/0?users=lizbet.hernandez@fabpsa.com.mx"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <div
-                className="hx-contact-av"
-                style={{ background: "#dbeafe", color: "#1d4ed8" }}
-              >
-                LH
-              </div>
-              <div className="hx-contact-info">
-                <span className="hx-contact-site">Sur 121</span>
-                <span className="hx-contact-name">Lizbet Hernández J.</span>
-              </div>
-              <i className="ti ti-brand-teams hx-teams" />
-            </a>
-          </div>
-        </div>
-      </div>
+            </>
+          );
+        })()}
+      </section>
 
-      {/* ══ ROW 3: Cultura Digital + Accesos rápidos ════════════ */}
-      <div className="hx-row3">
-        {/* Cultura Digital */}
-        <div className="hx-card hx-col-cultura">
-          <div className="hx-panel-hdr" style={{ marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span className="hx-panel-label">CULTURA DIGITAL</span>
+      {/* ══ BODY: col-main + col-side ════════════════════════════ */}
+      <div className="hx-body">
+        {/* ── Columna principal ─────────────────────────────────── */}
+        <div className="hx-col-main">
+          {/* Cultura Digital */}
+          <div className="hx-surface hx-cultura-section">
+            <div className="hx-section-hdr">
+              <span className="hx-eyebrow">Noticias y Cultura Digital</span>
               {edicion && (
-                <span className="hx-edition-tag">Edición {edicion.titulo}</span>
+                <span className="hx-edition-chip">
+                  Edición {edicion.titulo}
+                </span>
               )}
+              <button
+                className="hx-link-btn"
+                onClick={() => nav("/cultura-digital")}
+              >
+                Ver todas →
+              </button>
             </div>
-            <button
-              className="hx-ver-btn"
-              onClick={() => nav("/cultura-digital")}
-            >
-              Ver todo
-            </button>
-          </div>
-          <div className="hx-cultura-grid">
+
             {lArts ? (
-              [1, 2, 3].map((i) => <div key={i} className="hx-art-skeleton" />)
-            ) : arts.length === 0 ? (
-              <div className="hx-empty">Próximamente.</div>
+              <div className="hx-art-skeleton-featured" />
             ) : (
-              arts.map((a, i) => {
-                const cc = CAT_COLORS[a.categoria] || "#3b82f6";
-                const cl = CAT_LABELS[a.categoria] || a.categoria;
-                const fecha = a.fechaPublicacion
-                  ? new Date(a.fechaPublicacion).toLocaleDateString("es-MX", {
-                      day: "numeric",
-                      month: "short",
-                    })
-                  : "";
-                return (
+              <div className="hx-art-grid">
+                {/* Artículo destacado — imagen grande con overlay */}
+                {artDestacado && (
                   <div
-                    key={a.idArticulo}
-                    className="hx-art-card"
+                    className="hx-art-hero"
                     onClick={() => nav("/cultura-digital")}
                   >
-                    <div className="hx-art-img">
-                      {a.fotoUrl ? (
-                        <img src={a.fotoUrl} alt={a.titulo} />
+                    <div className="hx-art-hero-img">
+                      {artDestacado.fotoUrl ? (
+                        <img
+                          src={artDestacado.fotoUrl}
+                          onError={(e) => e.currentTarget.classList.add("is-rota")}
+                          alt={artDestacado.titulo}
+                        />
                       ) : (
                         <div
-                          className="hx-art-img-ph"
-                          style={{ background: cc + "14" }}
+                          className="hx-art-hero-ph"
+                          style={{
+                            background:
+                              (CAT_COLORS[artDestacado.categoria] ||
+                                "#8b5cf6") + "22",
+                          }}
                         >
-                          <span style={{ fontSize: 22 }}>
-                            {CAT_EMOJIS[a.categoria] || "📄"}
+                          <span>
+                            {CAT_EMOJIS[artDestacado.categoria] || "📄"}
                           </span>
                         </div>
                       )}
-                    </div>
-                    <div className="hx-art-body">
-                      <span
-                        className="hx-art-cat"
-                        style={{ color: cc, background: cc + "12" }}
-                      >
-                        {cl}
-                      </span>
-                      <div className="hx-art-title">{a.titulo}</div>
-                      <div className="hx-art-meta">
-                        {a.autor} · {fecha}
-                      </div>
-                      <div className="hx-art-reactions">
-                        <span>👍 {a.likes ?? 0}</span>
-                        <span>💬 {a.comentarios ?? 0}</span>
+                      <div className="hx-art-hero-overlay">
+                        <span className="hx-art-hero-badge">
+                          Artículo Destacado
+                        </span>
+                        <h2 className="hx-art-hero-title">
+                          {artDestacado.titulo}
+                        </h2>
+                        <div className="hx-art-hero-meta">
+                          {artDestacado.autor} ·{" "}
+                          {artDestacado.fechaPublicacion
+                            ? new Date(
+                                artDestacado.fechaPublicacion,
+                              ).toLocaleDateString("es-MX", {
+                                day: "numeric",
+                                month: "short",
+                              })
+                            : ""}
+                          <span className="hx-art-hero-cta">
+                            Leer artículo <i className="ti ti-arrow-right" />
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                );
-              })
+                )}
+
+                {/* Artículos secundarios — imagen thumbnail derecha */}
+                <div className="hx-art-side-list">
+                  {artSecundarios.map((a) => {
+                    const cc = CAT_COLORS[a.categoria] || "#3b82f6";
+                    return (
+                      <div
+                        key={a.idArticulo}
+                        className="hx-art-side-item"
+                        onClick={() => nav("/cultura-digital")}
+                      >
+                        <div className="hx-art-side-body">
+                          <span
+                            className="hx-art-side-cat"
+                            style={{ color: cc }}
+                          >
+                            {CAT_LABELS[a.categoria] || a.categoria}
+                          </span>
+                          <div className="hx-art-side-title">{a.titulo}</div>
+                          <div className="hx-art-side-meta">
+                            {a.autor} · 👍 {a.likes ?? 0}
+                          </div>
+                        </div>
+                        <div className="hx-art-side-img">
+                          {a.fotoUrl ? (
+                            <img src={a.fotoUrl} alt={a.titulo} />
+                          ) : (
+                            <div
+                              className="hx-art-side-ph"
+                              style={{ background: cc + "14" }}
+                            >
+                              <span>{CAT_EMOJIS[a.categoria] || "📄"}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
+          </div>
+
+          {/* Fila inferior: Comunicados + Servicios TI + Accesos Rápidos */}
+          <div className="hx-bottom-row">
+            {/* Comunicados */}
+            <div className="hx-surface">
+              <div className="hx-section-hdr">
+                <span className="hx-eyebrow">Comunicados</span>
+                {ops && (
+                  <button className="hx-link-btn" onClick={() => setMCom(true)}>
+                    <i className="ti ti-plus" style={{ fontSize: "0.6rem" }} />{" "}
+                    Nuevo
+                  </button>
+                )}
+              </div>
+              {lCom ? (
+                <div className="hx-loading">Cargando…</div>
+              ) : coms.length === 0 ? (
+                <div className="hx-empty">Sin comunicados.</div>
+              ) : (
+                <>
+                  {coms.slice(0, 2).map((c, i) => (
+                    <div key={i} className="hx-com-row">
+                      <div className="hx-com-thumb">
+                        {c.imagenUrl ? (
+                          <img src={c.imagenUrl} alt={c.encabezado} />
+                        ) : (
+                          <i
+                            className={`ti ${i === 0 ? "ti-windmill" : "ti-device-desktop"}`}
+                          />
+                        )}
+                      </div>
+                      <div className="hx-com-body">
+                        <span
+                          className="hx-com-tag"
+                          style={{
+                            color: i === 0 ? "#ef4444" : "#7c8cf8",
+                            background: i === 0 ? "#fee2e2" : "#ede9fe",
+                          }}
+                        >
+                          {c.tipo || (i === 0 ? "Importante" : "Actualización")}
+                        </span>
+                        <div className="hx-com-title">{c.encabezado}</div>
+                        {c.cuerpo && (
+                          <div className="hx-com-desc">{c.cuerpo}</div>
+                        )}
+                        <div className="hx-com-date">
+                          {fmtFecha(c.fechaPublicacion)}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              
+                </>
+              )}
+            </div>
+
+            {/* Servicios TI */}
+            <div className="hx-surface">
+              <div className="hx-section-hdr">
+                <span className="hx-eyebrow">Servicios TI</span>
+                {ops && (
+                  <button className="hx-link-btn" onClick={() => setMSvc(true)}>
+                    <i
+                      className="ti ti-refresh"
+                      style={{ fontSize: "0.6rem" }}
+                    />{" "}
+                    Actualizar
+                  </button>
+                )}
+              </div>
+              {!lSvc && svcs.length > 0 && (
+                <div className={`hx-svc-banner ${allOk ? "ok" : "warn"}`}>
+                  <span className="hx-svc-banner-dot" />
+                  {allOk
+                    ? "Todos los servicios operando"
+                    : "Hay incidencias activas"}
+                </div>
+              )}
+              {lSvc ? (
+                <div className="hx-loading">Cargando…</div>
+              ) : (
+                svcs.map((s, i) => {
+                  const e = EST[s.estado] ?? EST.operando;
+                  const ico = SVC_ICONS[s.nombre] || "ti-server";
+                  return (
+                    <div key={i} className="hx-svc-row">
+                      <div className="hx-svc-ico">
+                        <i className={`ti ${ico}`} />
+                      </div>
+                      <span className="hx-svc-name">{s.nombre}</span>
+                      <span
+                        className="hx-svc-status"
+                        style={{ color: e.color }}
+                      >
+                        <span
+                          className="hx-svc-dot"
+                          style={{ background: e.color }}
+                        />
+                        {e.label}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+          
+            </div>
+
           </div>
         </div>
 
-        {/* Accesos rápidos */}
-        <div className="hx-card hx-col-accesos">
-          <div className="hx-panel-label" style={{ marginBottom: 16 }}>
-            ACCESOS RÁPIDOS
-          </div>
-          <div className="hx-accesos-grid">
-            {[
-              {
-                icon: "ti-ticket",
-                label: "Solicitudes\nde TI",
-                color: "#3b82f6",
-                bg: "#dbeafe",
-                path: "/mesa-de-servicio",
-              },
-              {
-                icon: "ti-alert-circle",
-                label: "Reportar\nincidencia",
-                color: "#ef4444",
-                bg: "#fee2e2",
-                path: "/mesa-de-servicio",
-              },
-              {
-                icon: "ti-book",
-                label: "Base de\nconocimiento",
-                color: "#8b5cf6",
-                bg: "#ede9fe",
-                path: "/cultura-digital",
-              },
-              {
-                icon: "ti-users",
-                label: "Directorio\nde personal",
-                color: "#10b981",
-                bg: "#dcfce7",
-                path: "/",
-              },
-            ].map((a, i) => (
-              <button key={i} className="hx-acceso" onClick={() => nav(a.path)}>
-                <div className="hx-acceso-ico" style={{ background: a.bg }}>
-                  <i className={`ti ${a.icon}`} style={{ color: a.color }} />
-                </div>
-                <span className="hx-acceso-lbl">
-                  {a.label.replace("\n", " ")}
-                </span>
+        {/* ── Columna derecha ───────────────────────────────────── */}
+        <div className="hx-col-side">
+          {/* Próximos Cumpleaños */}
+          <div className="hx-surface hx-bday-surface">
+            <div className="hx-section-hdr">
+              <span className="hx-eyebrow">
+                {cumpleHoy.length ? "Cumpleaños de hoy" : "Próximos Cumpleaños"}
+              </span>
+              {bdayRestantes > 0 && (
+                <button className="hx-bday-more" onClick={() => setMBdays(true)}>
+                  +{bdayRestantes} más
+                </button>
+              )}
+              <button className="hx-link-btn" onClick={() => setMBdays(true)}>
+                Ver todos →
               </button>
-            ))}
+            </div>
+            {lBday ? (
+              <div className="hx-loading">Cargando…</div>
+            ) : bdayProximos.length === 0 ? (
+              <div className="hx-empty">Sin cumpleaños próximos.</div>
+            ) : (
+              <div className="hx-bday-list">
+                {bdayResumen.map((b, i) => {
+                  const av = AVS[i % AVS.length];
+                  const esHoy =
+                    Number(b.mesNacimiento) === mesActual &&
+                    Number(b.diaNacimiento) === hoy.getDate();
+                  const mes = new Date(2026, Number(b.mesNacimiento) - 1, 1)
+                    .toLocaleDateString("es-MX", { month: "short" })
+                    .replace(".", "");
+                  return (
+                    <div key={i} className="hx-bday-row-wrap">
+                      {cumpleHoy.length > 0 && i === cumpleHoy.length && (
+                        <span className="hx-bday-next-label">
+                          Próximos cumpleaños
+                        </span>
+                      )}
+                      <div className="hx-bday-row">
+                      <div
+                        className="hx-bday-av"
+                        style={{ background: av.bg, color: av.c }}
+                      >
+                        {initials(b)}
+                      </div>
+                      <div className="hx-bday-info">
+                        <div className="hx-bday-name">
+                          {b.nombre} {b.apellidoPaterno}
+                        </div>
+                        <div className="hx-bday-meta">
+                          {esHoy ? "Hoy" : `${b.diaNacimiento} ${mes}`} ·{" "}
+                          {b.departamento || b.sitio}
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Widget ¡Celebremos juntos! */}
+            <div className="hx-bday-celebrate">
+              <div className="hx-bday-celebrate-illo">🎂</div>
+              <div className="hx-bday-celebrate-text">
+                <div className="hx-bday-celebrate-title">
+                  ¡Celebremos juntos!
+                </div>
+                <div className="hx-bday-celebrate-desc">
+                  Reconozcamos a quienes hacen grande a FABPSA
+                </div>
+              </div>
+              <button
+                className="hx-bday-celebrate-btn"
+                onClick={() => {
+                  launchConfetti();
+                  setMBdays(true);
+                }}
+              >
+                Ver calendario
+              </button>
+            </div>
+          </div>
+
+          {/* Mesa de Servicios */}
+          <div className="hx-surface hx-soporte-surface">
+            <span
+              className="hx-eyebrow"
+              style={{ marginBottom: 10, display: "block" }}
+            >
+              Tu soporte
+            </span>
+            <div className="hx-soporte-inner">
+              <div className="hx-soporte-illo" aria-hidden="true">
+                🎧
+              </div>
+              <div className="hx-soporte-text">
+                <div className="hx-soporte-title">Mesa de Servicios</div>
+                <div className="hx-soporte-desc">
+                  Reporta incidencias, solicita soporte o consulta tus
+                  solicitudes.
+                </div>
+              </div>
+            </div>
+            <button
+              className="hx-soporte-btn"
+              onClick={() => nav("/mesa-de-servicio")}
+            >
+              Ir a Mesa de Servicios{" "}
+              <i className="ti ti-arrow-right" aria-hidden="true" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* ══ MODAL CUMPLEAÑOS ════════════════════════════════════ */}
+      {/* ══ MODALES ══════════════════════════════════════════════ */}
       {mBdays && (
         <ModalCumpleanos data={bdays} onClose={() => setMBdays(false)} />
       )}
 
-      {/* ══ MODAL NUEVO COMUNICADO ══════════════════════════════ */}
       {mCom && (
         <div className="hx-modal-overlay" onClick={() => setMCom(false)}>
           <div className="hx-modal" onClick={(e) => e.stopPropagation()}>
             <div className="hx-modal-hdr">
-              <div className="hx-modal-hdr-left">
-                <span className="hx-modal-title">Nuevo comunicado</span>
-              </div>
+              <span className="hx-modal-title">Nuevo comunicado</span>
               <button className="hx-modal-close" onClick={() => setMCom(false)}>
                 <i className="ti ti-x" />
               </button>
@@ -1006,14 +1233,11 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* ══ MODAL ACTUALIZAR SERVICIO ═══════════════════════════ */}
       {mSvc && (
         <div className="hx-modal-overlay" onClick={() => setMSvc(false)}>
           <div className="hx-modal" onClick={(e) => e.stopPropagation()}>
             <div className="hx-modal-hdr">
-              <div className="hx-modal-hdr-left">
-                <span className="hx-modal-title">Actualizar servicio</span>
-              </div>
+              <span className="hx-modal-title">Actualizar servicio</span>
               <button className="hx-modal-close" onClick={() => setMSvc(false)}>
                 <i className="ti ti-x" />
               </button>

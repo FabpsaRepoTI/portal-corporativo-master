@@ -154,6 +154,8 @@ async function crearSolicitud({
     idSolicitud: row.idSolicitud,
     folio: row.folio,
     fechaCreacion: row.fechaCreacion,
+    slaRespuestaMin,
+    slaResolucionMin,
     slaRespuestaHrs: slaRespuestaMin,
     slaResolucionHrs: slaResolucionMin,
     fechaLimiteResp,

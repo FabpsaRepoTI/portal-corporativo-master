@@ -1,3 +1,4 @@
+const { formatSlaDuration } = require("../helpers/formatSlaDuration");
 const nodemailer = require("nodemailer");
 
 const fs = require("fs");
@@ -13,6 +14,10 @@ const transporter = nodemailer.createTransport({
   host: "smtp.office365.com",
   port: 587,
   secure: false,
+  requireTLS: true,
+  connectionTimeout: 15000,
+  greetingTimeout: 15000,
+  socketTimeout: 20000,
   auth: {
     user: "notificaciones@fabpsa.com.mx",
     pass: "FaNo*/180",
@@ -20,6 +25,27 @@ const transporter = nodemailer.createTransport({
 });
 
 const DESTINATARIO_TI = "sistemas@fabpsa.com.mx";
+
+// Office365 corta la conexión SMTP de forma intermitente (ECONNRESET) bajo
+// envíos concurrentes; reintenta una vez con una conexión nueva antes de
+// darse por vencido.
+async function enviarConReintento(opciones, intentos = 2) {
+  for (let i = 1; i <= intentos; i++) {
+    try {
+      return await transporter.sendMail(opciones);
+    } catch (err) {
+      const esUltimoIntento = i === intentos;
+      const reintentable =
+        err.code === "ECONNRESET" ||
+        err.code === "ETIMEDOUT" ||
+        err.code === "ESOCKET";
+      if (esUltimoIntento || !reintentable) throw err;
+      console.warn(
+        `[mailer] reintentando envío a ${opciones.to} tras ${err.code} (intento ${i}/${intentos})`,
+      );
+    }
+  }
+}
 
 function construirFilasArticulos(articulos) {
   return articulos
@@ -203,7 +229,7 @@ async function enviarCorreoSolicitudHardware({
 </body>
 </html>`;
 
-  await transporter.sendMail({
+  await enviarConReintento({
     from: '"Portal FABPSA" <notificaciones@fabpsa.com.mx>',
     to: DESTINATARIO_TI,
     subject: `Nueva solicitud de Hardware — Folio ${folio}`,
@@ -227,8 +253,8 @@ async function enviarCorreoSolicitudTI({
   categoria,
   prioridad,
   colorPrioridad,
-  slaRespuestaHrs,
-  slaResolucionHrs,
+  slaRespuestaMin,
+  slaResolucionMin,
   fechaLimiteResp,
   fechaLimiteResol,
   solicitante,
@@ -250,11 +276,7 @@ async function enviarCorreoSolicitudTI({
     });
   };
 
-  const slaFmt = (hrs) => {
-    if (!hrs) return "—";
-    if (hrs < 24) return `${hrs} hora${hrs !== 1 ? "s" : ""}`;
-    return `${Math.round(hrs / 24)} día${Math.round(hrs / 24) !== 1 ? "s" : ""}`;
-  };
+  const slaFmt = formatSlaDuration;
 
   const html = `
 <!DOCTYPE html>
@@ -358,7 +380,7 @@ async function enviarCorreoSolicitudTI({
         <td width="34%" style="padding:0 4px;vertical-align:top">
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;text-align:center">
             <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">1ª Respuesta</div>
-            <div style="font-size:16px;font-weight:700;color:#7c3aed">${slaFmt(slaRespuestaHrs)}</div>
+            <div style="font-size:16px;font-weight:700;color:#7c3aed">${slaFmt(slaRespuestaMin)}</div>
             <div style="font-size:10px;color:#94a3b8;margin-top:4px">${fechaFmt(fechaLimiteResp)}</div>
           </div>
         </td>
@@ -366,7 +388,7 @@ async function enviarCorreoSolicitudTI({
         <td width="34%" style="padding-left:8px;vertical-align:top">
           <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;text-align:center">
             <div style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;margin-bottom:8px">Resolución</div>
-            <div style="font-size:16px;font-weight:700;color:#7c3aed">${slaFmt(slaResolucionHrs)}</div>
+            <div style="font-size:16px;font-weight:700;color:#7c3aed">${slaFmt(slaResolucionMin)}</div>
             <div style="font-size:10px;color:#94a3b8;margin-top:4px">${fechaFmt(fechaLimiteResol)}</div>
           </div>
         </td>
@@ -410,7 +432,7 @@ async function enviarCorreoSolicitudTI({
 </body>
 </html>`;
 
-  await transporter.sendMail({
+  await enviarConReintento({
     from: '"Portal FABPSA" <notificaciones@fabpsa.com.mx>',
     to: DESTINATARIO_TI,
     subject: `[${folio}] Nueva solicitud — ${servicio}`,
@@ -422,7 +444,7 @@ async function enviarCorreoSolicitudTI({
       "Se ha registrado una nueva solicitud de soporte en el Portal Corporativo FABPSA.",
       `Hola <strong>${solicitante}</strong>, tu solicitud fue registrada correctamente. El equipo de TI la atenderá a la brevedad.`,
     );
-    await transporter.sendMail({
+    await enviarConReintento({
       from: '"Mesa de Servicio FABPSA" <notificaciones@fabpsa.com.mx>',
       to: correoSolicitante,
       subject: `Tu solicitud fue registrada — ${folio}`,
@@ -431,4 +453,100 @@ async function enviarCorreoSolicitudTI({
   }
 }
 
-module.exports = { enviarCorreoSolicitudHardware, enviarCorreoSolicitudTI };
+async function enviarCorreoSolicitudMantenimiento({
+  folio,
+  solicitante,
+  servicio,
+  sitio,
+  area,
+  ubicacion,
+  descripcion,
+}) {
+  const seguro = (valor) =>
+    String(valor ?? "—")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  const html = `
+    <div style="background:#f4f8fc;padding:28px;font-family:Arial,sans-serif;color:#1e293b">
+      <div style="max-width:620px;margin:auto;background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden">
+        <div style="padding:22px 28px;background:#0f172a;color:#fff">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#4cc9a6">Portal Corporativo FABPSA</div>
+          <h1 style="font-size:21px;margin:7px 0 0">Nueva solicitud recibida</h1>
+        </div>
+        <div style="padding:25px 28px">
+          <p style="font-size:14px;line-height:1.6">Estimado equipo de mantenimiento:</p>
+          <p style="font-size:13px;line-height:1.6">El usuario <strong>${seguro(solicitante)}</strong> acaba de enviar una solicitud de <strong>${seguro(servicio)}</strong>.</p>
+          <div style="margin:20px 0;padding:14px;text-align:center;background:#edf9f6;border-radius:10px">
+            <div style="font-size:10px;color:#64748b;text-transform:uppercase">Folio</div>
+            <strong style="font-size:19px;color:#2baf8b">${seguro(folio)}</strong>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr><td style="padding:8px;color:#64748b;border-bottom:1px solid #e2e8f0">Sitio</td><td style="padding:8px;text-align:right;border-bottom:1px solid #e2e8f0">${seguro(sitio)}</td></tr>
+            <tr><td style="padding:8px;color:#64748b;border-bottom:1px solid #e2e8f0">Área</td><td style="padding:8px;text-align:right;border-bottom:1px solid #e2e8f0">${seguro(area)}</td></tr>
+            <tr><td style="padding:8px;color:#64748b;border-bottom:1px solid #e2e8f0">Ubicación</td><td style="padding:8px;text-align:right;border-bottom:1px solid #e2e8f0">${seguro(ubicacion)}</td></tr>
+          </table>
+          <div style="margin-top:18px"><strong style="font-size:12px">Descripción</strong><p style="font-size:12px;line-height:1.6;color:#475569">${seguro(descripcion)}</p></div>
+        </div>
+      </div>
+    </div>`;
+  await enviarConReintento({
+    from: '"Portal FABPSA" <notificaciones@fabpsa.com.mx>',
+    to: "juan.ramirez@fabpsa.com.mx",
+    subject: `[${folio}] Nueva solicitud de mantenimiento — ${servicio}`,
+    html,
+  });
+}
+
+async function enviarCorreoReaperturaMantenimiento({
+  folio,
+  solicitante,
+  servicio,
+  motivo,
+}) {
+  const seguro = (valor) =>
+    String(valor ?? "—")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  const html = `
+    <div style="background:#f4f8fc;padding:28px;font-family:Arial,sans-serif;color:#1e293b">
+      <div style="max-width:620px;margin:auto;background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden">
+        <div style="padding:22px 28px;background:#0f172a;color:#fff">
+          <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:#4cc9a6">Portal Corporativo FABPSA</div>
+          <h1 style="font-size:21px;margin:7px 0 0">Solicitud de mantenimiento reabierta</h1>
+        </div>
+        <div style="padding:25px 28px">
+          <p style="font-size:14px;line-height:1.6">Estimado equipo de mantenimiento:</p>
+          <p style="font-size:13px;line-height:1.6">El usuario <strong>${seguro(solicitante)}</strong> indicó que no está conforme con la atención. La solicitud fue reabierta para su seguimiento.</p>
+          <div style="margin:20px 0;padding:14px;text-align:center;background:#fff7ed;border-radius:10px">
+            <div style="font-size:10px;color:#64748b;text-transform:uppercase">Folio</div>
+            <strong style="font-size:19px;color:#d97706">${seguro(folio)}</strong>
+          </div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr><td style="padding:8px;color:#64748b;border-bottom:1px solid #e2e8f0">Servicio</td><td style="padding:8px;text-align:right;border-bottom:1px solid #e2e8f0">${seguro(servicio)}</td></tr>
+          </table>
+          <div style="margin-top:18px;padding:14px;background:#f8fafc;border-left:3px solid #f59e0b;border-radius:6px">
+            <strong style="font-size:12px">Motivo de la inconformidad</strong>
+            <p style="margin:7px 0 0;font-size:12px;line-height:1.6;color:#475569">${seguro(motivo)}</p>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  await enviarConReintento({
+    from: '"Portal FABPSA" <notificaciones@fabpsa.com.mx>',
+    to: "juan.ramirez@fabpsa.com.mx",
+    subject: `[${folio}] Solicitud de mantenimiento reabierta — ${servicio}`,
+    html,
+  });
+}
+
+module.exports = {
+  enviarCorreoSolicitudHardware,
+  enviarCorreoSolicitudTI,
+  enviarCorreoSolicitudMantenimiento,
+  enviarCorreoReaperturaMantenimiento,
+};

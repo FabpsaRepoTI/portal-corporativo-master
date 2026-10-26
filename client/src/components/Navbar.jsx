@@ -1,3 +1,5 @@
+import useUsuariosAccess from '../hooks/useUsuariosAccess';
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
@@ -9,6 +11,7 @@ export default function Navbar() {
   const { theme, toggle } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const usuariosAccess = useUsuariosAccess();
 
   const initials = user?.name
     ? user.name
@@ -39,8 +42,8 @@ export default function Navbar() {
   }
 
   function handleAbrirPerfil() {
-    setMenuOpen(false); // cierra el dropdown
-    setPerfilOpen(true); // abre el modal
+    setMenuOpen(false);
+    setPerfilOpen(true);
   }
 
   /* ── Scroll ── */
@@ -78,32 +81,60 @@ export default function Navbar() {
     return () => clearInterval(id);
   }, []);
 
-  /* ── Clima ── */
+  /* ── Clima (sin HTTPS, sin geolocation) ── */
+  // ip-api.com devuelve lat/lon por IP — funciona en HTTP puro, sin API key
   useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      ({ coords: { latitude: lat, longitude: lon } }) => {
-        fetch(
-          `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`,
-        )
-          .then((r) => r.json())
-          .then((d) => {
-            setTemp(Math.round(d.current.temperature_2m));
-            setWeatherCode(d.current.weather_code);
-          })
-          .catch(console.error);
+    // Coordenadas fallback: CDMX (por si ip-api falla)
+    const FALLBACK_LAT = 19.43;
+    const FALLBACK_LON = -99.13;
+    const FALLBACK_CITY = "Ciudad de México";
 
-        fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
-        )
-          .then((r) => r.json())
-          .then((d) => {
-            setCity(d.address.city || d.address.town || d.address.state);
-            setNeighborhood(d.address.suburb || d.address.neighbourhood || "");
-          })
-          .catch(console.error);
-      },
-      console.error,
-    );
+    const fetchClima = (lat, lon, ciudadFallback = null) => {
+      // Clima via Open-Meteo (HTTPS, no requiere geolocation del navegador)
+      fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weather_code`,
+      )
+        .then((r) => r.json())
+        .then((d) => {
+          setTemp(Math.round(d.current.temperature_2m));
+          setWeatherCode(d.current.weather_code);
+        })
+        .catch(console.error);
+
+      // Nombre de ciudad: si ya lo tenemos del fallback lo usamos directo
+      if (ciudadFallback) {
+        setCity(ciudadFallback);
+        return;
+      }
+
+      // Reverse geocoding con Nominatim
+      fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+      )
+        .then((r) => r.json())
+        .then((d) => {
+          setCity(d.address.city || d.address.town || d.address.state || "");
+          setNeighborhood(d.address.suburb || d.address.neighbourhood || "");
+        })
+        .catch(console.error);
+    };
+
+    // Obtener ubicación por IP — HTTP, sin permiso del navegador
+    fetch("http://ip-api.com/json/?fields=lat,lon,city,status")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.status === "success" && d.lat && d.lon) {
+          setCity(d.city || "");
+          fetchClima(d.lat, d.lon);
+        } else {
+          // ip-api respondió pero sin datos válidos → fallback CDMX
+          fetchClima(FALLBACK_LAT, FALLBACK_LON, FALLBACK_CITY);
+        }
+      })
+      .catch(() => {
+        // ip-api no respondió (ej. red sin salida a internet) → fallback CDMX
+        fetchClima(FALLBACK_LAT, FALLBACK_LON, FALLBACK_CITY);
+      });
   }, []);
 
   /* ── Cerrar dropdown al hacer clic fuera ── */
@@ -137,6 +168,7 @@ export default function Navbar() {
       >
         {/* ── LEFT (solo móvil) ── */}
         <div className="navbar-left">
+          
           <button
             className="nb-hamburger"
             aria-label="Abrir menú"
@@ -305,8 +337,9 @@ export default function Navbar() {
                     <span>Configuración</span>
                   </button>
 
-                  {/* Solo visible para área SISTEMAS */}
-                  {user?.area === "SISTEMAS" && (
+                  {usuariosAccess.puedeAsignarPermisos && <button className="nb-dd-item" role="menuitem" onClick={()=>{navigate('/configuracion/accesos');setMenuOpen(false);}}><i className="ti ti-shield-lock nb-dd-item-icon" aria-hidden="true"/><span>Accesos</span></button>}
+
+                  {usuariosAccess.puedeVerUsuarios && (
                     <button
                       className="nb-dd-item"
                       role="menuitem"
@@ -342,7 +375,6 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Modal Mi Perfil — fuera del <nav> para evitar z-index issues */}
       {perfilOpen && <ModalMiPerfil onClose={() => setPerfilOpen(false)} />}
     </>
   );

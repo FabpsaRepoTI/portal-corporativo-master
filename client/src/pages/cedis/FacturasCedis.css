@@ -3,7 +3,7 @@
 /* ── ROOT ─────────────────────────────────────────── */
 .cedis-root {
   min-height: 100dvh;
-  background: #f2f2f7;
+  background: var(--bg-elevated);
   color: #000;
   font-family:
     -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
@@ -31,7 +31,7 @@
   font-weight: 600;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: #8e8e93;
+  color: var(--text-muted);
   margin-bottom: 1px;
 }
 .cedis-title {
@@ -44,7 +44,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #007aff;
+  background: var(--primary);
   color: #fff;
   font-size: 13px;
   font-weight: 700;
@@ -69,7 +69,7 @@
   text-align: center;
   font-size: 14px;
   font-weight: 600;
-  color: #8e8e93;
+  color: var(--text-muted);
   border: none;
   border-bottom: 2px solid transparent;
   background: none;
@@ -78,8 +78,8 @@
   transition: color 0.15s;
 }
 .cedis-tab.active {
-  color: #007aff;
-  border-bottom-color: #007aff;
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
 /* ── MAIN ─────────────────────────────────────────── */
@@ -94,7 +94,7 @@
 
 .cedis-scan-btn {
   width: 100%;
-  background: #007aff;
+  background: var(--primary);
   color: #fff;
   border: none;
   border-radius: 15px;
@@ -128,7 +128,7 @@
   font-weight: 600;
   letter-spacing: 0.3px;
   text-transform: uppercase;
-  color: #8e8e93;
+  color: var(--text-muted);
   margin-bottom: 8px;
   padding-left: 4px;
 }
@@ -176,7 +176,7 @@
 }
 .cedis-last-client {
   font-size: 13px;
-  color: #8e8e93;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -215,7 +215,7 @@
 .cedis-ctr-l {
   font-size: 10px;
   font-weight: 500;
-  color: #8e8e93;
+  color: var(--text-muted);
 }
 
 /* ── BADGES ───────────────────────────────────────── */
@@ -268,12 +268,12 @@
   font-family: inherit;
   border: none;
   background: #fff;
-  color: #8e8e93;
+  color: var(--text-muted);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   transition: all 0.15s;
 }
 .cedis-pill.on {
-  background: #007aff;
+  background: var(--primary);
   color: #fff;
   box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
 }
@@ -291,7 +291,7 @@
 .cedis-search svg {
   width: 16px;
   height: 16px;
-  stroke: #8e8e93;
+  stroke: var(--text-muted);
   flex-shrink: 0;
 }
 .cedis-search input {
@@ -304,7 +304,7 @@
   color: #000;
 }
 .cedis-search input::placeholder {
-  color: #c7c7cc;
+  color: var(--border);
 }
 
 /* ── GROUP / ROWS ─────────────────────────────────── */
@@ -365,7 +365,7 @@
 }
 .cedis-r-client {
   font-size: 13px;
-  color: #8e8e93;
+  color: var(--text-muted);
   margin-bottom: 5px;
   white-space: nowrap;
   overflow: hidden;
@@ -379,7 +379,7 @@
 }
 .cedis-r-meta {
   font-size: 11px;
-  color: #8e8e93;
+  color: var(--text-muted);
 }
 
 /* ── HISTORIC SELECTS ─────────────────────────────── */
@@ -408,7 +408,7 @@
 /* ── STATE MESSAGES ───────────────────────────────── */
 .cedis-state-msg {
   text-align: center;
-  color: #8e8e93;
+  color: var(--text-muted);
   font-size: 14px;
   padding: 32px 20px;
 }
@@ -529,7 +529,7 @@
   z-index: 20;
 }
 .cedis-cam-error button {
-  background: #007aff;
+  background: var(--primary);
   color: #fff;
   border: none;
   border-radius: 10px;
@@ -552,7 +552,7 @@
 }
 .cedis-sheet {
   width: 100%;
-  background: #f2f2f7;
+  background: var(--bg-elevated);
   border-radius: 22px 22px 0 0;
   padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
   animation: cedisSheetUp 0.32s cubic-bezier(0.16, 1, 0.3, 1);
@@ -568,7 +568,7 @@
 }
 
 .cedis-sheet-handle-row {
-  background: #f2f2f7;
+  background: var(--bg-elevated);
   padding: 10px 0 4px;
   display: flex;
   justify-content: center;
@@ -577,7 +577,7 @@
   width: 36px;
   height: 4px;
   border-radius: 2px;
-  background: #c7c7cc;
+  background: var(--border);
 }
 .cedis-sheet-body {
   padding: 16px 20px 0;
@@ -627,7 +627,7 @@
 .cedis-r-sub {
   text-align: center;
   font-size: 14px;
-  color: #8e8e93;
+  color: var(--text-muted);
   margin-bottom: 18px;
   line-height: 1.4;
 }
@@ -652,7 +652,7 @@
 }
 .cedis-i-k {
   font-size: 14px;
-  color: #8e8e93;
+  color: var(--text-muted);
   font-weight: 500;
 }
 .cedis-i-v {
@@ -663,7 +663,7 @@
   max-width: 60%;
 }
 .cedis-i-v.accent {
-  color: #007aff;
+  color: var(--primary);
 }
 
 .cedis-s-btn {
@@ -685,12 +685,12 @@
   opacity: 0.8;
 }
 .cedis-s-btn.primary {
-  background: #007aff;
+  background: var(--primary);
   color: #fff;
   box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25);
 }
 .cedis-s-btn.ghost {
   background: #fff;
-  color: #007aff;
+  color: var(--primary);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }

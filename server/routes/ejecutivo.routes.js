@@ -1,28 +1,58 @@
 const router = require("express").Router();
 const ctrl = require("../controllers/ejecutivo.controller");
 
-// GET /api/ejecutivo/resumen?periodo=30&sitio=
-router.get("/resumen", ctrl.getResumen);
+function handle(fn, paramsFn) {
+  return async (req, res) => {
+    try {
+      const params = paramsFn ? paramsFn(req) : {};
+      const data = await fn(params);
+      res.json({ ok: true, data });
+    } catch (err) {
+      console.error(`[ejecutivo] ${req.method} ${req.path}`, err);
+      res.status(500).json({
+        ok: false,
+        error: "No fue posible consultar el Visor Ejecutivo.",
+        detail:
+          process.env.NODE_ENV === "development" ? err.message : undefined,
+      });
+    }
+  };
+}
 
-// GET /api/ejecutivo/alertas?sitio=
-router.get("/alertas", ctrl.getAlertas);
+const qSite = (req) => ({ sitio: req.query.sitio || "" });
+const qPeriodSite = (req) => ({
+  periodo: req.query.periodo || 30,
+  sitio: req.query.sitio || "",
+});
 
-// GET /api/ejecutivo/tendencia?periodo=30&sitio=
-router.get("/tendencia", ctrl.getTendencia);
+router.get("/resumen", handle(ctrl.getResumen, qPeriodSite));
+router.get("/alertas", handle(ctrl.getAlertas, qSite));
+router.get(
+  "/detalle-indicador",
+  handle(ctrl.getDetalleIndicador, (req) => ({
+    tipo: req.query.tipo || "activos",
+    sitio: req.query.sitio || "",
+    servicio: req.query.servicio || null,
+  })),
+);
+router.get("/tendencia", handle(ctrl.getTendencia, qPeriodSite));
+router.get("/servicios", handle(ctrl.getServicios, qSite));
+router.get("/distribucion", handle(ctrl.getDistribucion, qPeriodSite));
+router.get("/recurrentes", handle(ctrl.getRecurrentes, qPeriodSite));
+router.get("/equipo", handle(ctrl.getCargaEquipo, qSite));
+router.get("/sla", handle(ctrl.getSLA, qPeriodSite));
+router.get("/hallazgos", handle(ctrl.getHallazgos, qPeriodSite));
+router.get("/silenciosos", handle(ctrl.getSilenciosos, qSite));
+router.get("/escalamientos", handle(ctrl.getEscalamientos, qSite));
+router.get("/pausados", handle(ctrl.getPausados, qSite));
 
-// GET /api/ejecutivo/servicios
-router.get("/servicios", ctrl.getServicios);
-
-// GET /api/ejecutivo/distribucion?periodo=30&sitio=
-router.get("/distribucion", ctrl.getDistribucion);
-
-// GET /api/ejecutivo/recurrentes?periodo=30&sitio=
-router.get("/recurrentes", ctrl.getRecurrentes);
-
-// GET /api/ejecutivo/equipo
-router.get("/equipo", ctrl.getCargaEquipo);
-
-// GET /api/ejecutivo/sla?periodo=30&sitio=
-router.get("/sla", ctrl.getSLA);
+// Análisis ejecutivo con Claude; conserva el contrato del visor.
+router.post(
+  "/analisis-ia",
+  handle(ctrl.getAnalisisIA, (req) => ({
+    periodo: req.body?.periodo || 30,
+    sitio: req.body?.sitio || "",
+  })),
+);
 
 module.exports = router;

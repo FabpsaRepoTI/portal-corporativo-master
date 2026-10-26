@@ -1,342 +1,329 @@
+import operationIcon from "../../../assets/mesa-operacion-ti.svg";
+import serviceAtlas from "../../../assets/mesa-servicios-atlas.png";
+import { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useContext, useState } from "react";
-import { AuthContext } from "../../../context/AuthContext.jsx";
+import { AuthContext } from "../../../context/AuthContext";
 import {
   SERVICIOS_GRID,
-  QUICK_SISTEMAS,
-  QUICK_USUARIO,
   INCIDENTES_CHIPS,
-  INCIDENTES_ICONS,
-} from "../../../data/mesaDeServicioData.js";
-import "./MesaDeServicioPage.css";
-
-export default function MesaDeServicioPage() {
-  const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
-  const [incidentesOpen, setIncidentesOpen] = useState(false);
-
-  const firstName = user?.name?.split(" ")[0] ?? "Usuario";
-  const esSistemas = ["SISTEMAS", "SYSTEMS"].includes(
-    user?.area?.toUpperCase(),
-  );
-  const quickItems = esSistemas ? QUICK_SISTEMAS : QUICK_USUARIO;
-
-  const handleServicioClick = (s) => {
-    navigate(s.to);
-  };
-
-  const handleQuickClick = (item) => {
-    if (item.type === "route") navigate(item.route);
-    if (item.type === "link") navigate(item.to);
-    if (item.type === "incidente") setIncidentesOpen(true);
-  };
-
-  const handleChipClick = (chip) => {
-    navigate(`/mesa-de-servicio/solicitud/${chip.id}`);
-  };
-
+} from "../../../data/mesaDeServicioData";
+import robot from "../../../assets/fabi.png";
+import MesaAsistente from "./MesaAsistente";
+import MesaRobotSaludo from "./MesaRobotSaludo";
+import CommonServiceArt from "./CommonServiceArt";
+import EncuestaMesaServicio from "./EncuestaMesaServicio";
+import { getEstadoEncuesta } from "../../../services/encuestaMesaServicio";
+import "./MesaUsuario.css";
+const chips = [
+  ["Laptop", "Monitor", "Teclado", "Más…"],
+  ["Office 365", "Teams", "Multivisión", "Más…"],
+  ["Correo", "Red", "Sistemas", "Más…"],
+  ["Internet", "Impresoras", "Telefonía", "Más…"],
+  ["Nuevo desarrollo", "Mejora", "Soporte"],
+  ["Sitios web", "Archivos", "Navegación"],
+];
+const descriptions = [
+  "Solicita equipo, reporta fallas o problemas con tus dispositivos.",
+  "Instalación, configuración o acceso a una aplicación puntual.",
+  "Altas, bajas, modificaciones de usuario o problemas de acceso.",
+  "Asesoría en el uso de una app, cambios de precios, ingreso de mercancía, listas de correo y otros trámites.",
+  "Solicitudes de nuevos desarrollos o mejoras a sistemas existentes.",
+  "Desbloqueo de sitios, revisión de archivos o permisos de navegación.",
+];
+const common = [
+  ["Office 365", "office365", "inc-office365"],
+  ["Teams", "teams", "inc-correo"],
+  ["Impresoras", "printer", "inc-impresoras"],
+  ["Internet / Red", "network", "inc-red"],
+  ["Telefonía", "phone", "inc-telefonia"],
+  ["Multivisión", "chart", "inc-erp"],
+  ["Correo", "mail", "inc-correo"],
+  ["Antivirus", "shield", "inc-seguridad"],
+];
+function ServiceArt({ index }) {
   return (
-    <div className="mds3-root">
-      {/* ── HERO ─────────────────────────────────────────────── */}
-      <div className="mds3-page-hero">
-        <button className="mds3-back-btn" onClick={() => navigate("/")}>
-          <i className="ti ti-arrow-left" />
-          Volver al inicio
-        </button>
-        <div className="mds3-page-hero-text">
-          <span className="mds3-page-eyebrow">
-            <span className="mds3-page-eyebrow-line" />
-            Bienvenido a la mesa de ayuda
-          </span>
-          <h1 className="mds3-page-title">
-            Hola, <em className="mds3-page-title-name">{firstName}</em>{" "}
-            <span aria-hidden="true">👋</span>
-          </h1>
-          <p className="mds3-page-sub">¿Cómo podemos ayudarte hoy?</p>
-        </div>
+    <div
+      className={"mesa-art mesa-art-" + index}
+      style={{ "--mesa-art-image": `url(${serviceAtlas})` }}
+      aria-hidden="true"
+    />
+  );
+}
+export default function MesaDeServicioPage() {
+  const navigate = useNavigate(),
+    { user } = useContext(AuthContext);
+  const [incident, setIncident] = useState(false),
+    [bot, setBot] = useState(null),
+    [query, setQuery] = useState(""),
+    [encuesta, setEncuesta] = useState(false);
+  const systems = ["SISTEMAS", "SYSTEMS"].includes(
+    user?.area?.trim().toUpperCase(),
+  );
+  const openBot = (text = "") => setBot({ initial: text });
+  // Encuesta: si ya respondió no vuelve a aparecer; "Ahora no" la pospone 7 días.
+  const encuestaKey = `mesa_encuesta_${user?.login || "anon"}`;
+  const leerEncuesta = () => {
+    try {
+      return JSON.parse(localStorage.getItem(encuestaKey)) || {};
+    } catch {
+      return {};
+    }
+  };
+  const guardarEncuesta = (v) => {
+    try {
+      localStorage.setItem(encuestaKey, JSON.stringify(v));
+    } catch {}
+  };
+  const posponerEncuesta = () => {
+    guardarEncuesta({ posponerHasta: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+    setEncuesta(false);
+  };
+  const encuestaRespondida = () => {
+    guardarEncuesta({ respondida: true });
+    setEncuesta(false);
+  };
+  useEffect(() => {
+    if (systems) return;
+    const local = leerEncuesta();
+    if (local.respondida || (local.posponerHasta && local.posponerHasta > Date.now())) return;
+    let vivo = true;
+    getEstadoEncuesta()
+      .then((r) => {
+        if (vivo && !r.respondida) setEncuesta(true);
+      })
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [systems, encuestaKey]);
+  return (
+    <div
+      className={
+        "mesa-user " + (systems ? "mesa-user-ti" : "mesa-user-general")
+      }
+    >
+      <div className="mesa-topline">
+        <button onClick={() => navigate("/")}>← Volver al inicio</button>
       </div>
-
-      {/* ── DOS TARJETAS PROTAGONISTAS ────────────────────────── */}
-      <div className="mds3-cards-row">
-        {/* TARJETA IZQUIERDA — Reportar incidente (fondo morado) */}
-        <div className="mds3-incident-card">
-          {/* Decoración SVG de fondo */}
-          <div className="mds3-incident-deco" aria-hidden="true">
-            <svg
-              viewBox="0 0 320 200"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
+      <section className="mesa-welcome">
+        <div className="mesa-greeting">
+          <span>← MESA DE SERVICIO</span>
+          <h1>
+            Hola, <em>{user?.name?.split(" ")[0] || "Usuario"}</em>
+          </h1>
+          <p>¿Cómo podemos ayudarte hoy?</p>
+        </div>
+        <div className="mesa-helper">
+          <MesaRobotSaludo robot={robot} />
+          <div className="mesa-helper-search">
+            <b>💡 También puedes buscar</b>
+            <p>
+              Escribe lo que necesitas y te sugerimos
+              <br />
+              la categoría más adecuada.
+            </p>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                openBot(query);
+              }}
             >
-              <circle cx="260" cy="40" r="80" fill="white" fillOpacity="0.05" />
-              <circle
-                cx="300"
-                cy="140"
-                r="50"
-                fill="white"
-                fillOpacity="0.04"
+              <i className="ti ti-search" aria-hidden="true" />
+              <input
+                aria-label="Buscar ayuda"
+                placeholder="Ej. impresora, correo, acceso, laptop…"
+                value={query}
+                maxLength={1500}
+                onChange={(e) => setQuery(e.target.value)}
               />
-              <circle cx="30" cy="160" r="40" fill="white" fillOpacity="0.04" />
-            </svg>
+              <button aria-label="Buscar con asistente">→</button>
+            </form>
           </div>
-
-          {/* Icono central */}
-          <div className="mds3-incident-icon-wrap" aria-hidden="true">
-            <div className="mds3-incident-icon-ring mds3-incident-ring-outer" />
-            <div className="mds3-incident-icon-ring mds3-incident-ring-inner" />
-            <div className="mds3-incident-icon-circle">
-              <i className="ti ti-bolt" />
-            </div>
+        </div>
+      </section>
+      <section className="mesa-actions">
+        <article className="mesa-action mesa-action-incident">
+          <span className="mesa-recommended">RECOMENDADO</span>
+          <div className="mesa-action-icon">
+            <i className="ti ti-bolt" />
           </div>
-
-          <div className="mds3-incident-body">
-            <h2 className="mds3-incident-title">
-              Reportar un incidente o falla
-            </h2>
-            <p className="mds3-incident-sub">
+          <div>
+            <h2>Reportar un incidente o falla</h2>
+            <p>
               ¿Tienes un problema con algún servicio o herramienta? Repórtalo y
-              nuestro equipo de TI te ayudará lo antes posible.
+              nuestro equipo de TI te ayudará.
             </p>
             <button
-              className="mds3-incident-btn"
-              onClick={() => setIncidentesOpen((v) => !v)}
+              className="mesa-primary"
+              aria-expanded={incident}
+              onClick={() => setIncident((v) => !v)}
             >
-              <i className="ti ti-circle-plus" />
-              Nueva incidencia
-              <i
-                className={`ti ${incidentesOpen ? "ti-chevron-up" : "ti-chevron-down"} mds3-incident-btn-chev`}
-              />
+              ⊕ Nueva incidencia <span>→</span>
             </button>
           </div>
-        </div>
-
-        {/* TARJETA DERECHA — Mis solicitudes (para usuario normal)
-                           ó Accesos rápidos (para SISTEMAS)          */}
-        {esSistemas ? (
-          <div className="mds3-quick-card">
-            {/* Glow decorativo esquina superior derecha */}
-            <div className="mds3-quick-card-glow" aria-hidden="true" />
-
-            <div className="mds3-quick-card-header">
-              <span className="mds3-quick-card-eyebrow">
-                <span className="mds3-quick-card-eyebrow-line" />
-                Accesos rápidos
-              </span>
-            </div>
-
-            <div className="mds3-quick-list">
-              {quickItems.map((item, i) => (
-                <button
-                  key={i}
-                  className="mds3-quick-item"
-                  onClick={() => handleQuickClick(item)}
-                >
-                  <span
-                    className="mds3-quick-ico"
-                    style={{ background: item.colorBg, color: item.color }}
-                  >
-                    <i className={`ti ${item.icon}`} />
-                  </span>
-                  <span className="mds3-quick-text">
-                    <span className="mds3-quick-label">{item.label}</span>
-                    <span className="mds3-quick-desc">{item.desc}</span>
-                  </span>
-                  <i className="ti ti-chevron-right mds3-quick-arrow" />
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="mds3-missol-card">
-            {/* Decoración mint sutil */}
-            <div className="mds3-missol-deco" aria-hidden="true" />
-
-            <div className="mds3-missol-top">
-              <div className="mds3-missol-icon-wrap">
-                <i className="ti ti-clipboard-list" />
-              </div>
-            </div>
-
-            <div className="mds3-missol-body">
-              <span className="mds3-missol-eyebrow">Panel personal</span>
-              <h2 className="mds3-missol-title">Mis solicitudes</h2>
-              <p className="mds3-missol-desc">
-                Consulta el estado, historial y seguimiento de todas tus
-                solicitudes de soporte y requerimientos de hardware.
+          <button className="mesa-more" onClick={() => setIncident((v) => !v)}>
+            ⓘ Más información
+          </button>
+        </article>
+        {systems && (
+          <article className="mesa-action mesa-action-admin">
+            <div>
+              <h2>Mesa de Servicio TI</h2>
+              <p>
+                Gestiona tickets, solicitudes de hardware y desarrollos desde
+                una sola vista.
               </p>
             </div>
-
-            {/* Imagen decorativa tipo clipboard */}
-            <div className="mds3-missol-ilu" aria-hidden="true">
-              <svg
-                viewBox="0 0 100 110"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <rect
-                  x="15"
-                  y="12"
-                  width="70"
-                  height="88"
-                  rx="8"
-                  fill="#e6faf4"
-                  stroke="#4cc9a6"
-                  strokeWidth="1.5"
-                />
-                <rect
-                  x="35"
-                  y="4"
-                  width="30"
-                  height="14"
-                  rx="4"
-                  fill="#4cc9a6"
-                  opacity="0.6"
-                />
-                <rect
-                  x="25"
-                  y="32"
-                  width="50"
-                  height="5"
-                  rx="2.5"
-                  fill="#4cc9a6"
-                  opacity="0.3"
-                />
-                <rect
-                  x="25"
-                  y="44"
-                  width="38"
-                  height="4"
-                  rx="2"
-                  fill="#4cc9a6"
-                  opacity="0.2"
-                />
-                <rect
-                  x="25"
-                  y="56"
-                  width="44"
-                  height="4"
-                  rx="2"
-                  fill="#4cc9a6"
-                  opacity="0.2"
-                />
-                <rect
-                  x="25"
-                  y="68"
-                  width="32"
-                  height="4"
-                  rx="2"
-                  fill="#4cc9a6"
-                  opacity="0.2"
-                />
-                <circle cx="75" cy="80" r="14" fill="#4cc9a6" opacity="0.15" />
-                <path
-                  d="M69 80 l4 4 7-8"
-                  stroke="#4cc9a6"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-
             <button
-              className="mds3-missol-btn"
-              onClick={() => handleQuickClick(quickItems[0])}
+              className="mesa-outline"
+              onClick={() => navigate("/mesa-de-servicio/admin")}
             >
-              Ver mis solicitudes
-              <i className="ti ti-arrow-right" />
+              Abrir Mesa de Servicio TI <span>→</span>
             </button>
-          </div>
+          </article>
         )}
-      </div>
-
-      {/* ── ACCORDION TIPOS DE INCIDENTE ─────────────────────── */}
-      {incidentesOpen && (
-        <div className="mds3-accordion">
-          <div className="mds3-accordion-hdr">
-            <i className="ti ti-alert-triangle mds3-accordion-ico" />
-            <div>
-              <div className="mds3-accordion-title">Incidentes y fallas</div>
-              <div className="mds3-accordion-sub">
-                Reporta fallas en equipos, aplicaciones, sistemas o cualquier
-                incidente tecnológico
-              </div>
-            </div>
+        <article className="mesa-action">
+          <div>
+            <h2>Mis solicitudes</h2>
+            <p>
+              Consulta el estado, historial y comentarios de tus solicitudes.
+            </p>
           </div>
-          <div className="mds3-acc-grid">
-            {INCIDENTES_CHIPS.map((chip) => (
+          <button
+            className="mesa-outline"
+            onClick={() => navigate("/mesa-de-servicio/mis-solicitudes")}
+          >
+            Ver mis solicitudes <span>→</span>
+          </button>
+        </article>
+      </section>
+      {incident && (
+        <section
+          className="mesa-incident-options"
+          aria-label="Tipos de incidente"
+        >
+          <h2>¿Qué dejó de funcionar?</h2>
+          <div>
+            {INCIDENTES_CHIPS.map((c) => (
               <button
-                key={chip.id}
-                className="mds3-acc-chip"
-                onClick={() => handleChipClick(chip)}
+                key={c.id}
+                onClick={() => navigate("/mesa-de-servicio/solicitud/" + c.id)}
               >
-                <i
-                  className={`ti ${INCIDENTES_ICONS[chip.label] ?? chip.icon} mds3-acc-ico`}
-                />
-                <span className="mds3-acc-label">{chip.label}</span>
-                <i className="ti ti-arrow-right mds3-acc-arrow" />
+                {c.label} →
               </button>
             ))}
           </div>
-        </div>
+        </section>
       )}
-
-      {/* ── SERVICIOS DISPONIBLES ─────────────────────────────── */}
-      <div className="mds3-section-label">Servicios disponibles</div>
-      <div className="mds3-grid">
-        {SERVICIOS_GRID.map((s) => (
-          <button
-            key={s.id}
-            className="mds3-svc"
-            onClick={() => handleServicioClick(s)}
+      <header className="mesa-section-title">
+        <h2>Servicios disponibles</h2>
+        <p>Selecciona la categoría que mejor describa tu necesidad.</p>
+      </header>
+      <section className="mesa-services">
+        {SERVICIOS_GRID.map((s, i) => (
+          <article
+            key={s.to}
+            className={"mesa-service mesa-service-" + i}
+            onClick={() => navigate(s.to)}
+            style={{ cursor: "pointer" }}
           >
-            <div className="mds3-svc-top">
-              <div
-                className="mds3-svc-ico"
-                style={{ background: s.colorBg, color: s.color }}
-              >
-                <i className={`ti ${s.icon}`} />
-              </div>
-              <i className="ti ti-chevron-right mds3-svc-arrow" />
-            </div>
-            <div className="mds3-svc-label">
-              {s.nombre}
-              {s.badge && (
-                <span
-                  className="mds3-svc-badge"
-                  style={{ color: s.color, background: s.colorBg }}
+            <ServiceArt index={i} />
+            <button className="mesa-service-link">
+              <h3>{s.nombre}</h3>
+              <p>{descriptions[i]}</p>
+              <span className="mesa-service-arrow">›</span>
+            </button>
+            <div className="mesa-chips" aria-hidden="true">
+              {chips[i].map((label) => (
+                <button
+                  key={label}
+                  type="button"
+                  tabIndex={-1}
+                  style={{ pointerEvents: "none" }}
                 >
-                  {s.badge}
-                </span>
-              )}
+                  {label}
+                </button>
+              ))}
             </div>
-            <div className="mds3-svc-desc">{s.desc}</div>
-            <div className="mds3-svc-line" style={{ background: s.color }} />
+          </article>
+        ))}
+      </section>
+      <section className="mesa-help-row">
+        <article>
+          <h2>¿No encuentras la opción?</h2>
+          <p>
+            Cuéntanos brevemente tu necesidad y te ayudamos a identificar la
+            categoría correcta. Nuestro asistente te hará algunas preguntas.
+          </p>
+          <button className="mesa-outline" onClick={() => openBot()}>
+            <i className="ti ti-headset" /> Buscar con asistente
+          </button>
+          <img src={robot} alt="" />
+        </article>
+        {systems && (
+          <button
+            className="mesa-operation-card"
+            onClick={() => navigate("/visor-ti")}
+          >
+            <img src={operationIcon} alt="" />
+            <span>
+              <strong>Panel de Operación TI</strong>
+              <span>Monitoreo y estado de incidencias</span>
+            </span>
+            <b aria-hidden="true">›</b>
+          </button>
+        )}
+      </section>
+      <header className="mesa-section-title">
+        <h2>Servicios más solicitados</h2>
+        <p>Accesos directos a los temas más comunes.</p>
+      </header>
+      <section className="mesa-common">
+        {common.map(([name, art, slug], i) => (
+          <button
+            key={name}
+            onClick={() => navigate("/mesa-de-servicio/solicitud/" + slug)}
+            style={{
+              "--common-color": [
+                "#d65b21",
+                "#6858c8",
+                "#2877c9",
+                "#168a72",
+                "#ba4e85",
+                "#178c9a",
+                "#2872bd",
+                "#19866d",
+              ][i],
+            }}
+          >
+            <span className="mesa-common-art-wrap">
+              <CommonServiceArt type={art} id={i} />
+            </span>
+            <span>{name}</span>
           </button>
         ))}
-      </div>
-
-      {/* ── META STRIP DISCRETA ───────────────────────────────── */}
-      <div className="mds3-meta-strip">
-        <span className="mds3-meta-item">
-          <i className="ti ti-bolt" />
-          Respuesta rápida
-        </span>
-        <span className="mds3-meta-sep" aria-hidden="true" />
-        <span className="mds3-meta-item">
-          <i className="ti ti-eye" />
-          Seguimiento en tiempo real
-        </span>
-        <span className="mds3-meta-sep" aria-hidden="true" />
-        <span className="mds3-meta-item">
-          <i className="ti ti-shield-check" />
-          Soporte confiable
-        </span>
-        <span className="mds3-meta-sep" aria-hidden="true" />
-        <span className="mds3-meta-item">
-          <i className="ti ti-clock" />
-          Lun–Vie 6:00–18:00 · Sáb 7:00–13:00
-        </span>
-      </div>
+      </section>
+      <footer className="mesa-footer">
+        <span>◷ Horario de atención: Lun–Vie 6:00–18:00 | Sáb 7:00–13:00</span>
+        <span>▤ Consulta el seguimiento desde el portal</span>
+        {user?.login === "JMRAMIREZ" && (
+          <button
+            className="mesa-footer-admin-link"
+            onClick={() => navigate("/mesa-de-servicio/encuesta-resultados")}
+          >
+            ★ Resultados de la encuesta
+          </button>
+        )}
+      </footer>
+      {bot && (
+        <MesaAsistente initial={bot.initial} onClose={() => setBot(null)} />
+      )}
+      {encuesta && (
+        <EncuestaMesaServicio
+          onClose={posponerEncuesta}
+          onRespondida={encuestaRespondida}
+        />
+      )}
     </div>
   );
 }

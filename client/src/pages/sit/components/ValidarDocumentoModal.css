@@ -1,0 +1,50 @@
+.sit-validar__opciones {
+  display: grid;
+  gap: 8px;
+}
+.sit-validar__opcion {
+  --tono: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.sit-validar__opcion input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.sit-validar__opcion > i {
+  font-size: 22px;
+  color: var(--tono);
+}
+.sit-validar__opcion strong {
+  display: block;
+  color: var(--text-h);
+  font-size: 13px;
+}
+.sit-validar__opcion small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.sit-validar__opcion:hover {
+  border-color: color-mix(in srgb, var(--tono) 50%, transparent);
+}
+.sit-validar__opcion.is-sel {
+  border-color: var(--tono);
+  background: color-mix(in srgb, var(--tono) 12%, transparent);
+}
+.sit-validar__opcion:focus-within {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--tono) 25%, transparent);
+}
+.sit-validar__opcion--ok { --tono: #22c55e; }
+.sit-validar__opcion--parcial { --tono: #f59e0b; }
+.sit-validar__opcion--rechazo { --tono: #ef4444; }
+
+[data-theme="light"] .sit-validar__opcion--ok { --tono: #16a34a; }
+[data-theme="light"] .sit-validar__opcion--parcial { --tono: #d97706; }
+[data-theme="light"] .sit-validar__opcion--rechazo { --tono: #dc2626; }

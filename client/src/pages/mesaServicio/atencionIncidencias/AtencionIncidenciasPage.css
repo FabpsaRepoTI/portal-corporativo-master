@@ -1242,3 +1242,179 @@
   background: rgba(246, 193, 119, 0.12);
   color: #f6c177;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   PATCH v14 — reemplaza COMPLETAMENTE los patches anteriores
+═══════════════════════════════════════════════════════════════ */
+
+/* ── PUNTO 10: KPIs — separación superior de 10px ─────────────── */
+.mha-kpis-dev {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 10px; /* separación superior solicitada */
+  margin-bottom: 14px;
+  width: 100%;
+}
+.mha-kpi-dev {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+  text-align: left;
+}
+.mha-kpi-dev:hover {
+  background: var(--bg-elevated);
+}
+
+/* ── PUNTO 7: scroll horizontal eliminado — vertical mantenido ── */
+/*
+   REGLA: usar overflow-x:hidden (no overflow:hidden) en contenedores flex
+   para que el scroll vertical siga funcionando en toda la bitácora y comentarios.
+   El word-break controla el texto largo, NO el overflow:hidden.
+*/
+.mha-expand-content {
+  min-width: 0;
+  overflow-x: hidden;
+}
+.mha-expand-panel {
+  min-width: 0;
+  overflow-x: hidden;
+}
+.mha-det-grid {
+  min-width: 0;
+  overflow-x: hidden;
+}
+.mha-det-col {
+  min-width: 0;
+}
+.mha-det-col--wide {
+  min-width: 0;
+  overflow-x: hidden;
+}
+.mha-det-card {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+/* Descripción del incidente — wrap sin cortar scroll vertical */
+.mha-det-desc {
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
+  overflow-x: hidden; /* solo horizontal */
+  overflow-y: visible; /* vertical libre */
+  margin: 0 0 10px;
+}
+
+/* ── PUNTO 9: correo siempre en una sola línea ──────────────── */
+.mha-uname {
+  display: block;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: normal;
+  word-break: break-word;
+}
+.mha-uemail {
+  display: block;
+  font-size: 11px;
+  color: var(--text-muted);
+  /* Una sola línea — si no cabe, se corta con ellipsis (nunca part en dos líneas) */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* ── Botones de acción rápida ───────────────────────────────── */
+.mha-tr {
+  cursor: pointer;
+}
+.mha-quick-btn {
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition:
+    background 0.12s,
+    color 0.12s;
+  flex-shrink: 0;
+}
+.mha-quick-btn:hover:not(:disabled) {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.mha-quick-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── Badge mensajes no leídos ───────────────────────────────── */
+.mha-tab-badge--new {
+  background: #ef4444 !important;
+  color: #fff !important;
+  font-size: 10px !important;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  margin-left: 5px;
+  vertical-align: middle;
+  animation: mha-badge-pulse 2s ease-in-out infinite;
+}
+@keyframes mha-badge-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(0.92);
+  }
+}
+
+/* ── Bitácora: sin max-height fijo, scroll vertical libre ────── */
+.mha-bitacora-list {
+  max-height: none !important;
+  overflow-x: hidden !important;
+  overflow-y: visible !important; /* scroll vertical libre */
+}
+.mha-bitacora-item {
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+}
+.mha-bitacora-nota {
+  overflow-x: hidden !important;
+  overflow-y: visible !important;
+  max-height: none !important;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}

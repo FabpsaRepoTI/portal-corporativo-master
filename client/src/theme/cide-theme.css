@@ -1,0 +1,25 @@
+/* ═══════════════════════════════════════════════════════════════
+   TEMA CIDE — solo tipografía (Outfit + JetBrains Mono), tomada de
+   la Guía de Diseño UI (public/guia-diseno-ui.html).
+
+   Para REVERTIR: quitar `import "./theme/cide-theme.css";` de App.jsx.
+   ═══════════════════════════════════════════════════════════════ */
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
+
+html[data-theme] body,
+html[data-theme] h1,
+html[data-theme] h2,
+html[data-theme] h3,
+html[data-theme] h4 {
+  font-family: "Outfit", "Inter", system-ui, sans-serif;
+}
+html[data-theme] code,
+html[data-theme] kbd,
+html[data-theme] pre {
+  font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+html[data-theme] input,
+html[data-theme] select,
+html[data-theme] textarea {
+  font-family: inherit;
+}

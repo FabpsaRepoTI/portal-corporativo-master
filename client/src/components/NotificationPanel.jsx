@@ -14,6 +14,8 @@ export default function NotificationPanel({
   onClose,
 }) {
   const navigate = useNavigate();
+  const claseIcono = (icono = "bell") =>
+    `ti ${icono.startsWith("ti-") ? icono : `ti-${icono}`}`;
 
   const handleClick = (n) => {
     if (!n.leida) marcarLeida(n.idNotificacion);
@@ -65,7 +67,7 @@ export default function NotificationPanel({
                       style={{ background: `${n.colorHex}22` }}
                     >
                       <i
-                        className={`ti ti-${n.icono}`}
+                        className={claseIcono(n.icono)}
                         style={{ color: n.colorHex, fontSize: 16 }}
                         aria-hidden="true"
                       />

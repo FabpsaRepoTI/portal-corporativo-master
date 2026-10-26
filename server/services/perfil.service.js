@@ -11,25 +11,21 @@ async function getPerfil(login) {
   const row = result.recordset[0];
   if (!row) return null;
 
-  // Convertir buffer image → data URL base64 para el frontend
+  // picture ahora es NVARCHAR — es una URL, no un buffer
+  // Si por algún caso llega buffer (datos muy viejos) lo ignoramos
   if (row.picture && Buffer.isBuffer(row.picture)) {
-    row.picture = "data:image/jpeg;base64," + row.picture.toString("base64");
+    row.picture = null;
   }
 
   return row;
 }
 
-async function updateFoto(login, picture) {
+async function updateFoto(login, pictureUrl) {
   const pool = await getPool();
-
-  // El frontend manda "data:image/png;base64,XXXX..." — extraemos solo los bytes
-  const base64Data = picture.includes(",") ? picture.split(",")[1] : picture;
-  const buffer = Buffer.from(base64Data, "base64");
-
   await pool
     .request()
-    .input("login", sql.VarChar, login)
-    .input("picture", sql.Image, buffer).query(`
+    .input("login", sql.VarChar(100), login)
+    .input("picture", sql.NVarChar(500), pictureUrl).query(`
       UPDATE sec_users
       SET picture = @picture
       WHERE login = @login

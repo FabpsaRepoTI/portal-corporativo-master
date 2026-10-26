@@ -1,3 +1,4 @@
+import DesarrolloDecision, { DecisionAviso, ALERTA_DECISION, decisionDe } from '../../../components/DesarrolloDecision';
 // MisDesarrollosPage.jsx v6 — quirúrgico, sin reescritura de diseño
 import React, {
   useState,
@@ -128,7 +129,8 @@ function StarRating({ value, onChange, size = 22 }) {
 }
 
 function MiniBarraTiempo({ idEstatus, fechaCompromiso }) {
-  if (idEstatus >= 6)
+  if (Number(idEstatus) === 6) return <span className="sdp-time-chip">Rechazado / cancelado</span>;
+  if (Number(idEstatus) === 7)
     return (
       <span className="sdp-time-chip sdp-time-chip--done">
         <i className="ti ti-circle-check" /> Concluido
@@ -184,17 +186,23 @@ function PanelUsuario({
   const [lightbox, setLightbox] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
   const fileRef = useRef(null);
+  const revision = decisionDe(data);
+  const enRevision = Number(data.idEstatus) === 6 || revision?.estado === "pendiente_ti";
+  const [errorEnvio, setErrorEnvio] = useState("");
   const folio = data.folioDesarrollo || data.folio || "";
 
   async function postComentario() {
     if (!comentario.trim()) return;
-    await fetch(`${API}/api/solicitudes-desarrollo/${idSolicitud}/comentario`, {
+    setErrorEnvio("");
+    try { const response = await fetch(`${API}/api/solicitudes-desarrollo/${idSolicitud}/comentario`, {
       method: "POST",
       headers: authH(),
       body: JSON.stringify({ comentario: comentario.trim() }),
     });
+    const result = await response.json(); if (!response.ok || !result.ok) throw new Error(result.message || "No se pudo enviar el comentario.");
     setComentario("");
     onRefresh?.();
+    } catch(e) { setErrorEnvio(e.message); }
   }
 
   async function subirArchivos(files) {
@@ -204,13 +212,15 @@ function PanelUsuario({
     Array.from(files).forEach((f) => fd.append("archivos", f));
     try {
       const token = localStorage.getItem("fabpsa_token");
-      await fetch(`${API}/api/solicitudes-desarrollo/${idSolicitud}/adjuntos`, {
+      setErrorEnvio("");
+      const response = await fetch(`${API}/api/solicitudes-desarrollo/${idSolicitud}/adjuntos`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         body: fd,
       });
+      const result = await response.json(); if (!response.ok || !result.ok) throw new Error(result.message || "No se pudo adjuntar la evidencia.");
       onRefresh?.();
-    } finally {
+    } catch(e) { setErrorEnvio(e.message); } finally {
       setSubiendo(false);
       if (fileRef.current) fileRef.current.value = "";
     }
@@ -219,7 +229,7 @@ function PanelUsuario({
   return (
     <div className="sdp-panel-wrap">
       <div className="sdp-panel-tabs">
-        {TABS_USR.map((t) => (
+        {TABS_USR.map((original) => { const t = enRevision && original.key === "evaluacion" ? {...original,label:"Revisión de la decisión",icon:"ti-message-question"} : original; return (
           <button
             key={t.key}
             className={`sdp-panel-tab ${tab === t.key ? "active" : ""}`}
@@ -227,10 +237,13 @@ function PanelUsuario({
           >
             <i className={`ti ${t.icon}`} /> <span>{t.label}</span>
           </button>
-        ))}
+        ); })}
         <div className="sdp-panel-tabs-spacer" />
       </div>
       <div className="sdp-panel-body">
+        {enRevision && <DecisionAviso data={data}/>}
+        {errorEnvio && <p role="alert">{errorEnvio}</p>}
+        {tab === "resumen" && !enRevision && revision && <DesarrolloDecision data={data} onRefresh={onRefresh}/>}
         {/* RESUMEN */}
         {tab === "resumen" && (
           <div className="sdp-resumen-grid">
@@ -277,7 +290,7 @@ function PanelUsuario({
             </div>
             <div className="sdp-prog-col">
               <div className="sdp-section-title">PROGRESO Y TIEMPOS</div>
-              <div className="bt-full" style={{ marginBottom: 10 }}>
+              {Number(data.idEstatus) !== 6 && <div className="bt-full" style={{ marginBottom: 10 }}>
                 <div className="bt-header">
                   <span>Avance</span>
                   <span className="bt-pct" style={{ color: "#4f46e5" }}>
@@ -293,7 +306,7 @@ function PanelUsuario({
                     }}
                   />
                 </div>
-              </div>
+              </div>}
               {[
                 ["Compromiso", fmtDate(data.fechaCompromiso)],
                 ["Inicio real", fmtDate(data.fechaInicio)],
@@ -503,7 +516,8 @@ function PanelUsuario({
         )}
 
         {/* EVALUACIÓN */}
-        {tab === "evaluacion" && (
+        {tab === "evaluacion" && enRevision && <DesarrolloDecision data={data} onRefresh={onRefresh}/>}
+        {tab === "evaluacion" && !enRevision && (
           <TabEvaluacionUsuario
             evaluacion={data.evaluacion}
             esConcluido={data.idEstatus === 7}
@@ -832,13 +846,23 @@ export default function MisDesarrollosPage({ embebido = false }) {
     fetchSolicitudes(true);
   }
 
+  useEffect(() => {
+    const id = Number(new URLSearchParams(window.location.search).get('solicitud'));
+    if (Number.isInteger(id) && id > 0) abrirModal(id);
+  }, []);
+  useEffect(() => {
+    if (!modalId || Number(modalData?.idEstatus) !== 6) return;
+    const timer = setInterval(() => refrescarModal(), 20000);
+    return () => clearInterval(timer);
+  }, [modalId, modalData?.idEstatus]);
+
   // KPIs calculados localmente
   const kpiCounts = {
     todas: solicitudes.length,
     proceso: solicitudes.filter((s) => (s.estatus?.id || s.idEstatus || 0) < 6)
       .length,
     concluidas: solicitudes.filter(
-      (s) => (s.estatus?.id || s.idEstatus || 0) >= 6,
+      (s) => (s.estatus?.id || s.idEstatus || 0) === 7,
     ).length,
     evaluar: solicitudes.filter(
       (s) => (s.estatus?.id || s.idEstatus || 0) === 7 && !s.evaluada,
@@ -849,7 +873,7 @@ export default function MisDesarrollosPage({ embebido = false }) {
     activeKpi === "proceso"
       ? solicitudes.filter((s) => (s.estatus?.id || s.idEstatus || 0) < 6)
       : activeKpi === "concluidas"
-        ? solicitudes.filter((s) => (s.estatus?.id || s.idEstatus || 0) >= 6)
+        ? solicitudes.filter((s) => (s.estatus?.id || s.idEstatus || 0) === 7)
         : activeKpi === "evaluar"
           ? solicitudes.filter(
               (s) => (s.estatus?.id || s.idEstatus || 0) === 7 && !s.evaluada,
@@ -925,6 +949,7 @@ export default function MisDesarrollosPage({ embebido = false }) {
             <option value="">Todos los estatus</option>
             <option value="proceso">En proceso</option>
             <option value="concluidas">Concluidas</option>
+            <option value="rechazadas">Rechazadas / canceladas</option>
             <option value="accion">Por evaluar</option>
           </select>
         </div>
@@ -1004,6 +1029,7 @@ export default function MisDesarrollosPage({ embebido = false }) {
                       )}
                     </td>
                     <td className="col-titulo-main">
+                      {sol.revisionDecisionEstado === "pendiente_ti" && <span className="dev-decision-alert">{ALERTA_DECISION}</span>}
                       <span className="titulo-text titulo-text--truncado">
                         {sol.titulo}
                       </span>
@@ -1061,7 +1087,7 @@ export default function MisDesarrollosPage({ embebido = false }) {
                       )}
                     </td>
                     <td className="col-avance">
-                      <div className="avance-cell">
+                      {idEst !== 6 && <div className="avance-cell">
                         <div className="avance-track">
                           <div
                             className="avance-fill"
@@ -1073,7 +1099,7 @@ export default function MisDesarrollosPage({ embebido = false }) {
                         <span className="avance-num">
                           {sol.avance || sol.porcentajeAvance || 0}%
                         </span>
-                      </div>
+                      </div>}
                       <MiniBarraTiempo
                         idEstatus={idEst}
                         fechaCompromiso={sol.fechaCompromiso}

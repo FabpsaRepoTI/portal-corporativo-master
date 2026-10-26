@@ -17,8 +17,11 @@ const SCAN_RESULT = {
   ERROR: "ERROR",
 };
 
-async function scanFactura(numeroFactura, usuarioLogin) {
-  const pool = await getCedisPool();
+async function scanFactura(numeroFactura,usuarioLogin){
+ const connection=await getCedisPool(),tx=new sql.Transaction(connection);await tx.begin();
+ try{const result=await scanInTransaction({request:()=>new sql.Request(tx)},numeroFactura,usuarioLogin);await tx.commit();return result;}catch(e){await tx.rollback();throw e;}
+}
+async function scanInTransaction(pool,numeroFactura,usuarioLogin) {
   try {
     const updateResult = await pool
       .request()
@@ -32,13 +35,17 @@ async function scanFactura(numeroFactura, usuarioLogin) {
           usuarioFacturaSurtida = @usuarioFacturaSurtida
         WHERE numeroFactura              = @numeroFactura
           AND empresaID                  = @empresaID
+          AND origen = 2
           AND ISNULL(facturaSurtida, 0) <> 1
+          AND fechaFacturaSurtida IS NULL
+          AND NULLIF(LTRIM(RTRIM(usuarioFacturaSurtida)),'') IS NULL
           AND statusFactura              = ${STATUS_FACTURA.ACTIVA};
         SELECT @@ROWCOUNT AS filasAfectadas;
       `);
 
     const filasAfectadas = updateResult.recordset[0]?.filasAfectadas ?? 0;
 
+    if(filasAfectadas>1)throw new Error("Número de factura duplicado en la empresa; no se registró el surtido.");
     if (filasAfectadas === 1) {
       const factura = await _getFacturaConCliente(pool, numeroFactura);
       return {
@@ -52,13 +59,15 @@ async function scanFactura(numeroFactura, usuarioLogin) {
       .request()
       .input("numeroFactura", sql.VarChar(50), numeroFactura)
       .input("empresaID", sql.Int, EMPRESA_ID).query(`
-        SELECT f.numeroFactura, f.statusFactura, f.facturaSurtida,
+        SELECT f.numeroFactura, f.statusFactura, f.facturaSustituida, f.facturaSurtida,
                f.fechaFacturaSurtida, f.usuarioFacturaSurtida,
                f.fechaFactura, f.totalFactura, f.codigoCliente, f.numeroPedido,
-               c.nombre1 AS nombreCliente
+               c.nombre1 AS nombreCliente, f.codigoMoneda, f.codigoVendedor,
+               f.subTotalFactura, f.impuestoFactura, m.AbreviacionPAC AS moneda, m.descripcion AS monedaDescripcion
         FROM FACTURAG f
         LEFT JOIN cliente c ON c.codigoCliente = f.codigoCliente AND c.EmpresaID = f.empresaID
-        WHERE f.numeroFactura = @numeroFactura AND f.empresaID = @empresaID
+        LEFT JOIN MONEXT m ON m.codigoMoneda=f.codigoMoneda AND m.EmpresaID=f.empresaID
+        WHERE f.numeroFactura = @numeroFactura AND f.empresaID = @empresaID AND f.origen = 2
       `);
 
     if (diag.recordset.length === 0)
@@ -70,27 +79,19 @@ async function scanFactura(numeroFactura, usuarioLogin) {
 
     const row = diag.recordset[0];
 
-    // Debug temporal — quitar una vez confirmado el tipo de dato
-    console.log(
-      "[cedis] diag row facturaSurtida:",
-      row.facturaSurtida,
-      typeof row.facturaSurtida,
-    );
-    console.log(
-      "[cedis] diag row fechaFacturaSurtida:",
-      row.fechaFacturaSurtida,
-    );
-    console.log(
-      "[cedis] diag row usuarioFacturaSurtida:",
-      row.usuarioFacturaSurtida,
-    );
-
     // Cubre int (1), bit (true), y campos de auditoría poblados
     const yaSurtida =
       row.facturaSurtida == 1 ||
       row.facturaSurtida === true ||
       row.fechaFacturaSurtida != null ||
-      row.usuarioFacturaSurtida != null;
+      Boolean(String(row.usuarioFacturaSurtida||'').trim());
+
+    if (row.statusFactura === STATUS_FACTURA.CANCELADA)
+      return {
+        status: SCAN_RESULT.CANCELLED,
+        message: "Esta factura está cancelada y no puede ser procesada.",
+        factura: _formatFactura(row),
+      };
 
     if (yaSurtida) {
       const quien = row.usuarioFacturaSurtida
@@ -105,13 +106,6 @@ async function scanFactura(numeroFactura, usuarioLogin) {
         factura: _formatFactura(row),
       };
     }
-
-    if (row.statusFactura === STATUS_FACTURA.CANCELADA)
-      return {
-        status: SCAN_RESULT.CANCELLED,
-        message: "Esta factura está cancelada y no puede ser procesada.",
-        factura: _formatFactura(row),
-      };
 
     return {
       status: SCAN_RESULT.UNKNOWN_STATUS,
@@ -141,12 +135,14 @@ async function getFacturasHoy({ status, q } = {}) {
         "AND (f.numeroFactura LIKE @q OR c.nombre1 LIKE @q OR f.numeroPedido LIKE @q)";
     }
     const result = await request.query(`
-      SELECT f.numeroFactura, f.fechaFactura, f.totalFactura, f.statusFactura,
+      SELECT f.numeroFactura, f.fechaFactura, f.totalFactura, f.statusFactura, f.facturaSustituida,
              f.facturaSurtida, f.fechaFacturaSurtida, f.usuarioFacturaSurtida,
-             f.codigoCliente, f.numeroPedido, c.nombre1 AS nombreCliente
+             f.codigoCliente, f.numeroPedido, c.nombre1 AS nombreCliente, f.codigoMoneda, f.codigoVendedor,
+               f.subTotalFactura, f.impuestoFactura, m.AbreviacionPAC AS moneda, m.descripcion AS monedaDescripcion
       FROM FACTURAG f
       LEFT JOIN cliente c ON c.codigoCliente = f.codigoCliente AND c.EmpresaID = f.empresaID
-      WHERE f.empresaID = @empresaID
+        LEFT JOIN MONEXT m ON m.codigoMoneda=f.codigoMoneda AND m.EmpresaID=f.empresaID
+      WHERE f.empresaID = @empresaID AND f.origen = 2
         AND CAST(f.fechaFactura AS DATE) = CAST(GETDATE() AS DATE)
         ${statusFilter} ${searchFilter}
       ORDER BY f.fechaFactura DESC
@@ -172,60 +168,25 @@ async function getFacturasHoy({ status, q } = {}) {
   }
 }
 
-async function getHistorico({ mes, anio, status, q } = {}) {
-  const pool = await getCedisPool();
-  const mesNum = parseInt(mes, 10);
-  const anioNum = parseInt(anio, 10);
-  if (!mesNum || !anioNum || mesNum < 1 || mesNum > 12 || anioNum < 2000)
-    throw new Error("Mes o año inválido.");
-  try {
-    const request = pool
-      .request()
-      .input("empresaID", sql.Int, EMPRESA_ID)
-      .input("mes", sql.Int, mesNum)
-      .input("anio", sql.Int, anioNum);
-    let statusFilter = "";
-    if (status === "surtidas") statusFilter = "AND f.facturaSurtida = 1";
-    if (status === "pendientes")
-      statusFilter =
-        "AND (f.facturaSurtida IS NULL OR f.facturaSurtida <> 1) AND f.statusFactura = 2";
-    if (status === "canceladas") statusFilter = "AND f.statusFactura = 1";
-    let searchFilter = "";
-    if (q?.trim()) {
-      request.input("q", sql.NVarChar(100), `%${q.trim()}%`);
-      searchFilter = "AND (f.numeroFactura LIKE @q OR c.nombre1 LIKE @q)";
-    }
-    const result = await request.query(`
-      SELECT f.numeroFactura, f.fechaFactura, f.totalFactura, f.statusFactura,
-             f.facturaSurtida, f.fechaFacturaSurtida, f.usuarioFacturaSurtida,
-             f.codigoCliente, f.numeroPedido, c.nombre1 AS nombreCliente
-      FROM FACTURAG f
-      LEFT JOIN cliente c ON c.codigoCliente = f.codigoCliente AND c.EmpresaID = f.empresaID
-      WHERE f.empresaID = @empresaID
-        AND MONTH(f.fechaFactura) = @mes
-        AND YEAR(f.fechaFactura)  = @anio
-        ${statusFilter} ${searchFilter}
-      ORDER BY f.fechaFactura DESC
-    `);
-    const facturas = result.recordset.map(_formatFactura);
-    return {
-      resumen: {
-        total: facturas.length,
-        surtidas: facturas.filter((f) => f.facturaSurtida === 1).length,
-        pendientes: facturas.filter(
-          (f) =>
-            f.facturaSurtida !== 1 && f.statusFactura === STATUS_FACTURA.ACTIVA,
-        ).length,
-        canceladas: facturas.filter(
-          (f) => f.statusFactura === STATUS_FACTURA.CANCELADA,
-        ).length,
-      },
-      facturas,
-    };
-  } catch (err) {
-    console.error("[cedis.service] getHistorico error:", err);
-    throw err;
-  }
+async function getHistorico({mes,anio,status,q}={}){
+ const now=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Mexico_City',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+ const year=Number(now.find(p=>p.type==='year').value),month=Number(now.find(p=>p.type==='month').value);
+ const mesNum=Number(mes),anioNum=Number(anio);
+ if(!Number.isInteger(mesNum)||!Number.isInteger(anioNum)||mesNum<1||mesNum>12||anioNum<2026||anioNum>year||(anioNum===year&&mesNum>month))throw Object.assign(new Error('Selecciona un mes disponible desde enero de 2026 hasta el mes actual.'),{status:400});
+ if(status&&!['surtidas','pendientes','canceladas'].includes(status))throw Object.assign(new Error('Filtro de surtido inválido.'),{status:400});
+ const pool=await getCedisPool(),request=pool.request().input('empresaID',sql.Int,EMPRESA_ID).input('mes',sql.Int,mesNum).input('anio',sql.Int,anioNum);
+ const result=await request.query(`SELECT f.numeroFactura,f.fechaFactura,f.totalFactura,f.subTotalFactura,f.impuestoFactura,f.codigoVendedor,f.codigoMoneda,
+ f.statusFactura, f.facturaSustituida,f.facturaSurtida,f.fechaFacturaSurtida,f.usuarioFacturaSurtida,f.codigoCliente,f.numeroPedido,c.nombre1 AS nombreCliente,
+ m.AbreviacionPAC AS moneda,m.descripcion AS monedaDescripcion
+ FROM FACTURAG f LEFT JOIN cliente c ON c.codigoCliente=f.codigoCliente AND c.EmpresaID=f.empresaID
+ LEFT JOIN MONEXT m ON m.codigoMoneda=f.codigoMoneda AND m.EmpresaID=f.empresaID
+ WHERE f.empresaID=@empresaID AND f.origen = 2 AND f.fechaFactura>=DATEFROMPARTS(@anio,@mes,1) AND f.fechaFactura<DATEADD(MONTH,1,DATEFROMPARTS(@anio,@mes,1))
+ ORDER BY f.fechaFactura DESC,f.numeroFactura DESC`);
+ const all=result.recordset.map(_formatFactura);
+ const resumen={total:all.length,surtidas:all.filter(f=>f.estado==='surtida').length,pendientes:all.filter(f=>f.estado==='pendiente').length,canceladas:all.filter(f=>f.estado==='cancelada').length};
+ const state={surtidas:'surtida',pendientes:'pendiente',canceladas:'cancelada'};
+ const query=String(q||'').trim().toLocaleLowerCase('es-MX');
+ return {resumen,facturas:all.filter(f=>(!status||f.estado===state[status])&&(!query||[f.numeroFactura,f.codigoCliente,f.nombreCliente,f.codigoVendedor,f.numeroPedido].some(v=>String(v||'').toLocaleLowerCase('es-MX').includes(query)))),periodo:{mes:mesNum,anio:anioNum}};
 }
 
 async function getDetalleFactura(numeroFactura) {
@@ -235,14 +196,15 @@ async function getDetalleFactura(numeroFactura) {
       .request()
       .input("numeroFactura", sql.VarChar(50), numeroFactura)
       .input("empresaID", sql.Int, EMPRESA_ID).query(`
-        SELECT f.numeroFactura, f.fechaFactura, f.totalFactura, f.subTotalFactura,
-               f.impuestoFactura, f.statusFactura, f.facturaSurtida,
+        SELECT f.numeroFactura, f.fechaFactura, f.totalFactura, f.statusFactura, f.facturaSustituida, f.facturaSurtida,
                f.fechaFacturaSurtida, f.usuarioFacturaSurtida,
                f.codigoCliente, f.numeroPedido, f.ordenCompra, f.codigoAlmacen,
-               c.nombre1 AS nombreCliente
+               c.nombre1 AS nombreCliente, f.codigoMoneda, f.codigoVendedor,
+               f.subTotalFactura, f.impuestoFactura, m.AbreviacionPAC AS moneda, m.descripcion AS monedaDescripcion
         FROM FACTURAG f
         LEFT JOIN cliente c ON c.codigoCliente = f.codigoCliente AND c.EmpresaID = f.empresaID
-        WHERE f.numeroFactura = @numeroFactura AND f.empresaID = @empresaID
+        LEFT JOIN MONEXT m ON m.codigoMoneda=f.codigoMoneda AND m.EmpresaID=f.empresaID
+        WHERE f.numeroFactura = @numeroFactura AND f.empresaID = @empresaID AND f.origen = 2
       `);
     if (cabResult.recordset.length === 0) return null;
     const partResult = await pool
@@ -271,12 +233,14 @@ async function _getFacturaConCliente(pool, numeroFactura) {
     .request()
     .input("numeroFactura", sql.VarChar(50), numeroFactura)
     .input("empresaID", sql.Int, EMPRESA_ID).query(`
-      SELECT f.numeroFactura, f.fechaFactura, f.totalFactura, f.statusFactura,
+      SELECT f.numeroFactura, f.fechaFactura, f.totalFactura, f.statusFactura, f.facturaSustituida,
              f.facturaSurtida, f.fechaFacturaSurtida, f.usuarioFacturaSurtida,
-             f.codigoCliente, f.numeroPedido, c.nombre1 AS nombreCliente
+             f.codigoCliente, f.numeroPedido, c.nombre1 AS nombreCliente, f.codigoMoneda, f.codigoVendedor,
+               f.subTotalFactura, f.impuestoFactura, m.AbreviacionPAC AS moneda, m.descripcion AS monedaDescripcion
       FROM FACTURAG f
       LEFT JOIN cliente c ON c.codigoCliente = f.codigoCliente AND c.EmpresaID = f.empresaID
-      WHERE f.numeroFactura = @numeroFactura AND f.empresaID = @empresaID
+        LEFT JOIN MONEXT m ON m.codigoMoneda=f.codigoMoneda AND m.EmpresaID=f.empresaID
+      WHERE f.numeroFactura = @numeroFactura AND f.empresaID = @empresaID AND f.origen = 2
     `);
   return result.recordset.length > 0
     ? _formatFactura(result.recordset[0])
@@ -291,7 +255,7 @@ function _formatFactura(row) {
     row.facturaSurtida == 1 ||
     row.facturaSurtida === true ||
     row.fechaFacturaSurtida != null ||
-    row.usuarioFacturaSurtida != null;
+    Boolean(String(row.usuarioFacturaSurtida||'').trim());
 
   let estado;
   if (row.statusFactura === STATUS_FACTURA.CANCELADA) estado = "cancelada";
@@ -301,12 +265,18 @@ function _formatFactura(row) {
 
   return {
     numeroFactura: row.numeroFactura,
+    codigoMoneda: row.codigoMoneda ?? null,
+    moneda: row.moneda?.trim() || null,
+    monedaDescripcion: row.monedaDescripcion ?? null,
+    codigoVendedor: row.codigoVendedor ?? null,
+    leida: surtida,
     fechaFactura: row.fechaFactura,
     totalFactura: row.totalFactura ?? null,
     subTotalFactura: row.subTotalFactura ?? null,
     impuestoFactura: row.impuestoFactura ?? null,
     statusFactura: row.statusFactura,
-    facturaSurtida: row.facturaSurtida ?? null,
+    facturaSustituida: row.facturaSustituida ?? null,
+    facturaSurtida: surtida ? 1 : 0,
     fechaFacturaSurtida: row.fechaFacturaSurtida ?? null,
     usuarioFacturaSurtida: row.usuarioFacturaSurtida ?? null,
     codigoCliente: row.codigoCliente,

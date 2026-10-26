@@ -10,7 +10,7 @@ async function scan(req, res) {
     const { numeroFactura } = req.body;
 
     // Validación básica — el backend nunca confía solo en el frontend
-    if (!numeroFactura || typeof numeroFactura !== 'string' || !numeroFactura.trim()) {
+    if (!numeroFactura || typeof numeroFactura !== 'string' || !numeroFactura.trim() || numeroFactura.trim().length>50 || /[\x00-\x1f]/.test(numeroFactura.trim())) {
       return res.status(400).json({
         ok: false,
         status: 'INVALID_INPUT',
@@ -19,7 +19,8 @@ async function scan(req, res) {
     }
 
     // El usuario siempre viene del JWT, nunca del body
-    const usuarioLogin = req.user?.name || req.user?.login || 'SISTEMA';
+    const usuarioLogin = req.user?.login;
+    if(!usuarioLogin)return res.status(401).json({ok:false,status:'ERROR',message:'Inicia sesión para registrar el surtido.'});
 
     const resultado = await cedisService.scanFactura(
       numeroFactura.trim().toUpperCase(),
@@ -74,7 +75,7 @@ async function getHistorico(req, res) {
     return res.json({ ok: true, ...resultado });
   } catch (err) {
     console.error('[cedis.controller] getHistorico error:', err);
-    return res.status(500).json({ ok: false, message: 'Error al obtener histórico.' });
+    return res.status(err.status===400?400:500).json({ok:false,message:err.status===400?err.message:'Error al obtener histórico.'});
   }
 }
 

@@ -6,6 +6,7 @@
 const sql = require("mssql");
 const { getPool } = require("../db");
 const { crearNotificacion, TIPOS } = require("./notificaciones.service");
+const { parseDecision } = require('./desarrolloDecision.model');
 
 const ID_SERVICIO = 2;
 const TIPO_CODIGO = { 1: "ND", 2: "MA" };
@@ -103,11 +104,12 @@ async function getCatalogos() {
 // ════════════════════════════════════════════════════════════
 // getKpis
 // ════════════════════════════════════════════════════════════
-async function getKpis(loginUsuario) {
+async function getKpis(loginUsuario, responsable = null) {
   const pool = await getPool();
   const r = await pool
     .request()
     .input("idServicio", sql.Int, ID_SERVICIO)
+    .input("responsable", sql.VarChar(255), responsable || null)
     .input("login", sql.VarChar(255), loginUsuario).query(`
       SELECT
         SUM(CASE WHEN s.idEstatus=1 THEN 1 ELSE 0 END) AS pendientes,
@@ -122,6 +124,7 @@ async function getKpis(loginUsuario) {
       FROM solicitudTI s
       LEFT JOIN solicitudTI_desarrollo_detalle dd ON s.idSolicitud=dd.idSolicitud
       WHERE s.idServicio=@idServicio
+        AND (@responsable IS NULL OR s.tecnicoAsignado=@responsable)
     `);
   return r.recordset[0];
 }
@@ -186,14 +189,23 @@ async function getLista(query) {
       ISNULL(JSON_VALUE(s.camposExtra,'$.folioDesarrollo'),s.folio) AS folioDesarrollo,
       s.titulo, s.nombreUsuario AS solicitante, s.areaUsuario AS area, s.sitioUsuario AS sitio,
       s.idPrioridad, s.idEstatus,
+      JSON_VALUE(s.camposExtra,'$.revisionDecision.estado') AS revisionDecisionEstado,
+      COALESCE(JSON_VALUE(s.camposExtra,'$.alcanceDesarrollo'),'PROYECTO') AS alcanceDesarrollo,
       s.tecnicoAsignado AS loginResponsable, s.nombreTecnico AS nombreResponsable,
+      u.picture AS fotoResponsable,
       s.fechaCreacion, s.fechaActualizacion,
-      dd.idDesarrollo,dd.idTipo,dd.fechaCompromiso,dd.fechaInicio,dd.porcentajeAvance,dd.motivoRevision,
+      dd.idDesarrollo,dd.idTipo,dd.fechaCompromiso,dd.fechaInicio,dd.porcentajeAvance,dd.motivoRevision,dd.horasEstimadas,
+      DATEDIFF_BIG(SECOND,s.fechaCreacion,SYSDATETIME()) AS segundosAbiertos,
       dd.tipoDesarrollo,
       ced.nombre AS estatusNombre, ced.color AS estatusColor, ced.colorBg AS estatusBg,
       ctd.nombre AS tipoNombre, ctd.codigo AS tipoCodigo,
       cp.prioridad AS prioridadNombre, cp.colorHex AS prioridadColor,
       dt.desarrollo AS sistemaNombre,
+      (SELECT TOP 1 st.titulo FROM solicitudTI_desarrollo_subtarea st
+       WHERE st.idSolicitud=s.idSolicitud AND st.idEstatus NOT IN(6,7) AND st.fechaCompromiso IS NOT NULL
+       ORDER BY st.fechaCompromiso,st.idSubtarea) AS proximoEntregable,
+      (SELECT MIN(st.fechaCompromiso) FROM solicitudTI_desarrollo_subtarea st
+       WHERE st.idSolicitud=s.idSolicitud AND st.idEstatus NOT IN(6,7)) AS fechaProximoEntregable,
       -- Bloqueo activo
       (SELECT COUNT(*) FROM solicitudTI_desarrollo_bloqueos b WHERE b.idSolicitud=s.idSolicitud AND b.fechaResolucion IS NULL) AS bloqueosActivos,
       CASE WHEN s.idEstatus IN(6,7) THEN 'terminal'
@@ -215,8 +227,9 @@ async function getLista(query) {
     LEFT JOIN cat_tipo_solicitud_dev ctd ON dd.idTipo=ctd.idTipo
     LEFT JOIN cat_prioridad cp ON s.idPrioridad=cp.idPrioridad
     LEFT JOIN desarrollosTI dt ON dd.idDesarrollo=dt.id
+    LEFT JOIN sec_users u ON u.login=s.tecnicoAsignado
     WHERE ${conds.join(" AND ")}
-    ORDER BY ${orderBy} ${orderDir}
+    ORDER BY ${orderBy} ${orderDir}, s.idSolicitud ASC
     OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
   `);
   return {
@@ -249,6 +262,7 @@ async function getDetalle(idSolicitud) {
       .input("id", sql.Int, idSolicitud)
       .input("srv", sql.Int, ID_SERVICIO).query(`
         SELECT s.*,
+          COALESCE(JSON_VALUE(s.camposExtra,'$.alcanceDesarrollo'),'PROYECTO') AS alcanceDesarrollo,
           ISNULL(JSON_VALUE(s.camposExtra,'$.folioDesarrollo'),s.folio) AS folioDesarrollo,
           dd.idDesarrollo,dd.idTipo,dd.justificacion,dd.beneficioEsperado,dd.impacto,dd.objetivo,
           dd.fechaCompromiso,dd.fechaInicio,dd.motivoRechazo,dd.motivoRevision,dd.impactaOtrasAreas,
@@ -342,6 +356,7 @@ async function getDetalle(idSolicitud) {
   const h = horas.recordset;
   return {
     ...principal.recordset[0],
+    revisionDecision: parseDecision(principal.recordset[0].camposExtra),
     adjuntos: adjuntos.recordset,
     comentarios: comentarios.recordset,
     bitacora: bitacoraRows.recordset,
@@ -444,7 +459,11 @@ async function crearSolicitud(body, userJwt, files = []) {
 // cambiarEstatus
 // ════════════════════════════════════════════════════════════
 async function cambiarEstatus(idSolicitud, body, userJwt) {
-  const pool = await getPool();
+  if (Number(body.idEstatus) === 6)
+    return require('./desarrolloDecision.service').registrar(idSolicitud, {...body, accion:'rechazar'}, userJwt);
+  const connection=await getPool(),tx=new sql.Transaction(connection);await tx.begin();
+  const pool={request:()=>new sql.Request(tx)};
+  try {
   const idEstatus = parseInt(body.idEstatus);
   if (idEstatus !== 6) {
     const chk = await pool
@@ -458,8 +477,8 @@ async function cambiarEstatus(idSolicitud, body, userJwt) {
   }
   if (idEstatus === 6 && !body.motivoRechazo?.trim())
     throw new Error("El motivo de cancelación es obligatorio.");
-  if (idEstatus === 4 && !body.motivoRevision?.trim())
-    throw new Error("El motivo de revisión es obligatorio.");
+  if (idEstatus === 5 && !body.motivoRevision?.trim())
+    throw new Error("Indica qué información está pendiente.");
   if (idEstatus === 3 && !body.fechaCompromiso)
     throw new Error(
       "La fecha compromiso es obligatoria al iniciar el desarrollo.",
@@ -470,6 +489,7 @@ async function cambiarEstatus(idSolicitud, body, userJwt) {
     FROM solicitudTI s LEFT JOIN cat_estatus_desarrollo ced ON s.idEstatus=ced.idEstatus WHERE s.idSolicitud=@id
   `);
   const row = actual.recordset[0];
+  if(!row || [6,7].includes(Number(row.idEstatus)))throw new Error("No se puede modificar una solicitud rechazada o concluida.");
   const estatusAnterior = row?.estatusNombre || "—";
   const loginSolicitante = row?.idUsuario;
   const folioDesarrollo = row?.folioDesarrollo;
@@ -485,6 +505,8 @@ async function cambiarEstatus(idSolicitud, body, userJwt) {
     .query(
       "UPDATE solicitudTI SET idEstatus=@est,fechaActualizacion=GETDATE(),fechaResolucion=CASE WHEN @est=7 THEN GETDATE() ELSE fechaResolucion END WHERE idSolicitud=@id",
     );
+  if(Number(row.idEstatus)!==idEstatus)await pool.request().input("id",sql.Int,idSolicitud).query("UPDATE solicitudTI_desarrollo_detalle SET fechaInicio=COALESCE(fechaInicio,GETDATE()) WHERE idSolicitud=@id");
+  if(body.idPrioridad!=null)await require("./desarrolloPrioridad.service").actualizar(pool,idSolicitud,body.idPrioridad,userJwt);
   const det = pool.request().input("id", sql.Int, idSolicitud);
   if (idEstatus === 6) {
     det.input("motivo", sql.NVarChar(sql.MAX), body.motivoRechazo);
@@ -492,7 +514,7 @@ async function cambiarEstatus(idSolicitud, body, userJwt) {
       "UPDATE solicitudTI_desarrollo_detalle SET motivoRechazo=@motivo WHERE idSolicitud=@id",
     );
   }
-  if (idEstatus === 4) {
+  if (idEstatus === 5) {
     det.input("motivo", sql.NVarChar(sql.MAX), body.motivoRevision);
     await det.query(
       "UPDATE solicitudTI_desarrollo_detalle SET motivoRevision=@motivo WHERE idSolicitud=@id",
@@ -520,6 +542,7 @@ async function cambiarEstatus(idSolicitud, body, userJwt) {
         ? `Estatus cambiado de "${estatusAnterior}" a "${estatusNuevo}" — Fecha compromiso: ${body.fechaCompromiso}`
         : `Estatus cambiado de "${estatusAnterior}" a "${estatusNuevo}"${motivo ? ` — Motivo: ${motivo}` : ""}`,
   });
+  await tx.commit();
   if (loginSolicitante && loginSolicitante !== userJwt.login) {
     try {
       await crearNotificacion({
@@ -536,6 +559,7 @@ async function cambiarEstatus(idSolicitud, body, userJwt) {
     }
   }
   return { ok: true, idEstatus, estatusNuevo };
+  }catch(e){await tx.rollback();throw e;}
 }
 
 // ════════════════════════════════════════════════════════════
@@ -628,53 +652,38 @@ async function concluirDesarrollo(idSolicitud, body, userJwt) {
 // asignarResponsable
 // ════════════════════════════════════════════════════════════
 async function asignarResponsable(idSolicitud, body, userJwt) {
-  const pool = await getPool();
-  const login = body.loginResponsable || userJwt.login;
-  const nombre = body.nombreResponsable || userJwt.name;
-  const { tipoDesarrollo } = body;
-
-  await pool
-    .request()
-    .input("id", sql.Int, idSolicitud)
-    .input("login", sql.VarChar(255), login)
-    .input("nombre", sql.NVarChar(200), nombre)
-    .query(
-      "UPDATE solicitudTI SET tecnicoAsignado=@login,nombreTecnico=@nombre,fechaActualizacion=GETDATE() WHERE idSolicitud=@id",
-    );
-
-  await bitacora(pool, {
-    idSolicitud,
-    idUsuario: userJwt.login,
-    nombreUsuario: userJwt.name,
-    nota: body.loginResponsable
-      ? `Responsable asignado: ${nombre}`
-      : `${nombre} se auto-asignó como responsable`,
-  });
-
-  if (tipoDesarrollo) {
-    await pool
-      .request()
-      .input("idSolicitud", sql.Int, parseInt(idSolicitud))
-      .input("tipoDesarrollo", sql.VarChar(30), tipoDesarrollo)
-      .query(
-        "UPDATE solicitudTI_desarrollo_detalle SET tipoDesarrollo=@tipoDesarrollo WHERE idSolicitud=@idSolicitud",
-      );
-  }
-
-  return { ok: true, loginResponsable: login, nombreResponsable: nombre };
+  if(!['SOLICITUD_USUARIO','CORRECTIVO','PREVENTIVO','INICIATIVA_PROPIA'].includes(body.tipoDesarrollo)) throw new Error('Selecciona el tipo de desarrollo antes de asignar.');
+  const pool=await getPool(),tx=new sql.Transaction(pool);await tx.begin();
+  const db={request:()=>new sql.Request(tx)};
+  const login=body.loginResponsable || userJwt.login,nombre=body.nombreResponsable || userJwt.name || login;
+  try {
+    const current=await db.request().input('id',sql.Int,idSolicitud).query('SELECT idEstatus FROM solicitudTI WITH (UPDLOCK,HOLDLOCK) WHERE idSolicitud=@id AND idServicio=2');
+    if(!current.recordset[0] || [6,7].includes(Number(current.recordset[0].idEstatus))) throw new Error('La solicitud no admite asignación.');
+    await db.request().input('id',sql.Int,idSolicitud).input('login',sql.VarChar(255),login).input('nombre',sql.NVarChar(200),nombre).query('UPDATE solicitudTI SET tecnicoAsignado=@login,nombreTecnico=@nombre,fechaActualizacion=GETDATE() WHERE idSolicitud=@id');
+    await db.request().input('idSolicitud',sql.Int,idSolicitud).input('tipoDesarrollo',sql.VarChar(30),body.tipoDesarrollo).query('MERGE solicitudTI_desarrollo_detalle AS t USING(SELECT @idSolicitud AS idSolicitud) AS s ON t.idSolicitud=s.idSolicitud WHEN MATCHED THEN UPDATE SET tipoDesarrollo=@tipoDesarrollo WHEN NOT MATCHED THEN INSERT(idSolicitud,tipoDesarrollo) VALUES(@idSolicitud,@tipoDesarrollo);');
+    await bitacora(db,{idSolicitud,idUsuario:userJwt.login,nombreUsuario:userJwt.name || userJwt.login,nota:'Responsable asignado: '+nombre+' · Tipo: '+body.tipoDesarrollo});
+    await tx.commit();return {ok:true,loginResponsable:login,nombreResponsable:nombre};
+  } catch(e){await tx.rollback();throw e;}
 }
 
 // ════════════════════════════════════════════════════════════
 // actualizarDetalle
 // ════════════════════════════════════════════════════════════
 async function actualizarDetalle(idSolicitud, body, userJwt) {
-  const pool = await getPool();
+  let pool = await getPool();
+  const etapas = require("./desarrolloEtapas.service");
+  if (body.alcanceDesarrollo != null && !['PROYECTO', 'CAMBIO_SENCILLO'].includes(body.alcanceDesarrollo)) throw new Error('Selecciona Proyecto o Adecuación menor.');
+  const simple = body.alcanceDesarrollo === 'CAMBIO_SENCILLO';
+  if (body.idEstatus != null && (!simple || ![1,2,3,4,5].includes(Number(body.idEstatus)))) throw new Error('El estatus manual solo corresponde a adecuaciones menores. Usa el flujo formal para rechazar.');
+  const stage = !simple && body.porcentajeAvance !== undefined ? etapas.validar(body) : null;
+  if (stage) body = {...body, fechaCompromiso: stage.fechaCompromiso};
+  if(stage) await etapas.ensureSchema(pool);
 
   // Validar responsable antes de actualizar
   const check = await pool
     .request()
     .input("id", sql.Int, idSolicitud)
-    .query("SELECT tecnicoAsignado FROM solicitudTI WHERE idSolicitud=@id");
+    .query("SELECT tecnicoAsignado, idEstatus FROM solicitudTI WHERE idSolicitud=@id");
   if (!check.recordset[0]?.tecnicoAsignado) {
     return {
       ok: false,
@@ -683,9 +692,42 @@ async function actualizarDetalle(idSolicitud, body, userJwt) {
     };
   }
 
+  const tx = new sql.Transaction(pool); await tx.begin();
+  pool = {request:()=>new sql.Request(tx)};
+  try {
+  // La etapa y el estatus deben confirmarse juntos. Liberación no equivale
+  // a concluir: el cierre conserva su flujo y sus validaciones propias.
+  let nuevoEstatus = null, iniciar = false;
+  if (stage || simple) {
+    const current = await pool.request().input("id", sql.Int, idSolicitud)
+      .query("SELECT idEstatus FROM solicitudTI WITH (UPDLOCK,HOLDLOCK) WHERE idSolicitud=@id");
+    if ([6, 7].includes(Number(current.recordset[0]?.idEstatus))) {
+      throw new Error("No se puede actualizar la etapa de una solicitud rechazada o concluida.");
+    }
+    const catalogo = await pool.request().query("SELECT idEstatus, nombre FROM cat_estatus_desarrollo");
+    const preferencias = {
+      1: ["en analisis", "analisis", "en evaluacion", "en revision"],
+      2: ["en desarrollo", "en proceso"],
+      3: ["en revision"],
+      4: ["en pruebas"],
+      5: ["en liberacion", "liberacion", "en proceso", "en desarrollo"],
+    };
+    const normalizar = value => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+    for (const nombre of simple ? ['en proceso', 'en desarrollo'] : preferencias[stage.numeroEtapa]) {
+      const match = catalogo.recordset.find(e => normalizar(e.nombre) === nombre);
+      if (match) { nuevoEstatus = match.idEstatus; break; }
+    }
+    if (nuevoEstatus == null) throw new Error("No hay un estatus configurado para la etapa seleccionada.");
+    const anterior = Number(current.recordset[0]?.idEstatus);
+    if(simple && body.idEstatus != null) nuevoEstatus=Number(body.idEstatus);
+    if(nuevoEstatus===5 && anterior!==5) throw new Error('Registra el motivo mediante Esperando información.');
+    if(anterior===5 && body.retomarTrabajo!==true) nuevoEstatus=5;
+    iniciar=nuevoEstatus!==anterior;
+  }
   await pool
     .request()
     .input("id", sql.Int, idSolicitud)
+    .input("iniciar", sql.Bit, iniciar)
     .input("idDev", sql.Int, body.idDesarrollo ?? null)
     .input("idTipo", sql.Int, body.idTipo ?? null)
     .input("justif", sql.NVarChar(sql.MAX), body.justificacion ?? null)
@@ -700,26 +742,33 @@ async function actualizarDetalle(idSolicitud, body, userJwt) {
     ).query(`
       MERGE solicitudTI_desarrollo_detalle AS t USING(SELECT @id AS idSolicitud) AS s ON t.idSolicitud=s.idSolicitud
       WHEN MATCHED THEN UPDATE SET
+        fechaInicio=CASE WHEN @iniciar=1 THEN COALESCE(fechaInicio,GETDATE()) ELSE fechaInicio END,
         idDesarrollo=ISNULL(@idDev,idDesarrollo),idTipo=ISNULL(@idTipo,idTipo),
         justificacion=ISNULL(@justif,justificacion),objetivo=ISNULL(@objetivo,objetivo),
         beneficioEsperado=ISNULL(@beneficio,beneficioEsperado),porcentajeAvance=ISNULL(@avance,porcentajeAvance),
         horasEstimadas=ISNULL(@hrsEst,horasEstimadas),fechaCompromiso=ISNULL(@compromiso,fechaCompromiso)
-      WHEN NOT MATCHED THEN INSERT(idSolicitud,idDesarrollo,idTipo,justificacion,objetivo,beneficioEsperado,porcentajeAvance,horasEstimadas,fechaCompromiso)
-        VALUES(@id,@idDev,@idTipo,@justif,@objetivo,@beneficio,@avance,@hrsEst,@compromiso);
+      WHEN NOT MATCHED THEN INSERT(idSolicitud,fechaInicio,idDesarrollo,idTipo,justificacion,objetivo,beneficioEsperado,porcentajeAvance,horasEstimadas,fechaCompromiso)
+        VALUES(@id,CASE WHEN @iniciar=1 THEN GETDATE() ELSE NULL END,@idDev,@idTipo,@justif,@objetivo,@beneficio,@avance,@hrsEst,@compromiso);
     `);
   await pool
     .request()
     .input("id", sql.Int, idSolicitud)
+    .input("estatus", sql.Int, nuevoEstatus)
+    .input("alcance", sql.VarChar(20), body.alcanceDesarrollo ?? null)
     .query(
-      "UPDATE solicitudTI SET fechaActualizacion=GETDATE() WHERE idSolicitud=@id",
+      "UPDATE solicitudTI SET idEstatus=COALESCE(@estatus,idEstatus),camposExtra=CASE WHEN @alcance IS NULL THEN camposExtra ELSE JSON_MODIFY(COALESCE(camposExtra,'{}'),'$.alcanceDesarrollo',@alcance) END,fechaActualizacion=GETDATE() WHERE idSolicitud=@id",
     );
+  if(body.idPrioridad!=null)await require("./desarrolloPrioridad.service").actualizar(pool,idSolicitud,body.idPrioridad,userJwt);
+  if(stage) await etapas.write(tx,{origen:"mesa",id:idSolicitud},[stage],userJwt,true);
   await bitacora(pool, {
     idSolicitud,
     idUsuario: userJwt.login,
     nombreUsuario: userJwt.name,
-    nota: `${userJwt.name} actualizó los detalles del desarrollo`,
+    nota: `${userJwt.name} actualizó los detalles del desarrollo${stage ? ` — Etapa: ${etapas.NOMBRES[stage.numeroEtapa]}, estatus: ${nuevoEstatus}` : ""}`,
   });
+  await tx.commit();
   return { ok: true };
+  }catch(e){await tx.rollback();throw e;}
 }
 
 // ════════════════════════════════════════════════════════════
@@ -727,14 +776,19 @@ async function actualizarDetalle(idSolicitud, body, userJwt) {
 // ════════════════════════════════════════════════════════════
 async function agregarComentario(idSolicitud, body, userJwt) {
   const pool = await getPool();
+  if (!body.comentario?.trim()) throw new Error('El comentario no puede estar vacío.');
+  const found = await pool.request().input('id', sql.Int, idSolicitud).query("SELECT idUsuario,tecnicoAsignado,folio,JSON_VALUE(camposExtra,'$.revisionDecision.decision.login') AS loginDecision FROM solicitudTI WHERE idSolicitud=@id AND idServicio=2");
+  const solicitud = found.recordset[0];
+  if (!solicitud || (userJwt.area !== 'SISTEMAS' && String(solicitud.idUsuario).toLowerCase() !== String(userJwt.login).toLowerCase()))
+    throw Object.assign(new Error('Sin acceso.'), {status:403});
   const r = await pool
     .request()
     .input("idSol", sql.Int, idSolicitud)
     .input("login", sql.VarChar(255), userJwt.login)
     .input("nombre", sql.NVarChar(200), userJwt.name)
     .input("texto", sql.NVarChar(sql.MAX), body.comentario?.trim()).query(`
-      INSERT INTO solicitudTI_comentarios(idSolicitud,idUsuario,nombreUsuario,comentario,fecha)
-      OUTPUT INSERTED.idComentario,INSERTED.fecha VALUES(@idSol,@login,@nombre,@texto,GETDATE())`);
+      INSERT INTO solicitudTI_comentarios(idSolicitud,idUsuario,nombreUsuario,comentario,esInterno,fecha)
+      OUTPUT INSERTED.idComentario,INSERTED.fecha VALUES(@idSol,@login,@nombre,@texto,0,GETDATE())`);
   await pool
     .request()
     .input("id", sql.Int, idSolicitud)
@@ -742,6 +796,11 @@ async function agregarComentario(idSolicitud, body, userJwt) {
       "UPDATE solicitudTI SET fechaActualizacion=GETDATE() WHERE idSolicitud=@id",
     );
   const nuevo = r.recordset[0];
+  await bitacora(pool, {idSolicitud, idUsuario:userJwt.login, nombreUsuario:userJwt.name || userJwt.login, nota:'Comentario publicado en el desarrollo.'});
+  const destino = String(solicitud.idUsuario).toLowerCase() === String(userJwt.login).toLowerCase() ? (solicitud.tecnicoAsignado || solicitud.loginDecision) : solicitud.idUsuario;
+  if (destino && destino !== userJwt.login) await crearNotificacion({loginDestino:destino,loginOrigen:userJwt.login,idTipo:TIPOS.COMENTARIO_NUEVO,idSolicitud,
+    titulo:'Nuevo comentario en desarrollo',descripcion:`${solicitud.folio}: ${body.comentario.trim()}`.slice(0,300),
+    urlDestino:require('./desarrolloDecision.service').urlSolicitud(idSolicitud, destino === solicitud.idUsuario)});
   return {
     ok: true,
     idComentario: nuevo.idComentario,
@@ -1097,9 +1156,10 @@ async function getMisSolicitudes(
   let whereExtra = "";
 
   if (estatus === "proceso") whereExtra += ` AND s.idEstatus IN (1,2,3,4,5)`;
-  if (estatus === "concluidas") whereExtra += ` AND s.idEstatus IN (6,7)`;
+  if (estatus === "concluidas") whereExtra += ` AND s.idEstatus=7`;
+  if (estatus === "rechazadas") whereExtra += ` AND s.idEstatus=6`;
   if (estatus === "accion")
-    whereExtra += ` AND s.idEstatus IN (6,7) AND ev.idEvaluacion IS NULL`;
+    whereExtra += ` AND s.idEstatus=7 AND ev.idEvaluacion IS NULL`;
 
   if (search) {
     r.input("search", sql.VarChar, `%${search}%`);
@@ -1136,6 +1196,7 @@ async function getMisSolicitudes(
       dev.desarrollo                 AS sistemaNombre,
       s.nombreTecnico                AS responsableNombre,
       ev.idEvaluacion
+      ,JSON_VALUE(s.camposExtra,'$.revisionDecision.estado') AS revisionDecisionEstado
     FROM solicitudTI s
     JOIN solicitudTI_desarrollo_detalle det ON det.idSolicitud = s.idSolicitud
     JOIN cat_estatus_desarrollo e           ON e.idEstatus     = s.idEstatus
@@ -1171,6 +1232,7 @@ async function getMisSolicitudes(
     sistema: row.sistemaNombre,
     responsable: row.responsableNombre,
     evaluada: !!row.idEvaluacion,
+    revisionDecisionEstado: row.revisionDecisionEstado,
   }));
 }
 

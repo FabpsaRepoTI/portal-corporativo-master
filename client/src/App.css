@@ -1,11 +1,11 @@
-/* ══════════════════════════════════════════════════════════════
-   FABPSA INTRANET v4 — Negro & Oro Ultra Premium
-   Inspired by: Rolex, LVMH, Bentley corporate portals
-   Font: Playfair Display (display) · Inter (UI)
-══════════════════════════════════════════════════════════════ */
 /* ─── DARK (default) ─── */
 :root,
 [data-theme="dark"] {
+  /* Controles nativos (selects, scrollbars, etc.) en esquema oscuro —
+     sin esto, el navegador dibuja los menús desplegables con fondo claro
+     del sistema aunque el resto de la página esté en modo oscuro. */
+  color-scheme: dark;
+
   /* Fondos */
   --bg-base: #0f172a;
   --bg-surface: #162033;
@@ -72,6 +72,7 @@
 
 /* ─── LIGHT ─── */
 [data-theme="light"] {
+  color-scheme: light;
   /* Fondos */
   --bg-base: #f4f8fc;
   --bg-surface: #ffffff;
@@ -405,6 +406,21 @@ button {
 }
 .sidebar:hover .sidebar-badge-new {
   opacity: 1;
+}
+.sidebar-link--disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+  user-select: none;
+}
+.sidebar-link--disabled:hover {
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--bg-elevated) 55%, transparent);
+}
+.sidebar-link--disabled .sidebar-badge-new {
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 14%, var(--bg-surface));
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--warning) 25%, transparent);
 }
 
 /* BOTTOM */
@@ -939,10 +955,29 @@ button {
 }
 
 /* Modo oscuro: sombra más pronunciada */
-.navbar--dark .nb-dropdown {
+.nb-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 228px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
   box-shadow:
-    0 8px 36px rgba(0, 0, 0, 0.38),
-    0 2px 8px rgba(0, 0, 0, 0.22);
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+  transform-origin: top right;
+  animation: nbDropIn 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 200;
+}
+
+.navbar--dark .nb-dropdown {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+  box-shadow:
+    0 8px 36px rgba(0, 0, 0, 0.45),
+    0 2px 8px rgba(0, 0, 0, 0.28);
 }
 
 @keyframes nbDropIn {
@@ -1783,6 +1818,23 @@ button {
 }
 .apps-soporte a {
   color: inherit;
+}
+
+/* PageHero (components/PageHero.jsx): el mismo hero de Aplicativos para
+   cualquier módulo, con acciones arriba a la derecha. */
+.page-hero__acciones {
+  position: absolute;
+  top: 2rem;
+  right: 3rem;
+  z-index: 2;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+@media (max-width: 760px) {
+  .page-hero { padding: 1.5rem 16px; }
+  .page-hero__acciones { position: static; margin-top: 14px; }
+  .page-hero .apps-title { font-size: 30px; }
 }
 
 .apps-grid-wrap {
@@ -4605,6 +4657,300 @@ pagina cultura digital*/
 
   /* Perfil sin departamento */
   .nb-profile-dept {
+    display: none;
+  }
+}
+
+/* ══════════════════════════════════════════════
+   DÍA DE MUERTOS — detalle único, consistente en todo el portal
+══════════════════════════════════════════════ */
+.dm-portal-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  z-index: 300;
+  pointer-events: none;
+  opacity: 0.75;
+  background: repeating-linear-gradient(
+    90deg,
+    #f0790d 0 48px,
+    #c2185b 48px 96px,
+    #ffb347 96px 144px,
+    #2e7d32 144px 192px,
+    #7b1fa2 192px 240px
+  );
+  -webkit-mask: radial-gradient(circle at 24px 0, transparent 9px, #000 9.5px) 0
+    0 / 48px 100% repeat-x;
+  mask: radial-gradient(circle at 24px 0, transparent 9px, #000 9.5px) 0 0 /
+    48px 100% repeat-x;
+}
+.dm-portal-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background:
+    radial-gradient(
+      420px 320px at 0% 100%,
+      rgba(240, 121, 13, 0.07),
+      transparent 70%
+    ),
+    radial-gradient(
+      380px 300px at 100% 0%,
+      rgba(123, 31, 162, 0.06),
+      transparent 70%
+    );
+}
+@media (prefers-reduced-motion: no-preference) {
+  .dm-sb-flor {
+    animation: dm-sb-flor-late 4s ease-in-out infinite;
+  }
+}
+@keyframes dm-sb-flor-late {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.12);
+    opacity: 0.85;
+  }
+}
+
+.sidebar-logo-mark {
+  position: relative;
+  overflow: visible;
+}
+.dm-sb-flor {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, #ffd27a 0 30%, transparent 32%),
+    repeating-conic-gradient(from 0deg, #f0790d 0deg 30deg, #ff9a2e 30deg 60deg);
+  box-shadow: 0 0 0 1.5px var(--sb-bg, #fff);
+}
+
+/* ══ Lluvia y arañitas — ambiente compartido, visible ══ */
+.dm-ambiente {
+  position: fixed;
+  inset: 0;
+  z-index: 150;
+  overflow: hidden;
+  pointer-events: none;
+}
+.dm-amb-rafaga {
+  position: absolute;
+  inset: 0;
+}
+.dm-amb-rafaga-item {
+  position: absolute;
+  top: -30px;
+  opacity: 0;
+  color: #f0790d;
+  filter: drop-shadow(0 3px 5px rgba(60, 20, 0, 0.3));
+  animation-name: dm-amb-rafaga-caida;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+/* El recorrido real ocurre en el primer ~6% del ciclo; el resto del tiempo
+   (ciclos de 86-112s) el elemento queda invisible, fuera de pantalla. Así
+   la ráfaga se siente ocasional en vez de una lluvia constante. */
+@keyframes dm-amb-rafaga-caida {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  1% {
+    opacity: 0.6;
+  }
+  5% {
+    transform: translate3d(var(--dx), 40vh, 0) rotate(calc(var(--giro) * 0.4));
+    opacity: 0.55;
+  }
+  6%,
+  100% {
+    transform: translate3d(var(--dx), 106vh, 0) rotate(var(--giro));
+    opacity: 0;
+  }
+}
+.dm-amb-fantasma-vagar {
+  position: absolute;
+  width: 30px;
+  height: 34px;
+  opacity: 0;
+  filter: drop-shadow(0 3px 5px rgba(60, 20, 0, 0.25));
+  animation: dm-amb-fantasma-vagar-mov 26s ease-in-out infinite;
+}
+/* Cinco puntos de la pantalla: aparece, flota un momento, se desvanece y
+   "salta" invisible al siguiente punto. */
+@keyframes dm-amb-fantasma-vagar-mov {
+  0% {
+    transform: translate3d(14vw, 70vh, 0) scale(0.8);
+    opacity: 0;
+  }
+  3% {
+    transform: translate3d(14vw, 68vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  10% {
+    transform: translate3d(13vw, 72vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  14% {
+    transform: translate3d(13vw, 72vh, 0) scale(0.9);
+    opacity: 0;
+  }
+  15% {
+    transform: translate3d(55vw, 18vh, 0) scale(0.8);
+    opacity: 0;
+  }
+  18% {
+    transform: translate3d(55vw, 20vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  25% {
+    transform: translate3d(56vw, 16vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  29% {
+    transform: translate3d(56vw, 16vh, 0) scale(0.9);
+    opacity: 0;
+  }
+  30% {
+    transform: translate3d(82vw, 62vh, 0) scale(0.8);
+    opacity: 0;
+  }
+  33% {
+    transform: translate3d(82vw, 60vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  40% {
+    transform: translate3d(81vw, 64vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  44% {
+    transform: translate3d(81vw, 64vh, 0) scale(0.9);
+    opacity: 0;
+  }
+  58% {
+    transform: translate3d(81vw, 64vh, 0) scale(0.9);
+    opacity: 0;
+  }
+  61% {
+    transform: translate3d(38vw, 42vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  68% {
+    transform: translate3d(39vw, 40vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  72% {
+    transform: translate3d(39vw, 40vh, 0) scale(0.9);
+    opacity: 0;
+  }
+  86% {
+    transform: translate3d(39vw, 40vh, 0) scale(0.9);
+    opacity: 0;
+  }
+  89% {
+    transform: translate3d(68vw, 80vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  96% {
+    transform: translate3d(67vw, 78vh, 0) scale(1);
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(67vw, 78vh, 0) scale(0.85);
+    opacity: 0;
+  }
+}
+.dm-amb-hilo {
+  position: absolute;
+  top: 0;
+  width: 1.2px;
+  opacity: 0.55;
+  background: linear-gradient(
+    180deg,
+    rgba(150, 120, 90, 0.75),
+    rgba(150, 120, 90, 0.2)
+  );
+  transform-origin: top center;
+  animation-name: dm-amb-vaiven;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.dm-amb-arana-sube {
+  position: absolute;
+  left: 50%;
+  width: 28px;
+  height: 28px;
+  transform: translateX(-50%);
+  animation-name: dm-amb-sube;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+.dm-amb-arana {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: #2a1408;
+  opacity: 0.8;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.25));
+}
+@keyframes dm-amb-vaiven {
+  0%,
+  100% {
+    transform: rotate(-6deg);
+  }
+  50% {
+    transform: rotate(6deg);
+  }
+}
+@keyframes dm-amb-sube {
+  0% {
+    top: 85%;
+  }
+  45% {
+    top: 10%;
+  }
+  55% {
+    top: 10%;
+  }
+  100% {
+    top: 85%;
+  }
+}
+[data-theme="dark"] .dm-amb-arana {
+  color: #e8d9c4;
+}
+[data-theme="dark"] .dm-amb-hilo {
+  background: linear-gradient(
+    180deg,
+    rgba(230, 210, 180, 0.6),
+    rgba(230, 210, 180, 0.15)
+  );
+}
+@media (max-width: 760px) {
+  .dm-amb-hilo {
+    display: none;
+  }
+  .dm-amb-fantasma-vagar {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dm-ambiente {
     display: none;
   }
 }

@@ -1,0 +1,117 @@
+/* client/src/pages/gestionDesarrollo/components/DevBadges.css */
+
+.dev-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--badge-color);
+  background: color-mix(in srgb, var(--badge-color) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--badge-color) 30%, transparent);
+  white-space: nowrap;
+}
+
+.dev-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.dev-prioridad {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-body);
+}
+.dev-prioridad__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot-color);
+  flex-shrink: 0;
+}
+
+/* ── Barra de avance ── */
+.dev-avance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dev-avance--sm .dev-avance__track { height: 4px; }
+.dev-avance--md .dev-avance__track { height: 6px; }
+.dev-avance--lg .dev-avance__track { height: 8px; }
+
+.dev-avance__track {
+  flex: 1;
+  background: var(--bg-elevated);
+  border-radius: 99px;
+  overflow: hidden;
+  min-width: 60px;
+}
+.dev-avance__fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+.dev-avance__pct {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-h);
+  white-space: nowrap;
+  min-width: 36px;
+}
+.dev-avance__manual {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+/* ── Carga ── */
+.dev-carga {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
+}
+.dev-carga__track {
+  height: 5px;
+  background: var(--bg-elevated);
+  border-radius: 99px;
+  overflow: hidden;
+}
+.dev-carga__fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.4s;
+}
+.dev-carga__label {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* ── Riesgo ── */
+.dev-riesgo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warning);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning) 28%, transparent);
+  white-space: nowrap;
+  cursor: help;
+}

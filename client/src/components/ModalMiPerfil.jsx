@@ -2,28 +2,20 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { AuthContext } from "../context/AuthContext";
 import "../style/ModalMiPerfil.css";
 
-function apiFetch(url, options = {}) {
-  const token = localStorage.getItem("fabpsa_token");
-  return fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
-}
-
 export default function ModalMiPerfil({ onClose }) {
   const { updatePicture } = useContext(AuthContext);
   const [perfil, setPerfil] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [fotoFile, setFotoFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
   const fileRef = useRef();
 
   useEffect(() => {
-    apiFetch("/api/perfil")
+    const token = localStorage.getItem("fabpsa_token");
+    fetch("/api/perfil", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
       .then((r) => r.json())
       .then((data) => {
         setPerfil(data);
@@ -39,21 +31,33 @@ export default function ModalMiPerfil({ onClose }) {
       setToast({ type: "error", msg: "La imagen no debe superar 2 MB" });
       return;
     }
+    setFotoFile(file);
     const reader = new FileReader();
     reader.onload = () => setPreview(reader.result);
     reader.readAsDataURL(file);
   }
 
   async function handleGuardar() {
-    if (!preview || preview === perfil?.picture) return onClose();
+    // Si no seleccionó archivo nuevo, solo cerrar
+    if (!fotoFile) return onClose();
+
     setSaving(true);
     try {
-      const r = await apiFetch("/api/perfil/foto", {
+      const token = localStorage.getItem("fabpsa_token");
+      const fd = new FormData();
+      fd.append("picture", fotoFile);
+
+      const r = await fetch("/api/perfil/foto", {
         method: "PUT",
-        body: JSON.stringify({ picture: preview }),
+        headers: { Authorization: `Bearer ${token}` },
+        // NO agregar Content-Type — el browser lo pone solo con el boundary
+        body: fd,
       });
+
       if (!r.ok) throw new Error();
-      updatePicture(preview);
+      const data = await r.json();
+
+      updatePicture(data.picture);
       setToast({ type: "ok", msg: "Foto actualizada correctamente" });
       setTimeout(onClose, 1500);
     } catch {
