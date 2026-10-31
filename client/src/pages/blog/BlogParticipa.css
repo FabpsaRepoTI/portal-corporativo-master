@@ -1,0 +1,65 @@
+/* Participa esta semana: capa final aislada de estilos heredados. */
+@media (min-width:1001px) {
+  .blog-participa-grid{height:266px!important;min-height:266px!important;grid-template-columns:35% 26% 39%!important}
+  .blog-participa-grid>.blog-tip-card,.blog-participa-grid>.blog-trivia-card:not(.is-open),.blog-participa-grid>.blog-poll-card:not(.is-open){display:block!important;position:relative!important;height:266px!important;min-height:266px!important;padding:0!important;margin:0!important;background:transparent!important;border:0!important;border-right:1px solid var(--border)!important;border-radius:0!important;box-shadow:none!important}
+  .blog-participa-grid>.blog-poll-card:not(.is-open){border-right:0!important}
+  .blog-tip-card:before{display:none!important;content:none!important}
+  .blog-tip-label{position:absolute!important;top:18px!important;left:28px!important;height:54px!important;min-height:54px!important;margin:0!important;padding:0!important;display:flex!important;align-items:center!important;gap:22px!important;font-size:14px!important}
+  .blog-tip-label .blog-participa-title-icon{font-size:50px!important}
+  .blog-tip-text{position:absolute!important;top:83px!important;left:108px!important;width:300px!important;min-height:0!important;margin:0!important;font-size:16px!important;line-height:1.55!important}
+  .blog-tip-card>div:last-child{position:absolute!important;left:108px!important;bottom:24px!important;width:auto!important;height:26px!important;margin:0!important}
+  .blog-participa-grid>.blog-trivia-card:not(.is-open)>div:first-of-type{position:absolute!important;top:18px!important;left:48px!important;width:auto!important;height:54px!important;min-height:54px!important;margin:0!important;padding:0!important;display:flex!important;align-items:center!important}
+  .blog-participa-grid>.blog-trivia-card:not(.is-open)>div:first-of-type>div{display:flex!important;align-items:center!important;gap:14px!important;font-size:14px!important;color:var(--secondary)!important}
+  .blog-participa-grid>.blog-trivia-card:not(.is-open)>div:first-of-type>div:before{display:none!important;content:none!important}
+  .blog-trivia-card:not(.is-open) .blog-participa-title-icon{font-size:46px!important}
+  .blog-participa-grid>.blog-trivia-card:not(.is-open) .blog-interactive-preview{position:absolute!important;inset:0!important;height:auto!important;min-height:0!important;padding:0!important;display:block!important;font-size:13px!important}
+  .blog-participa-grid>.blog-trivia-card:not(.is-open) .blog-interactive-preview>div{position:absolute!important;top:94px!important;left:58px!important}
+  .blog-participa-grid>.blog-trivia-card:not(.is-open) .blog-interactive-preview:after{content:"Pon a prueba tus conocimientos de cultura general."!important;display:block!important;position:absolute!important;top:128px!important;left:58px!important;width:245px!important;margin:0!important;font-size:12px!important;line-height:1.45!important;color:var(--text-body)!important}
+  .blog-participa-grid>.blog-trivia-card:not(.is-open) .blog-interactive-preview>button{position:absolute!important;top:177px!important;left:58px!important;bottom:auto!important;width:176px!important;min-width:176px!important;height:44px!important;margin:0!important}
+  .blog-participa-grid>.blog-poll-card:not(.is-open) .blog-sb-title{position:absolute!important;top:16px!important;left:36px!important;width:auto!important;height:42px!important;min-height:42px!important;margin:0!important;padding:0!important;display:flex!important;align-items:center!important;gap:13px!important;font-size:14px!important;color:var(--primary)!important}
+  .blog-poll-card:not(.is-open) .blog-participa-title-icon{font-size:38px!important}
+  .blog-participa-grid>.blog-poll-card:not(.is-open)>div:nth-of-type(2){position:absolute!important;top:58px!important;left:36px!important;width:calc(100% - 72px)!important;height:25px!important;min-height:25px!important;margin:0!important}
+  .blog-participa-grid>.blog-poll-card:not(.is-open) .blog-poll-preview-options{position:absolute!important;top:94px!important;left:36px!important;width:calc(100% - 72px)!important;height:92px!important;margin:0!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}
+  .blog-participa-grid>.blog-poll-card:not(.is-open) .blog-poll-preview-options button{height:92px!important;min-height:92px!important}
+  .blog-participa-grid>.blog-poll-card:not(.is-open) .blog-poll-open{position:absolute!important;top:201px!important;left:36px!important;bottom:auto!important;width:98px!important;min-width:98px!important;height:40px!important;margin:0!important}
+}
+
+@media (min-width:1001px) {
+  .blog-participa-grid > .blog-tip-card .blog-tip-text {
+    left:36px!important;
+    width:calc(100% - 72px)!important;
+    max-width:none!important;
+    margin:0!important;
+    flex:none!important;
+    font-size:clamp(13px,1.05vw,15px)!important;
+    text-align:center!important;
+    overflow:visible!important;
+    white-space:normal!important;
+  }
+  .blog-tip-text span {
+    display:block!important;
+    width:100%!important;
+    white-space:nowrap!important;
+  }
+  .blog-tip-card>div:last-child { left:78px!important; }
+  .blog-participa-grid>.blog-trivia-card:not(.is-open) .blog-interactive-preview:after {
+    display:none!important;
+    content:none!important;
+  }
+  .blog-participa-grid>.blog-trivia-card:not(.is-open) .blog-trivia-description {
+    position:absolute!important;
+    top:128px!important;
+    left:24px!important;
+    width:calc(100% - 36px)!important;
+    margin:0!important;
+    color:var(--text-body)!important;
+    font-size:clamp(9px,.76vw,10.5px)!important;
+    line-height:1.4!important;
+    white-space:nowrap!important;
+    overflow:visible!important;
+  }
+  .blog-participa-grid>.blog-poll-card:not(.is-open) .blog-sb-title:before {
+    display:none!important;
+    content:none!important;
+  }
+}

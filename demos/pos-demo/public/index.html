@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mostrador · Punto de venta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.47.0/tabler-icons.min.css" />
+  <link rel="stylesheet" href="app.css" />
+</head>
+<body>
+  <!-- Acceso por PIN (demo: 1234 cajero · 9999 gerente) -->
+  <div id="acceso" class="acceso">
+    <form id="formPin" class="acceso-caja">
+      <span class="logo grande"><i class="ti ti-building-store"></i></span>
+      <h1>Mostrador</h1>
+      <p class="muted">Ingresa tu PIN para abrir caja</p>
+      <input id="pin" class="in pin" type="password" inputmode="numeric" maxlength="6" autocomplete="off" aria-label="PIN" autofocus />
+      <button class="btn pri grande" type="submit">Entrar</button>
+      <small class="muted">Demo · Cajero <b>1234</b> · Gerente <b>9999</b></small>
+    </form>
+  </div>
+
+  <aside class="nav">
+    <div class="marca"><span class="logo"><i class="ti ti-building-store"></i></span><b>Mostrador</b></div>
+    <nav id="menu">
+      <a data-v="inicio"><i class="ti ti-layout-dashboard"></i><span>Inicio</span></a>
+      <a data-v="pos"><i class="ti ti-shopping-cart"></i><span>Cobrar</span></a>
+      <a data-v="copiloto"><i class="ti ti-sparkles"></i><span>Copiloto IA</span></a>
+      <a data-v="ventas"><i class="ti ti-receipt"></i><span>Ventas</span></a>
+      <a data-v="productos"><i class="ti ti-packages"></i><span>Productos</span></a>
+      <a data-v="inventario"><i class="ti ti-building-warehouse"></i><span>Inventario</span></a>
+      <a data-v="clientes"><i class="ti ti-users"></i><span>Clientes</span></a>
+      <a data-v="caja"><i class="ti ti-cash"></i><span>Corte de caja</span></a>
+      <a data-v="facturas"><i class="ti ti-file-invoice"></i><span>Facturación</span></a>
+    </nav>
+    <div class="nav-pie">
+      <span><i class="ti ti-map-pin"></i> Sucursal Centro</span>
+      <button class="link" id="salir"><i class="ti ti-logout"></i> Cerrar sesión</button>
+      <button class="link" id="reiniciar"><i class="ti ti-refresh"></i> Reiniciar datos demo</button>
+    </div>
+  </aside>
+  <main>
+    <header class="top">
+      <h1 id="titulo">Inicio</h1>
+      <div class="top-der">
+        <span class="pill" id="lector"><i class="ti ti-barcode"></i> Lector listo</span>
+        <span class="usuario"><span class="av" id="avatar">CD</span><span><b id="nombreUsuario">—</b><small id="rolUsuario" class="muted"></small></span></span>
+      </div>
+    </header>
+    <section id="vista"></section>
+  </main>
+  <div id="modal" class="modal" hidden></div>
+  <div id="toast" class="toast" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,343 @@
+/* HomeNube.css — Inicio con el estilo "nube" (el mismo del SIT): azul hielo,
+   títulos azul marino en letra gruesa, acento en degradado violeta → azul,
+   botón principal azul brillante, tarjetas blancas muy redondeadas con sombra
+   azulada. Solo diseño: no cambia ninguna función de la página.
+   Va bajo .hx.hx--nube (HomePage.jsx) y se carga después de HomePage.css y
+   HomeDiaMuertos.css; el nombre animado de temporada (.hap-name--dm) se respeta. */
+
+.hx.hx--nube {
+  --n-fondo: #eaf1fb;
+  --n-fondo-2: #f4f8fe;
+  --n-superficie: #ffffff;
+  --n-marino: #0b1736;
+  --n-texto: #33415f;
+  --n-muted: #6a7896;
+  --n-azul: #1e7bf0;
+  --n-azul-2: #3b9bff;
+  --n-violeta: #8b5cf6;
+  --n-borde: #dbe6f6;
+  --n-suave: #edf3fd;
+  --n-sombra: 0 1px 2px rgba(23, 63, 135, 0.05), 0 12px 32px rgba(30, 90, 190, 0.08);
+  --n-sombra-h: 0 16px 38px rgba(30, 110, 240, 0.14);
+
+  /* Tokens que ya usa la página */
+  --bg-surface: var(--n-superficie);
+  --bg-elevated: var(--n-suave);
+  --text-h: var(--n-marino);
+  --text-body: var(--n-texto);
+  --text-muted: var(--n-muted);
+  --border: var(--n-borde);
+  --hx-mint: var(--n-azul);
+  --hx-violet: var(--n-violeta);
+  --hx-mint-soft: var(--n-suave);
+  --hx-violet-soft: color-mix(in srgb, var(--n-violeta) 12%, transparent);
+  --hx-shadow-sm: var(--n-sombra);
+  --hx-shadow-md: var(--n-sombra-h);
+  --hx-divider: color-mix(in srgb, var(--n-borde) 80%, transparent);
+
+  background:
+    radial-gradient(1100px 520px at 85% -10%, rgba(139, 92, 246, 0.08), transparent 60%),
+    radial-gradient(900px 600px at 0% 0%, rgba(59, 155, 255, 0.1), transparent 60%),
+    linear-gradient(180deg, var(--n-fondo) 0%, var(--n-fondo-2) 420px, var(--n-fondo-2) 100%);
+}
+[data-theme="dark"] .hx.hx--nube {
+  --n-fondo: #0a1226;
+  --n-fondo-2: #0c162d;
+  --n-superficie: #111d39;
+  --n-marino: #eef3ff;
+  --n-texto: #c6d2ea;
+  --n-muted: #8c9bba;
+  --n-azul: #4d9bff;
+  --n-azul-2: #7ab6ff;
+  --n-violeta: #a78bfa;
+  --n-borde: rgba(140, 170, 230, 0.16);
+  --n-suave: rgba(77, 155, 255, 0.1);
+  --n-sombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 30px rgba(0, 0, 0, 0.3);
+  --n-sombra-h: 0 16px 38px rgba(77, 155, 255, 0.18);
+}
+
+/* ── Tarjetas ── */
+.hx.hx--nube .hx-surface {
+  background: var(--n-superficie);
+  border: 1px solid var(--n-borde);
+  border-radius: 20px;
+  box-shadow: var(--n-sombra);
+}
+.hx.hx--nube .hx-eyebrow {
+  color: var(--n-azul);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  padding-left: 13px;
+}
+.hx.hx--nube .hx-eyebrow::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--n-azul);
+  opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--n-azul) 18%, transparent);
+}
+.hx.hx--nube .hx-edition-chip {
+  border-radius: 999px;
+  padding: 3px 10px;
+  color: var(--n-violeta);
+  
+}
+.hx.hx--nube .hx-link-btn { color: var(--n-azul); font-weight: 700; }
+.hx.hx--nube .hx-link-btn:hover { background: var(--n-suave); }
+
+/* ── Bienvenida ── */
+.hx.hx--nube .hap {
+  border-radius: 24px;
+  border: 1px solid var(--n-borde);
+  background:
+    radial-gradient(520px 260px at 92% 0%, color-mix(in srgb, var(--n-violeta) 10%, transparent), transparent 70%),
+    radial-gradient(420px 240px at 70% 120%, color-mix(in srgb, var(--n-azul-2) 12%, transparent), transparent 70%),
+    var(--n-superficie);
+  box-shadow: var(--n-sombra);
+}
+.hx.hx--nube .hap-stripe { display: none; }
+.hx.hx--nube .hap-dot1 { background: radial-gradient(circle, color-mix(in srgb, var(--n-azul-2) 22%, transparent) 0%, transparent 70%); }
+.hx.hx--nube .hap-dot2 { background: radial-gradient(circle, color-mix(in srgb, var(--n-violeta) 16%, transparent) 0%, transparent 70%); }
+.hx.hx--nube .hap-greet { color: var(--n-muted); font-weight: 600; }
+.hx.hx--nube .hap-name:not(.hap-name--dm) {
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  color: var(--n-marino);
+}
+.hx.hx--nube .hap-name:not(.hap-name--dm) span {
+  background: linear-gradient(95deg, var(--n-violeta) 0%, var(--n-azul-2) 55%, #22b8f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hx.hx--nube .hap-msg-a { color: var(--n-marino); font-weight: 600; }
+.hx.hx--nube .hap-fecha {  color: var(--n-muted); opacity: 1; }
+.hx.hx--nube .hap-app { border-radius: 999px; }
+.hx.hx--nube .hap-app:hover { background: var(--n-suave); }
+.hx.hx--nube .hap-app:hover i,
+.hx.hx--nube .hap-app:hover .hap-app-lbl { color: var(--n-azul); }
+.hx.hx--nube .hap-cta {
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--n-azul), var(--n-azul-2));
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--n-azul) 30%, transparent);
+  transition: transform 0.15s, filter 0.15s;
+}
+.hx.hx--nube .hap-cta:hover { opacity: 1; filter: brightness(1.05); transform: translateY(-1px); }
+
+/* Títulos de las secciones y tarjetas internas */
+.hx.hx--nube h2,
+.hx.hx--nube h3 { letter-spacing: -0.015em; }
+.hx.hx--nube .hx-art-hero { border-radius: 16px; }
+.hx.hx--nube .hx-art-side-item:hover { background: var(--n-suave); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hx.hx--nube .hap-cta { transition: none; }
+}
+
+/* Cumpleaños: etiqueta compacta arriba, sin encimarse con los nombres */
+.hx.hx--nube .hx-bday-surface .hx-section-hdr { margin-bottom: 14px; position: relative; z-index: 1; }
+.hx.hx--nube .hx-bday-surface .hx-eyebrow { padding: 0 0 0 13px !important; background: none !important; box-shadow: none !important; }
+.hx.hx--nube .hx-bday-surface { overflow: visible; }
+
+/* ══ Rediseño de jerarquía (auditoría UX) ══ */
+/* Encabezado compacto: sin mensaje secundario; Fab-i más pequeño */
+.hx.hx--nube .hap-msg-b { display: none; }
+.hx.hx--nube .hap-inner { padding-block: 14px 10px; gap: 8px; }
+.hx.hx--nube .hap-fabpsi { transform: scale(0.8); transform-origin: center; }
+.hx.hx--nube .hap-row2 { justify-content: flex-end; border-top: 0; padding-top: 0; }
+/* Mis herramientas */
+.hx-herramientas { display: flex; flex-direction: column; gap: 12px; }
+.hx-herr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; }
+.hx-herr-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 8px; border: 1px solid var(--border); border-radius: 16px; background: var(--bg-surface); color: var(--text-h); font: inherit; font-size: 12.5px; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; transition: transform .15s, border-color .15s, box-shadow .15s; }
+.hx-herr-item:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--primary) 40%, var(--border)); box-shadow: var(--hx-shadow-md); }
+.hx-herr-ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; font-size: 22px; }
+.hx-herr-lbl { line-height: 1.25; }
+/* Segunda zona: noticias después de comunicados/servicios; bloques sin cortes */
+.hx.hx--nube .hx-col-main { display: flex; flex-direction: column; }
+.hx.hx--nube .hx-cultura-section { order: 2; }
+.hx.hx--nube .hx-bottom-row { order: 1; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+.hx.hx--nube .hx-bottom-row > .hx-surface { height: auto !important; max-height: none !important; overflow: visible !important; }
+/* Cumpleaños compacto: sin la tarjeta decorativa */
+.hx.hx--nube .hx-bday-celebrate { display: none !important; }
+/* Etiquetas de sección discretas (gris, sin píldora) */
+.hx.hx--nube .hx-eyebrow { color: var(--text-muted) !important; background: none !important; box-shadow: none !important; padding-left: 0 !important; letter-spacing: .1em; }
+.hx.hx--nube .hx-eyebrow::before { display: none !important; }
+@media (max-width: 640px) { .hx-herr-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .hx.hx--nube .hx-bottom-row { grid-template-columns: 1fr !important; } }
+.hx-herr-grid { grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); }
+.hx.hx--nube .hap-row1 { align-items: center; }
+.hx.hx--nube .hap { min-height: 0 !important; }
+
+/* ══ Inicio sin scroll (pantallas de escritorio) ══
+   Todo cabe en una pantalla: saludo | herramientas | 3 columnas
+   (noticia destacada · comunicados · servicios TI) | cumpleaños.
+   Cada tarjeta se desplaza por dentro si su contenido no cabe. */
+.hx.hx--nube .hap-fabpsi { transform: none; }
+@media (min-width: 1100px) and (min-height: 700px) {
+  .hx.hx--nube { height: calc(100dvh - 62px - 50px); min-height: 0; overflow: hidden; padding-bottom: 12px; gap: 10px; }
+  .hx.hx--nube > .hap { flex: none; }
+  .hx.hx--nube .hap-inner { padding: 12px 22px 10px; }
+  .hx.hx--nube .hap-msgs { display: none; }
+  .hx.hx--nube .hx-herramientas { flex: none; padding-block: 12px; gap: 8px; }
+  .hx.hx--nube .hx-herr-item { padding: 10px 6px; gap: 6px; }
+  .hx.hx--nube .hx-herr-ico { width: 36px; height: 36px; font-size: 19px; }
+  .hx.hx--nube .hx-body { flex: 1; min-height: 0; grid-template-columns: 1fr !important; grid-template-rows: minmax(0, 1fr) auto; }
+  .hx.hx--nube .hx-col-main { display: grid !important; grid-template-columns: 1.3fr 1fr 1fr; gap: 12px; min-height: 0; }
+  .hx.hx--nube .hx-bottom-row { display: contents !important; }
+  .hx.hx--nube .hx-cultura-section { order: 0; }
+  .hx.hx--nube .hx-col-main > *, .hx.hx--nube .hx-bottom-row > .hx-surface { min-height: 0; overflow: auto !important; height: auto !important; }
+  .hx.hx--nube .hx-art-grid { grid-template-columns: 1fr !important; }
+  .hx.hx--nube .hx-art-side-list { display: none !important; }
+  .hx.hx--nube .hx-art-hero { min-height: 0 !important; height: 100% !important; }
+  .hx.hx--nube .hx-col-side { display: block; }
+  .hx.hx--nube .hx-bday-surface { padding-block: 10px; }
+  .hx.hx--nube ~ footer, .main-content:has(.hx--nube) footer { display: none; }
+}
+
+/* ══ Portada v3: composición editorial asimétrica ══
+   saludo │ avisos (solo si hay) │ noticias (2/3) + herramientas y Servicios TI (1/3)
+   Comunicados: ya no es un bloque fijo → aviso solo si hay uno importante.
+   Cumpleaños: ya no es un bloque fijo → una línea con los de hoy (modal con todos). */
+.hx-avisos { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.hx-aviso, .hx-cumple-chip, .hx-aviso-nuevo {
+  display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg-surface); font: inherit; font-size: 13px; color: var(--text-body); cursor: pointer;
+}
+.hx-aviso { border-color: color-mix(in srgb, #ff3158 35%, var(--border)); background: color-mix(in srgb, #ff3158 5%, var(--bg-surface)); color: var(--text-h); }
+.hx-aviso i { color: #ff3158; font-size: 16px; }
+.hx-cumple-chip b { text-transform: capitalize; color: var(--text-h); }
+.hx-cumple-ver { color: var(--primary); font-weight: 600; margin-left: 4px; }
+.hx-aviso-nuevo { margin-left: auto; color: var(--primary); font-weight: 600; }
+
+@media (min-width: 1100px) {
+  .hx.hx--nube {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.7fr) minmax(340px, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "hero hero" "avisos avisos" "news tools" "news svc";
+    align-content: start;
+  }
+  .hx.hx--nube > .hap { grid-area: hero; }
+  .hx.hx--nube > .hx-avisos { grid-area: avisos; }
+  .hx.hx--nube > .hx-herramientas { grid-area: tools; }
+  .hx.hx--nube .hx-body, .hx.hx--nube .hx-col-main, .hx.hx--nube .hx-bottom-row { display: contents !important; }
+  .hx.hx--nube .hx-cultura-section { grid-area: news; overflow: hidden !important; display: flex; flex-direction: column; }
+  .hx.hx--nube .hx-bottom-row > .hx-surface:first-child { display: none !important; } /* Comunicados fijo */
+  .hx.hx--nube .hx-bottom-row > .hx-surface:nth-child(2) { grid-area: svc; overflow: auto !important; }
+  .hx.hx--nube .hx-col-side { display: none !important; } /* cumpleaños y widget de Mesa: ahora en avisos y herramientas */
+  /* Noticias: destacada grande + dos titulares al lado */
+  .hx.hx--nube .hx-art-grid { flex: 1; min-height: 0; display: grid !important; grid-template-columns: 1.5fr 1fr !important; gap: 14px; }
+  .hx.hx--nube .hx-art-side-list { display: flex !important; flex-direction: column; gap: 10px; }
+  .hx.hx--nube .hx-art-side-img { display: none !important; }
+  .hx.hx--nube .hx-art-side-item { padding: 12px 0 !important; border-bottom: 1px solid var(--border) !important; }
+  .hx.hx--nube .hx-art-hero { height: 100% !important; }
+  /* Herramientas: cuadrícula de 4 columnas en la columna derecha */
+  .hx.hx--nube .hx-herr-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .hx.hx--nube .hx-herr-lbl { font-size: 11.5px; }
+  .hx.hx--nube .hap-inner { padding-bottom: 12px; }
+  .hx.hx--nube .hap-row2 { position: absolute; right: 22px; bottom: 14px; }
+  .hx.hx--nube .hap { position: relative; }
+}
+@media (min-width:1100px){.hx.hx--nube > .hap{min-height:max-content !important;height:auto !important;overflow:visible}.hx.hx--nube{grid-template-rows:auto auto minmax(0,1fr) minmax(0,auto)}}
+@media (min-width:1100px){.hx.hx--nube .hx-herr-item{padding:8px 4px;gap:4px;min-height:0}.hx.hx--nube .hx-herr-ico{width:32px;height:32px;font-size:17px}.hx.hx--nube > .hx-herramientas{overflow:auto}.hx.hx--nube .hx-svc-row,.hx.hx--nube [class*="hx-svc-item"]{padding-block:5px}}
+
+/* ══ Portada v4: lanzador + dock + noticias editoriales compactas ══ */
+@media (min-width: 1100px) {
+  .hx.hx--nube {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.42fr) !important;
+    grid-template-rows: auto auto auto minmax(0, 1fr) !important;
+    grid-template-areas: "hero hero" "tools tools" "avisos avisos" "news svc" !important;
+  }
+  .hx.hx--nube > .hx-lanzador { grid-area: tools; }
+  .hx.hx--nube .hx-bottom-row > .hx-surface:nth-child(2) { grid-area: svc; }
+}
+/* Lanzador: barra tipo Spotlight */
+.hx-lanzador { display: flex; flex-direction: column; gap: 14px; }
+.hx-lz-barra {
+  display: flex; align-items: center; gap: 12px; padding: 0 18px; height: 56px;
+  background: var(--bg-surface); border: 1px solid var(--border); border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(23,63,135,.05), 0 14px 34px rgba(30,90,190,.10);
+  transition: box-shadow .2s, border-color .2s;
+}
+.hx-lz-barra:focus-within { border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 14%, transparent), 0 14px 34px rgba(30,90,190,.12); }
+.hx-lz-barra > i { font-size: 20px; color: var(--text-muted); }
+.hx-lz-barra input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: inherit; font-size: 16px; color: var(--text-h); }
+.hx-lz-barra kbd { font: inherit; font-size: 11px; color: var(--text-muted); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 6px; padding: 2px 7px; }
+/* Dock: íconos sin tarjeta */
+.hx-dock { display: flex; flex-wrap: wrap; gap: 6px 4px; }
+.hx-dock-item { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 96px; padding: 8px 4px; border: 0; border-radius: 16px; background: transparent; font: inherit; cursor: pointer; transition: background .15s, transform .15s; }
+.hx-dock-item:hover { background: var(--bg-surface); transform: translateY(-3px); }
+.hx-dock-ico { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 15px; font-size: 24px; box-shadow: 0 6px 16px rgba(30,90,190,.12); }
+.hx-dock-lbl { font-size: 12px; font-weight: 600; color: var(--text-h); text-align: center; line-height: 1.25; }
+.hx-dock-vacio { border: 1px dashed var(--border); background: transparent; border-radius: 14px; padding: 14px 18px; font: inherit; color: var(--primary); cursor: pointer; }
+/* Noticias: sin la tarjeta gigante; destacada como fila editorial + titulares */
+@media (min-width: 1100px) {
+  .hx.hx--nube .hx-cultura-section { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+  .hx.hx--nube .hx-art-grid { grid-template-columns: 1.15fr 1fr !important; gap: 18px; }
+  .hx.hx--nube .hx-art-hero { border-radius: 20px !important; max-height: 280px; }
+  .hx.hx--nube .hx-art-side-list { justify-content: flex-start; gap: 0; }
+  .hx.hx--nube .hx-art-side-item { padding: 14px 0 !important; }
+  .hx.hx--nube .hx-art-side-item:first-child { padding-top: 0 !important; }
+  .hx.hx--nube .hx-art-side-title { font-size: 15px !important; }
+}
+@media (min-width:1100px){.hx.hx--nube .hx-cultura-section{padding:0 4px !important;overflow:visible !important}}
+
+/* ══ Portada v5: BENTO ══
+   ┌──────────── saludo ────────────┐
+   │ noticia (alta) │ búsqueda+herr. │
+   │                ├──────┬─────────┤
+   │ titulares      │ TI   │ avisos  │                              */
+@media (min-width: 1100px) {
+  .hx.hx--nube {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.62fr) minmax(0, 0.62fr) !important;
+    grid-template-rows: auto minmax(0, 1.15fr) minmax(0, 1fr) !important;
+    grid-template-areas: "hero hero hero" "news tools tools" "news svc avisos" !important;
+    gap: 14px !important;
+  }
+  /* Todos los bloques del bento con la misma piel */
+  .hx.hx--nube > .hx-lanzador,
+  .hx.hx--nube > .hx-avisos,
+  .hx.hx--nube .hx-cultura-section,
+  .hx.hx--nube .hx-bottom-row > .hx-surface:nth-child(2) {
+    background: var(--bg-surface) !important; border: 1px solid var(--border) !important; border-radius: 22px !important;
+    box-shadow: var(--hx-shadow-sm) !important; padding: 16px 18px !important; min-height: 0; overflow: hidden !important;
+  }
+  /* Herramientas: búsqueda arriba, cuadrícula 4 × 3 apretada */
+  .hx.hx--nube > .hx-lanzador { gap: 10px; }
+  .hx.hx--nube .hx-lz-barra { height: 46px; border-radius: 14px; box-shadow: none; background: var(--bg-elevated); border-color: transparent; }
+  .hx.hx--nube .hx-dock { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; align-content: start; }
+  .hx.hx--nube .hx-dock-item { width: auto; padding: 8px 2px; }
+  .hx.hx--nube .hx-dock-ico { width: 42px; height: 42px; font-size: 21px; border-radius: 13px; }
+  .hx.hx--nube .hx-dock-lbl { font-size: 11px; }
+  /* Noticia: imagen arriba, dos titulares abajo lado a lado */
+  .hx.hx--nube .hx-cultura-section { grid-area: news; display: flex; flex-direction: column; }
+  .hx.hx--nube .hx-art-grid { grid-template-columns: 1fr !important; grid-template-rows: minmax(0, 1fr) auto; }
+  .hx.hx--nube .hx-art-hero { max-height: none; min-height: 0 !important; height: 100% !important; }
+  .hx.hx--nube .hx-art-side-list { flex-direction: row !important; gap: 16px !important; }
+  .hx.hx--nube .hx-art-side-item { flex: 1; padding: 12px 0 0 !important; border-bottom: 0 !important; border-top: 1px solid var(--border) !important; }
+  .hx.hx--nube .hx-art-side-title { font-size: 13.5px !important; }
+  /* Servicios TI */
+  .hx.hx--nube .hx-bottom-row > .hx-surface:nth-child(2) { grid-area: svc; overflow: auto !important; }
+  /* Avisos: cumpleaños + comunicado como bloque vertical */
+  .hx.hx--nube > .hx-avisos { grid-area: avisos; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: 10px; }
+  .hx.hx--nube > .hx-avisos::before { content: "Avisos"; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text-muted); }
+  .hx.hx--nube .hx-avisos :is(.hx-cumple-chip, .hx-aviso) { border-radius: 14px; flex-wrap: wrap; text-align: left; justify-content: flex-start; padding: 12px 14px; line-height: 1.4; }
+  .hx.hx--nube .hx-aviso-nuevo { margin: auto 0 0; align-self: flex-start; border: 0; padding: 4px 0; background: none; }
+}
+@media (min-width:1100px){.hx.hx--nube{grid-template-rows:auto auto minmax(0,1fr) !important}.hx.hx--nube .hx-cultura-section{grid-row:2 / 4}}
+
+/* Noticias: titulares inferiores con su categoría visible y aire */
+@media (min-width: 1100px) {
+  .hx.hx--nube .hx-art-side-list { gap: 20px !important; margin-top: 14px; }
+  .hx.hx--nube .hx-art-side-item { padding: 14px 0 0 !important; border-top: 1px solid var(--border) !important; display: block !important; }
+  .hx.hx--nube .hx-art-side-body { display: flex; flex-direction: column; gap: 5px; padding: 0 !important; }
+  .hx.hx--nube .hx-art-side-cat { display: block !important; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+  .hx.hx--nube .hx-art-side-title { font-size: 14px !important; line-height: 1.35 !important; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+  .hx.hx--nube .hx-art-side-meta { display: block !important; font-size: 11.5px; color: var(--text-muted); }
+}
+/* Destacada: título siempre legible (blanco) aunque la imagen no cargue */
+.hx.hx--nube .hx-art-hero-title { color: #fff !important; text-shadow: 0 2px 12px rgba(0,0,0,.35); }
+.hx.hx--nube .hx-art-hero-img img.is-rota { display: none; }
+.hx.hx--nube .hx-art-hero-img:has(img.is-rota) { background: linear-gradient(135deg, #1e7bf0, #6d5cf6 60%, #22b8f0); }
+@media (min-width:1100px){.hx.hx--nube .hx-art-side-list{align-items:flex-start !important;flex:none !important;height:auto !important;overflow:visible !important}.hx.hx--nube .hx-art-side-item{height:auto !important;min-height:0 !important;max-height:none !important;overflow:visible !important;margin:0 !important}.hx.hx--nube .hx-art-grid{grid-template-rows:minmax(0,1fr) max-content !important}}
+@media (min-width:1100px){.hx.hx--nube .hx-art-side-list > *{padding:14px 0 0 !important;margin:0 !important}}

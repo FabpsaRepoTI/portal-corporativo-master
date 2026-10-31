@@ -1,0 +1,340 @@
+/* ══════════════════════════════════════════════════════════════════
+   Robot articulado: Fabi (MesaRobotSaludo.jsx)
+   Una sola imagen (fabi.png, 910×1035, fondo quitado del original). Cada
+   parte es la misma imagen recortada con clip-path y gira alrededor de su
+   articulación real: cabeza (cuello), brazo izquierdo levantado (hombro) y
+   mano (muñeca). Cada pieza se extiende por debajo de su vecina y queda
+   detrás de ella, así que al girar no se abren huecos en las uniones. No se
+   dibuja nada nuevo: son los mismos píxeles del personaje.
+   Coordenadas en % del PNG, medidas sobre su canal alfa:
+     cuello (550,560) · hombro (335,660) · muñeca (225,600)
+     ojos (405,345) y (655,345) · visor rgb(10,47,63)
+   ══════════════════════════════════════════════════════════════════ */
+.mrb {
+  position: relative;
+  aspect-ratio: 910 / 1035;
+  height: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  --mrb-src: none;
+  transform-origin: 50% 96%;
+}
+.mrb__capa {
+  position: absolute;
+  inset: 0;
+  background-image: var(--mrb-src);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  will-change: transform;
+}
+
+/* Cuerpo: todo menos la cabeza (arriba de y 548) y el brazo levantado (x < 335, y < 740) */
+.mrb__cuerpo {
+  z-index: 3;
+  clip-path: polygon(36.81% 52.95%, 100% 52.95%, 100% 100%, 0 100%, 0 71.5%, 36.81% 71.5%);
+}
+
+/* Cabeza: completa arriba del corte (y 548), salvo la mano levantada que asoma a su
+   izquierda (x < 240, y > 470); abajo, la franja del cuello (x 430–670, hasta y 610)
+   queda detrás del cuerpo y rellena la unión al inclinarse. El borde superior va por
+   encima de la imagen para que quepa el sombrero del disfraz. */
+.mrb__cabeza {
+  z-index: 2;
+  clip-path: polygon(21.43% -14%, 100% -14%, 100% 52.95%, 73.63% 52.95%, 73.63% 58.94%, 47.25% 58.94%, 47.25% 52.95%, 26.37% 52.95%, 26.37% 45.41%, 21.43% 45.41%);
+  transform-origin: 60.44% 54.11%; /* cuello */
+  transition: transform 0.4s cubic-bezier(0.34, 1.45, 0.5, 1);
+}
+
+/* Brazo izquierdo levantado (hombro → mano); detrás del cuerpo en el hombro */
+.mrb__brazo {
+  z-index: 1;
+  position: absolute;
+  inset: 0;
+  transform-origin: 36.81% 63.77%; /* hombro */
+  transition: transform 0.38s cubic-bezier(0.34, 1.5, 0.5, 1);
+  will-change: transform;
+}
+/* Antebrazo: del hombro a la muñeca */
+.mrb__antebrazo {
+  z-index: 2;
+  clip-path: polygon(24.73% 45.41%, 26.37% 45.41%, 26.37% 52.95%, 39.56% 52.95%, 39.56% 71.5%, 0 71.5%, 0 62.8%, 24.73% 62.8%);
+}
+/* Mano: se extiende hacia la muñeca (detrás del antebrazo) */
+.mrb__mano {
+  z-index: 1;
+  clip-path: polygon(0 42.51%, 26.92% 42.51%, 26.92% 64.25%, 0 64.25%);
+  transform-origin: 24.73% 57.97%; /* muñeca */
+  transition: transform 0.25s ease;
+}
+
+/* Brillo de los ojos (va dentro de la cabeza y se mueve con ella) */
+.mrb__ojos {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 8% 7% at 44.5% 33.3%, rgba(110, 240, 225, 0.75), transparent 70%),
+    radial-gradient(ellipse 8% 7% at 72% 33.3%, rgba(110, 240, 225, 0.75), transparent 70%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+/* ── Gestos (los activa MesaRobotSaludo con data-gesto) ───────────────
+   El brazo levantado está a la izquierda: ángulos positivos lo suben. */
+.mrb[data-gesto="reposo"] .mrb__cabeza { transform: rotate(0deg); }
+
+/* Saludo: levanta el brazo y agita la mano */
+.mrb[data-gesto="saluda"] .mrb__brazo { transform: rotate(18deg); }
+.mrb[data-gesto="saluda"] .mrb__mano { animation: mrb-agita 0.22s ease-in-out 0.18s 8 alternate; }
+.mrb[data-gesto="saluda"] .mrb__cabeza { transform: rotate(3deg); }
+.mrb[data-gesto="saluda"] .mrb__ojos { opacity: 0.7; }
+
+/* Curiosidad: inclina la cabeza hacia un lado */
+.mrb[data-gesto="curioso"] .mrb__cabeza { animation: mrb-ladea 1.6s ease-in-out both; }
+.mrb[data-gesto="curioso"] .mrb__ojos { opacity: 0.35; }
+
+/* Atención: brazo arriba ofreciendo ayuda */
+.mrb[data-gesto="atencion"] .mrb__brazo { animation: mrb-levanta 1.4s cubic-bezier(0.34, 1.4, 0.5, 1) both; }
+.mrb[data-gesto="atencion"] .mrb__cabeza { transform: rotate(2deg); }
+.mrb[data-gesto="atencion"] .mrb__ojos { opacity: 0.45; }
+
+@keyframes mrb-agita {
+  from { transform: rotate(-14deg); }
+  to   { transform: rotate(12deg); }
+}
+/* Ladea la cabeza dos veces */
+@keyframes mrb-ladea {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(7deg); }
+  45% { transform: rotate(2deg); }
+  65% { transform: rotate(6deg); }
+  100% { transform: rotate(0deg); }
+}
+/* Levanta el brazo con un pequeño impulso y lo deja a media altura */
+@keyframes mrb-levanta {
+  0% { transform: rotate(0deg); }
+  30% { transform: rotate(16deg); }
+  50% { transform: rotate(10deg); }
+  70% { transform: rotate(13deg); }
+  100% { transform: rotate(8deg); }
+}
+/* Asentir: gesto corto entre mensajes */
+.mrb[data-gesto="asiente"] .mrb__cabeza { animation: mrb-asiente 0.7s ease-in-out both; }
+.mrb[data-gesto="asiente"] .mrb__ojos { opacity: 0.4; }
+@keyframes mrb-asiente {
+  0%, 100% { transform: rotate(0deg); }
+  40% { transform: rotate(4deg); }
+  70% { transform: rotate(1deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mrb__cabeza,
+  .mrb__brazo,
+  .mrb__mano,
+  .mrb__ojos {
+    transition: none;
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
+/* ── Párpados: parpadeo sobre los ojos (dentro de la cabeza, se mueven con ella) ──
+   Elipses del color del visor que bajan y suben sobre cada ojo. */
+.mrb__parpado {
+  position: absolute;
+  width: 15%;
+  height: 13.5%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgb(10, 47, 63) 64%, rgba(10, 47, 63, 0) 76%);
+  transform: scaleY(0);
+  transform-origin: 50% 20%;
+  pointer-events: none;
+}
+.mrb__parpado--izq { left: 37%; top: 26.6%; }
+.mrb__parpado--der { left: 64.5%; top: 26.6%; }
+.mrb[data-parpadeo="si"] .mrb__parpado { animation: mrb-parpadea 0.2s ease-in-out; }
+@keyframes mrb-parpadea {
+  0%, 100% { transform: scaleY(0); }
+  45%, 55% { transform: scaleY(1); }
+}
+
+/* ── Cuerpo completo: complementa a los gestos de las piezas ── */
+/* Presentarse: pequeño salto con inclinación hacia el usuario + saludo */
+.mrb[data-gesto="presenta"] {
+  animation: mrb-presenta 1.1s cubic-bezier(0.34, 1.4, 0.5, 1) both;
+}
+.mrb[data-gesto="presenta"] .mrb__brazo { transform: rotate(18deg); }
+.mrb[data-gesto="presenta"] .mrb__mano { animation: mrb-agita 0.22s ease-in-out 0.35s 8 alternate; }
+.mrb[data-gesto="presenta"] .mrb__cabeza { transform: rotate(4deg); }
+.mrb[data-gesto="presenta"] .mrb__ojos { opacity: 0.85; animation: mrb-brillo 0.9s ease-in-out 0.2s 2; }
+@keyframes mrb-presenta {
+  0% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-7%) rotate(3deg); }
+  55% { transform: translateY(0) rotate(-1.5deg); }
+  75% { transform: translateY(-2%) rotate(1deg); }
+  100% { transform: translateY(0) rotate(0deg); }
+}
+@keyframes mrb-brillo {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.35; }
+}
+/* Mirar al buscador: gira un poco el cuerpo hacia la derecha y vuelve */
+.mrb[data-gesto="mira"] {
+  animation: mrb-mira 1.5s ease-in-out both;
+}
+.mrb[data-gesto="mira"] .mrb__cabeza { transform: rotate(5deg); }
+.mrb[data-gesto="mira"] .mrb__ojos { opacity: 0.5; }
+@keyframes mrb-mira {
+  0%, 100% { transform: perspective(600px) rotateY(0deg); }
+  35%, 65% { transform: perspective(600px) rotateY(-16deg) translateX(3%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mrb,
+  .mrb__parpado { animation: none !important; transform: none !important; }
+}
+
+/* ── Globo con la secuencia de mensajes (también se usa en Inicio) ── */
+/* Mensajes apilados en la misma celda: el globo mide siempre lo del más
+   largo, así que no cambia de tamaño ni empuja al buscador. */
+.mesa-speech--secuencia {
+  display: grid;
+}
+.mesa-speech__msg {
+  grid-area: 1 / 1;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+.mesa-speech__msg.is-activo {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.mesa-speech__msg b { display: block; }
+.mesa-speech__msg span { max-width: 15em; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mesa-speech__msg { transition: opacity 0.2s linear; transform: none; }
+}
+
+.mesa-speech--secuencia { transition: opacity 0.35s ease, transform 0.35s ease; }
+.mesa-speech--secuencia.is-saliendo { opacity: 0; transform: translateX(-6px) scale(0.97); }
+
+/* ── Fabi arrastrable (FabpsiFlotante.jsx) ── */
+.fabpsi {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: grab;
+  touch-action: none; /* el arrastre con el dedo no desplaza la página */
+  user-select: none;
+  -webkit-user-select: none;
+  border-radius: 16px;
+  outline-offset: 4px;
+}
+.fabpsi:focus-visible { outline: 2px solid var(--primary, #4cc9a6); }
+/* Tamaño compacto, con una base circular tenue: discreto, no protagonista */
+.fabpsi .mesa-robot {
+  position: relative;
+  left: auto;
+  bottom: auto;
+  flex-shrink: 0;
+  width: 70px;
+  height: 80px;
+  transition: transform 0.2s ease;
+}
+.fabpsi .mesa-robot::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  width: 78px;
+  height: 78px;
+  margin-left: -39px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, rgba(76, 201, 166, 0.16), rgba(76, 201, 166, 0.04) 62%, transparent 72%);
+  pointer-events: none;
+}
+.fabpsi .mesa-robot::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 40px;
+  height: 6px;
+  margin-left: -20px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.12);
+  filter: blur(2px);
+  pointer-events: none;
+}
+.fabpsi .mrb { filter: drop-shadow(0 3px 5px rgba(15, 23, 42, 0.14)); }
+.fabpsi:hover .mesa-robot { transform: translateY(-2px); }
+.fabpsi .mesa-robot img,
+.fabpsi .mrb { pointer-events: none; }
+/* Globo pegado al robot (sin el margen que trae en la Mesa de Servicio) */
+.fabpsi .mesa-speech {
+  position: relative;
+  margin-left: 0;
+  min-width: 170px;
+  max-width: 210px;
+  padding: 8px 11px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-surface);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.07);
+  font-size: 11.5px;
+  color: var(--text-h);
+}
+.fabpsi .mesa-speech::before {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  transform: rotate(45deg);
+}
+.fabpsi .mesa-speech__msg b { color: var(--text-h); font-size: 12px; }
+.fabpsi .mesa-speech__msg span { display: block; margin-top: 3px; line-height: 1.45; color: var(--text-muted); }
+
+/* Suelto en la pantalla, por encima de todo */
+.fabpsi--flotando {
+  position: fixed;
+  z-index: 900;
+  filter: drop-shadow(0 10px 16px rgba(15, 23, 42, 0.18));
+}
+.fabpsi.is-arrastrando { cursor: grabbing; }
+.fabpsi.is-arrastrando .mesa-robot { transform: scale(1.06) rotate(-4deg); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fabpsi .mesa-robot { transition: none; }
+  .fabpsi:hover .mesa-robot,
+  .fabpsi.is-arrastrando .mesa-robot { transform: none; }
+}
+
+/* Disfraz de temporada: piezas SVG dentro de cada capa, se mueven con ella */
+.mrb__disfraz {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible; /* el sombrero sale por encima de la imagen */
+  pointer-events: none;
+  filter: drop-shadow(0 2px 2px rgba(60, 20, 60, 0.25));
+}
+
+/* Capa del disfraz: detrás de todas las piezas del robot */
+.mrb__traje-fondo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}

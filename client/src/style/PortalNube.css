@@ -1,0 +1,557 @@
+/* PortalNube.css — estilo "nube" en todo el portal: azul hielo, títulos azul
+   marino en letra gruesa, acento en degradado violeta → azul, botones azul
+   brillante, tarjetas blancas redondeadas con sombra azulada. Solo diseño: no
+   cambia ninguna función. Se activa con PORTAL_NUBE en App.jsx (clase
+   .layout--nube); para quitarlo: PORTAL_NUBE = false. Casi todo sale de
+   reasignar los colores base del portal; el menú lateral y la barra superior
+   conservan el tema de temporada. */
+
+.layout--nube .main-content {
+  --n-fondo: #eaf1fb;
+  --n-fondo-2: #f4f8fe;
+  --n-superficie: #ffffff;
+  --n-marino: #0b1736;
+  --n-texto: #33415f;
+  --n-muted: #6a7896;
+  --n-faint: #9aa8c2;
+  --n-azul: #1e7bf0;
+  --n-azul-2: #3b9bff;
+  --n-violeta: #8b5cf6;
+  --n-borde: #dbe6f6;
+  --n-suave: #edf3fd;
+  --n-sombra: 0 1px 2px rgba(23, 63, 135, 0.05), 0 12px 32px rgba(30, 90, 190, 0.08);
+  --n-display: "Outfit", "Inter", system-ui, sans-serif; /* letra del portal (tema CIDE) */
+
+  /* Colores base del portal que usan las páginas de la Mesa */
+  --bg-base: transparent;
+  --bg-surface: var(--n-superficie);
+  --bg-card: var(--n-superficie);
+  --bg-elevated: var(--n-suave);
+  --bg-hover: var(--n-suave);
+  --text-h: var(--n-marino);
+  --text-body: var(--n-texto);
+  --text-muted: var(--n-muted);
+  --text-faint: var(--n-faint);
+  --border: var(--n-borde);
+  --border-dim: color-mix(in srgb, var(--n-borde) 70%, transparent);
+  --border-accent: color-mix(in srgb, var(--n-azul) 40%, var(--n-borde));
+  --primary: var(--n-azul);
+  --secondary: var(--n-violeta);
+  --secondary-l: #b49cf8;
+  --accent: var(--n-azul);
+  /* Variables propias de algunas páginas */
+  --mesa-ink: var(--n-marino);
+  --mesa-muted: var(--n-muted);
+  --mesa-border: var(--n-borde);
+  --mesa-surface: var(--n-superficie);
+  --mesa-bg: transparent;
+  --mesa-tint: var(--n-suave);
+  --nd-accent: var(--n-azul);
+  --nd-accent-soft: var(--n-suave);
+  --hw-accent: var(--n-azul);
+
+  background:
+    radial-gradient(1100px 520px at 85% -10%, rgba(139, 92, 246, 0.08), transparent 60%),
+    radial-gradient(900px 600px at 0% 0%, rgba(59, 155, 255, 0.1), transparent 60%),
+    linear-gradient(180deg, var(--n-fondo) 0%, var(--n-fondo-2) 420px, var(--n-fondo-2) 100%);
+}
+[data-theme="dark"] .layout--nube .main-content {
+  --n-fondo: #0a1226;
+  --n-fondo-2: #0c162d;
+  --n-superficie: #111d39;
+  --n-marino: #eef3ff;
+  --n-texto: #c6d2ea;
+  --n-muted: #8c9bba;
+  --n-faint: #6c7b99;
+  --n-azul: #4d9bff;
+  --n-azul-2: #7ab6ff;
+  --n-violeta: #a78bfa;
+  --n-borde: rgba(140, 170, 230, 0.16);
+  --n-suave: rgba(77, 155, 255, 0.1);
+  --n-sombra: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Títulos grandes de las páginas: marino en letra gruesa */
+.layout--nube .main-content :is(.msp-hero-title, .mds3-page-title, .nd-page-header__title, .apps-title) {
+  font-weight: 800;
+  color: var(--n-marino);
+  letter-spacing: -0.03em;
+}
+.layout--nube .main-content :is(.apps-title, .msp-hero-title) :is(em, span) {
+  background: linear-gradient(95deg, var(--n-violeta) 0%, var(--n-azul-2) 55%, #22b8f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: normal;
+}
+.layout--nube .main-content :is(.apps-eyebrow, .sp-header-bar__eyebrow) { color: var(--n-azul); }
+.layout--nube .main-content .apps-eyebrow::before { background: var(--n-azul); }
+.layout--nube .main-content .apps-hero { background: transparent; border-bottom: 0; }
+.layout--nube .main-content :is(.apps-hero-glow, .apps-hero-grid) { display: none; }
+
+/* Botones principales: azul brillante */
+.layout--nube .main-content :is(.mesa-primary, .sdp-btn-primary, .nd-btn--primary, .hws-btn--primary, .hw-btn-primary, .mha-btn-primary, .mha-action-btn--primary, .sp-btn--primary, .nd-exito__btn-primary) {
+  background: linear-gradient(135deg, var(--n-azul), var(--n-azul-2)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--n-azul) 28%, transparent);
+}
+
+/* Campos */
+.layout--nube .main-content :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea):focus {
+  border-color: var(--n-azul);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--n-azul) 14%, transparent);
+  outline: none;
+}
+
+/* Página principal de la Mesa: los verdes fijos pasan al azul del tema */
+.layout--nube .main-content .mesa-greeting em,
+.layout--nube .main-content .mesa-welcome em {
+  background: linear-gradient(95deg, var(--n-violeta) 0%, var(--n-azul-2) 55%, #22b8f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: normal;
+}
+.layout--nube .main-content :is(.mesa-greeting, .mesa-welcome h1) { font-weight: 800; color: var(--n-marino); }
+.layout--nube .main-content .mesa-recommended { background: linear-gradient(135deg, var(--n-azul), var(--n-azul-2)); }
+.layout--nube .main-content .mesa-action-incident {
+  border-color: color-mix(in srgb, var(--n-azul) 30%, var(--n-borde));
+  background: linear-gradient(115deg, color-mix(in srgb, var(--n-azul) 6%, var(--n-superficie)), var(--n-superficie) 68%);
+}
+.layout--nube .main-content .mesa-action-incident::before { background: linear-gradient(180deg, var(--n-violeta), var(--n-azul)); }
+.layout--nube .main-content .mesa-action-icon { color: var(--n-azul); background: var(--n-suave); }
+.layout--nube .main-content .mesa-more { color: var(--n-azul); }
+.layout--nube .main-content .mesa-outline { color: var(--n-azul); border-color: color-mix(in srgb, var(--n-azul) 40%, var(--n-borde)); background: var(--n-superficie); }
+.layout--nube .main-content :is(.mesa-action, .mesa-service, .mesa-help-row article, .mesa-common button, .mesa-footer) {
+  border-radius: 20px;
+  box-shadow: var(--n-sombra);
+}
+.layout--nube .main-content .mesa-topline { color: var(--n-azul); }
+
+/* ── Menú lateral con el estilo nube ──
+   Fondo azul hielo, opción activa en azul con pastilla suave. El patrón de
+   temporada (TemporadaDiaMuertos.css) sigue encima del fondo. */
+.layout--nube .sidebar {
+  --sb-bg: #f3f7fe;
+  --sb-border: #dbe6f6;
+  --gold: #1e7bf0;
+  --gold-dim: rgba(30, 123, 240, 0.1);
+  --text-h: #0b1736;
+  --text-muted: #6a7896;
+  border-right: 1px solid var(--sb-border);
+}
+[data-theme="dark"] .layout--nube .sidebar {
+  --sb-bg: #0c1630;
+  --sb-border: rgba(140, 170, 230, 0.16);
+  --gold: #4d9bff;
+  --gold-dim: rgba(77, 155, 255, 0.14);
+  --text-h: #eef3ff;
+  --text-muted: #8c9bba;
+}
+.layout--nube:not(.layout--dm) .sidebar { background: var(--sb-bg); }
+.layout--nube .sidebar-link--active {
+  color: var(--gold);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 22%, transparent);
+}
+.layout--nube .sidebar-link--active .sb-icon-wrap { color: var(--gold); }
+.layout--nube .sidebar-group-label { color: color-mix(in srgb, var(--gold) 70%, var(--text-muted)); }
+
+/* ════════════════════════════════════════════════════════════
+   COLORES BASE DE TODO EL PORTAL (raíz del documento)
+   Llega a todo: menú lateral, barra superior, pestañas, menús, ventanas que
+   se abren encima (portales) y todos los módulos. App.jsx pone la clase
+   .portal-nube en <html> cuando PORTAL_NUBE = true. El verde de "éxito" y los
+   colores de alerta se conservan porque indican estado.
+   ════════════════════════════════════════════════════════════ */
+html.portal-nube[data-theme="light"],
+html.portal-nube:not([data-theme]) {
+  --bg-base: #eef4fc;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f3f7fe;
+  --bg-card: rgba(255, 255, 255, 0.96);
+  --bg-hover: rgba(30, 123, 240, 0.08);
+
+  --primary: #1e7bf0;
+  --primary-l: #3b9bff;
+  --primary-xl: #dcebff;
+  --secondary: #1e7bf0;
+  --secondary-l: #3b9bff;
+  --accent: #1e7bf0;
+  --accent-l: #3b9bff;
+  --nube-violeta: #8b5cf6; /* solo para el degradado de los títulos */
+
+  --border: #dbe6f6;
+  --border-accent: rgba(30, 123, 240, 0.32);
+  --border-dim: #e8eff9;
+
+  --text-h: #0b1736;
+  --text-body: #33415f;
+  --text-muted: #6a7896;
+  --text-faint: #9aa8c2;
+
+  --nav-bg: rgba(248, 251, 255, 0.94);
+  --sb-bg: #f3f7fe;
+  --sb-border: #dbe6f6;
+
+  --glow-primary: rgba(59, 155, 255, 0.18);
+  --glow-blue: rgba(59, 155, 255, 0.16);
+  --glow-purple: rgba(139, 92, 246, 0.14);
+  --grid-line: rgba(30, 123, 240, 0.06);
+
+  --shadow-s: 0 1px 2px rgba(23, 63, 135, 0.05), 0 12px 32px rgba(30, 90, 190, 0.08);
+  --shadow-m: 0 18px 44px rgba(30, 90, 190, 0.14);
+
+  --gold: #1e7bf0;
+  --gold-l: #3b9bff;
+  --gold-mid: rgba(30, 123, 240, 0.18);
+  --gold-dim: rgba(30, 123, 240, 0.09);
+  --border-gold: rgba(30, 123, 240, 0.28);
+  --glow-gold: rgba(59, 155, 255, 0.16);
+
+  /* Módulos con colores propios de respaldo */
+  --ref-ink: #0b1736;
+  --ref-muted: #6a7896;
+  --ref-border: #dbe6f6;
+  --ref-surface: #ffffff;
+  --ref-blue: #1e7bf0;
+  --doc-ink: #0b1736;
+  --doc-muted: #6a7896;
+  --doc-border: #dbe6f6;
+  --mesa-ink: #0b1736;
+  --mesa-muted: #6a7896;
+  --mesa-border: #dbe6f6;
+  --mesa-surface: #ffffff;
+  --nd-accent: #1e7bf0;
+  --hw-accent: #1e7bf0;
+}
+html.portal-nube[data-theme="dark"] {
+  --bg-base: #0a1226;
+  --bg-surface: #111d39;
+  --bg-elevated: #16244a;
+  --bg-card: rgba(140, 170, 230, 0.06);
+  --bg-hover: rgba(77, 155, 255, 0.12);
+
+  --primary: #4d9bff;
+  --primary-l: #7ab6ff;
+  --primary-xl: #1b3566;
+  --secondary: #4d9bff;
+  --secondary-l: #7ab6ff;
+  --accent: #4d9bff;
+  --accent-l: #7ab6ff;
+  --nube-violeta: #a78bfa;
+
+  --border: rgba(140, 170, 230, 0.16);
+  --border-accent: rgba(77, 155, 255, 0.34);
+  --border-dim: rgba(140, 170, 230, 0.09);
+
+  --text-h: #eef3ff;
+  --text-body: #c6d2ea;
+  --text-muted: #8c9bba;
+  --text-faint: #6c7b99;
+
+  --nav-bg: rgba(10, 18, 38, 0.94);
+  --sb-bg: #0c1630;
+  --sb-border: rgba(140, 170, 230, 0.16);
+
+  --glow-primary: rgba(77, 155, 255, 0.18);
+  --glow-blue: rgba(77, 155, 255, 0.16);
+  --glow-purple: rgba(167, 139, 250, 0.14);
+  --grid-line: rgba(140, 170, 230, 0.05);
+
+  --gold: #4d9bff;
+  --gold-l: #7ab6ff;
+  --gold-mid: rgba(77, 155, 255, 0.2);
+  --gold-dim: rgba(77, 155, 255, 0.12);
+  --border-gold: rgba(77, 155, 255, 0.3);
+  --glow-gold: rgba(77, 155, 255, 0.16);
+
+  --ref-ink: #eef3ff;
+  --ref-muted: #8c9bba;
+  --ref-border: rgba(140, 170, 230, 0.16);
+  --ref-surface: #111d39;
+  --ref-blue: #4d9bff;
+  --doc-ink: #eef3ff;
+  --doc-muted: #8c9bba;
+  --doc-border: rgba(140, 170, 230, 0.16);
+  --mesa-ink: #eef3ff;
+  --mesa-muted: #8c9bba;
+  --mesa-border: rgba(140, 170, 230, 0.16);
+  --mesa-surface: #111d39;
+  --nd-accent: #4d9bff;
+  --hw-accent: #4d9bff;
+}
+
+/* Fondo azul hielo en todas las páginas (no solo en el contenido) */
+html.portal-nube body { background: var(--bg-base); }
+html.portal-nube .main-wrapper {
+  background:
+    radial-gradient(1100px 520px at 85% -10%, color-mix(in srgb, var(--nube-violeta) 8%, transparent), transparent 60%),
+    radial-gradient(900px 600px at 0% 0%, color-mix(in srgb, var(--primary-l) 10%, transparent), transparent 60%),
+    var(--bg-base);
+}
+
+/* Barra superior y pestañas */
+html.portal-nube .navbar { border-bottom-color: var(--border); }
+html.portal-nube .app-tab--active { color: var(--primary); }
+html.portal-nube .app-tab--active::after,
+html.portal-nube .app-tab--active { border-bottom-color: var(--primary); }
+
+/* Títulos grandes de cualquier módulo: marino grueso con acento en degradado */
+html.portal-nube .apps-title { font-weight: 700; letter-spacing: -0.03em; color: var(--text-h); }
+html.portal-nube .apps-title em {
+  background: linear-gradient(95deg, var(--nube-violeta) 0%, var(--primary-l) 55%, #22b8f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: normal;
+}
+
+/* Temporada: el patrón de flores se queda, pero el tono base del menú y la
+   barra superior pasa al azul hielo (TemporadaDiaMuertos.css los teñía de rosa) */
+.layout--nube.layout--dm { --nav-bg: rgba(248, 251, 255, 0.94); --sb-bg: #f3f7fe; --sb-border: #dbe6f6; }
+[data-theme="dark"] .layout--nube.layout--dm { --nav-bg: rgba(10, 18, 38, 0.94); --sb-bg: #0c1630; --sb-border: rgba(140, 170, 230, 0.16); }
+
+/* Botones principales de cualquier módulo (muchos traen su color fijo en su
+   propio CSS): azul brillante. Solo <button>/<a> cuyo estilo se llama
+   "...primary...", sin tocar los secundarios ni los de peligro. */
+html.portal-nube :is(button, a)[class*="primary"]:not([class*="secondary"]):not([class*="danger"]):not([class*="ghost"]):not(:disabled) {
+  background: linear-gradient(135deg, var(--primary), var(--primary-l)) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+html.portal-nube :is(button, a)[class*="primary"]:not([class*="secondary"]):not([class*="danger"]):not([class*="ghost"]):not(:disabled):hover {
+  filter: brightness(1.05);
+}
+
+/* ════════════════════════════════════════════════════════════
+   MISMO DISEÑO EN TODOS LOS MÓDULOS (como Información Técnica)
+   Piezas que se repiten en cada módulo con nombres distintos: tarjetas,
+   tablas, encabezados de cuadrícula, campos, etiquetas superiores, títulos
+   y pastillas de estado. Solo apariencia.
+   ════════════════════════════════════════════════════════════ */
+
+/* Tarjetas y paneles: blancas, muy redondeadas, sombra azulada */
+html.portal-nube .main-content :is(
+  [class$="-card"], [class*="-card "],
+  [class$="-board"], [class*="-board "],
+  [class$="-panel"], [class*="-panel "],
+  [class$="-surface"], [class*="-surface "],
+  .cg-root, .cg-trace
+):not(.app-tab-panel):not(.pending-attention-panel):not(button) {
+  border-radius: 22px;
+  border-color: var(--border);
+  box-shadow: var(--shadow-s);
+}
+
+/* Tablas: encabezado azul hielo en mayúsculas, filas con borde suave */
+html.portal-nube .main-content table thead th {
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-color: var(--border);
+}
+html.portal-nube .main-content table td { border-color: var(--border); }
+/* Cronograma: solo el fondo del encabezado (su fila de semanas tiene medidas exactas) */
+html.portal-nube .main-content .cg-grid-head { background: var(--bg-elevated); }
+html.portal-nube .main-content table tbody tr:hover > td { background: color-mix(in srgb, var(--primary) 5%, transparent); }
+
+/* Campos y filtros */
+html.portal-nube .main-content :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), select, textarea) {
+  border-radius: 12px;
+  border-color: var(--border);
+}
+html.portal-nube .main-content :is(input, select, textarea):focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 14%, transparent);
+  outline: none;
+}
+
+/* Etiqueta superior de cada página ("GESTIÓN TECNOLÓGICA", "MESA DE SERVICIO"…):
+   píldora blanca con punto azul, como en Información Técnica */
+html.portal-nube .main-content :is([class$="eyebrow"], [class*="eyebrow "], [class*="__eyebrow"], .mesa-topline):not(.sit-nube *) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-s);
+  color: var(--primary);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+html.portal-nube .main-content :is([class$="eyebrow"], [class*="eyebrow "], [class*="__eyebrow"], .mesa-topline):not(.sit-nube *)::before {
+  content: "";
+  position: static;
+  transform: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--primary);
+  opacity: 1;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+/* Títulos: marino y grueso en todos los módulos */
+html.portal-nube .main-content :is(h1, h2) { color: var(--text-h); letter-spacing: -0.02em; }
+html.portal-nube .main-content h1 { font-weight: 700; }
+
+/* Pastillas de estado y etiquetas: redondas */
+html.portal-nube .main-content :is([class*="badge"], [class*="pill"], [class*="chip"], [class*="status"], [class*="estatus"]):not(div):not(section):not(article) {
+  border-radius: 999px;
+}
+
+/* ── Gestión de Desarrollo ── */
+html.portal-nube .gd-root .gd-header h1,
+html.portal-nube .gd-root [class*="gd-header__title"] {
+  font-weight: 700;
+  font-size: clamp(30px, 3.4vw, 42px);
+  letter-spacing: -0.03em;
+  color: var(--text-h);
+}
+html.portal-nube .gd-root .gd-header__icon,
+html.portal-nube .gd-root.gd-view-cronograma .gd-header__icon {
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-l));
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--primary) 28%, transparent);
+}
+html.portal-nube .gd-root.gd-view-cronograma .cg-root { border-radius: 22px; box-shadow: var(--shadow-s); }
+html.portal-nube .cg-board-heading h2 { font-weight: 700; color: var(--text-h); }
+html.portal-nube .cg-navigation button { border-radius: 10px; border-color: var(--border); }
+html.portal-nube .cg-navigation button[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+html.portal-nube .cg-today { background: var(--primary); }
+html.portal-nube .cg-diamond { background: var(--primary); }
+html.portal-nube .gd-view-cronograma .cg-pagination button { border-radius: 10px; color: var(--primary); }
+html.portal-nube .cg-view-tabs span { background: var(--bg-elevated); color: var(--primary); }
+html.portal-nube .cg-period { border-radius: 14px; border-color: var(--border); }
+
+/* Folios y códigos de cualquier módulo en azul */
+html.portal-nube .main-content :is([class*="folio"], [class*="codigo"]):not(div):not(section):not(th) { color: var(--primary); }
+
+/* Encabezado estándar (PageHero) igual en todos los módulos que en
+   Información Técnica: "Volver" en píldora y en su propio renglón; debajo la
+   etiqueta con punto azul; título grande con la palabra clave en degradado. */
+html.portal-nube .main-content .page-hero { background: transparent; border-bottom: 0; }
+html.portal-nube .main-content .page-hero .apps-back {
+  display: flex;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-surface) 80%, transparent);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 7px 14px;
+  margin-bottom: 1.1rem;
+}
+html.portal-nube .main-content .page-hero .apps-back:hover { color: var(--primary); border-color: var(--primary); }
+html.portal-nube .main-content .page-hero .apps-eyebrow { display: flex; margin-bottom: 14px; }
+html.portal-nube .main-content .page-hero .apps-title {
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.06;
+  margin-bottom: 10px;
+}
+html.portal-nube .main-content .page-hero .apps-sub { font-size: 15px; color: var(--text-muted); max-width: 70ch; }
+
+/* Gestión de Desarrollo: mismo encabezado que el resto (sin ícono a la
+   izquierda; título grande con la palabra clave en degradado) */
+html.portal-nube :is(.portfolio-header > .gd-reference-heading-icon, .gd-header__icon) { display: none; }
+html.portal-nube :is(.portfolio-header h1, .gd-header__title) {
+  font-size: clamp(32px, 4vw, 48px);
+  line-height: 1.06;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text-h);
+}
+html.portal-nube :is(.portfolio-header h1, .gd-header__title) em {
+  background: linear-gradient(95deg, var(--nube-violeta) 0%, var(--primary-l) 55%, #22b8f0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-style: normal;
+}
+html.portal-nube :is(.portfolio-header p, .gd-header__sub) { font-size: 15px; color: var(--text-muted); }
+/* Portafolio: sin la columna del ícono, la cuadrícula queda texto | ilustración */
+html.portal-nube .gd-view-portafolio .portfolio-header { grid-template-columns: minmax(0, 1.1fr) minmax(380px, 1fr); }
+html.portal-nube .gd-view-portafolio .portfolio-header-actions { grid-column: 1 / -1; }
+@media (max-width: 1000px) {
+  html.portal-nube .gd-view-portafolio .portfolio-header { grid-template-columns: 1fr; }
+}
+
+/* Encabezados como Información Técnica: texto a la izquierda e imagen a la
+   derecha, sin recuadros alrededor */
+html.portal-nube .main-content .page-hero { position: relative; }
+.page-hero__arte {
+  position: absolute; right: 3rem; top: 50%; transform: translateY(-50%);
+  width: min(320px, 30vw); max-height: 85%; object-fit: contain; pointer-events: none;
+  filter: drop-shadow(0 18px 28px rgba(30, 90, 190, 0.16));
+}
+.page-hero:has(.page-hero__arte) .apps-hero-inner { max-width: calc(100% - min(340px, 32vw)); }
+@media (max-width: 900px) { .page-hero__arte { display: none; } .page-hero .apps-hero-inner { max-width: none; } }
+/* Gestión de Desarrollo: sin ícono a la izquierda y la ilustración sin su tarjeta ni texto */
+html.portal-nube .gd-root :is(.gd-header__icon, .gd-reference-heading-icon, .gd-heading-art) { display: none !important; }
+html.portal-nube .gd-root .gd-reference-hero { background: none !important; border: 0 !important; box-shadow: none !important; }
+html.portal-nube .gd-root .gd-reference-hero-copy { display: none !important; }
+html.portal-nube .gd-root .gd-reference-hero { margin-left: auto; }
+
+/* Gestión de Desarrollo: el texto va en marino (antes usaba el color de acento
+   en casi todo). El azul queda solo para lo que se pulsa. */
+html.portal-nube .gd-root { --secondary: var(--text-h); --secondary-l: var(--text-body); }
+html.portal-nube .gd-root :is(.portfolio-kpi-sub, small) { color: var(--text-muted); }
+html.portal-nube .gd-root :is(td, .portfolio-kpi, [class*="attention"] li, [class*="attention-item"], [class*="agenda"] button) :is(strong, span, button, a, b, p, div, h3, h4):not([class*="badge"]):not([class*="status"]):not([class*="pill"]):not([class*="chip"]):not([class*="tag"]) { color: var(--text-h); }
+html.portal-nube .gd-root :is(td, .portfolio-kpi, [class*="attention"] li, [class*="attention-item"], [class*="agenda"] button) :is(small, [class*="sub"], [class*="meta"], [class*="area"]):not([class*="badge"]) { color: var(--text-muted); }
+
+/* Escáner: encabezado estándar dentro de su barra (el periodo queda a la derecha) */
+html.portal-nube .cdf-header--nube { display: flex; align-items: flex-start; gap: 24px; background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+html.portal-nube .cdf-header--nube > .page-hero { flex: 1; padding: 0; position: relative; }
+html.portal-nube .cdf-header--nube .page-hero__arte { right: 0; }
+/* Aplicativos: la imagen a la derecha del encabezado */
+html.portal-nube .apps-hero .page-hero__arte { top: 55%; }
+/* Burbuja de conteo ("Requieren atención 10"): número blanco sobre rojo */
+html.portal-nube .portfolio-attention-count {
+  display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 7px;
+  border-radius: 999px; background: #ff3158 !important; color: #fff !important;
+  font-size: 11.5px; font-weight: 700; line-height: 1; vertical-align: middle; box-shadow: none;
+}
+
+/* Escáner: la tarjeta de la lectora con el estilo del portal (antes azul marino oscuro) */
+html.portal-nube .cdf-capture {
+  background: linear-gradient(115deg, color-mix(in srgb, var(--primary) 7%, var(--bg-surface)), var(--bg-surface) 70%) !important;
+  border: 1px solid color-mix(in srgb, var(--primary) 28%, var(--border)) !important;
+  border-radius: 22px !important; box-shadow: var(--shadow-s) !important; color: var(--text-body) !important;
+}
+html.portal-nube .cdf-capture :is(h2, label) { color: var(--text-h) !important; }
+html.portal-nube .cdf-capture p { color: var(--text-muted) !important; }
+html.portal-nube .cdf-capture .cdf-chip { color: var(--primary) !important; background: var(--bg-surface) !important; border-radius: 999px; padding: 5px 12px; box-shadow: var(--shadow-s); }
+html.portal-nube .cdf-capture .cdf-ready { color: var(--success) !important; }
+html.portal-nube .cdf-capture .cdf-input-group { background: var(--bg-surface) !important; border: 1px solid var(--border) !important; border-radius: 14px !important; }
+html.portal-nube .cdf-capture .cdf-input-group button:not(:disabled) { background: linear-gradient(135deg, var(--primary), var(--primary-l)) !important; color: #fff !important; border: 0 !important; }
+html.portal-nube .cdf-capture .cdf-tarjeta-btn { border: 1px solid var(--border) !important; border-radius: 12px !important; background: var(--bg-surface) !important; color: var(--text-h) !important; }
+/* Aplicativos: "Volver" en su propio renglón, como en el resto */
+html.portal-nube .apps-hero .apps-back { display: flex; width: fit-content; border-radius: 999px; border: 1px solid var(--border); background: var(--bg-surface); padding: 7px 14px; font-size: 12.5px; font-weight: 600; margin-bottom: 1.1rem; }
+html.portal-nube .apps-hero .apps-eyebrow { display: flex; margin-bottom: 14px; }
+.gd-reference-hero--nube { display:flex; justify-content:flex-end; align-items:center; background:none!important; border:0!important; box-shadow:none!important; padding:0!important; min-height:0!important; } .gd-reference-hero--nube img { width:min(300px,28vw); height:auto; filter:drop-shadow(0 18px 28px rgba(30,90,190,.16)); }
+.app-tab-ti { font-size: 15px; color: var(--text-muted); margin-right: 2px; } .app-tab--active .app-tab-ti { color: var(--primary); }
+
+/* Usuarios y Accesos: mismas tarjetas, tablas y botones del portal */
+html.portal-nube :is(.usr-root, .usr-page, .access-root, .access-page, [class^="usr-"], [class^="access-"]) { --accent: var(--primary); }
+html.portal-nube .usr-header--acciones { justify-content: flex-end; }
+html.portal-nube :is([class^="usr-card"], [class^="access-card"], .usr-table-wrap, .access-panel, .access-list) { border-radius: 22px !important; border-color: var(--border) !important; box-shadow: var(--shadow-s) !important; background: var(--bg-surface) !important; }
+html.portal-nube :is(.usr-btn, .access-btn, [class^="usr-btn"], [class^="access-btn"]):not([class*="primary"]):not([class*="danger"]) { border-radius: 12px !important; border: 1px solid var(--border) !important; background: var(--bg-surface) !important; color: var(--text-h) !important; }
+
+/* Sin subtítulo bajo el título de cada módulo (menos ruido visual) */
+html.portal-nube :is(.apps-sub, .nube-sub, .gd-header__sub, .portfolio-header p) { display: none !important; }
+
+/* Mismo título en TODOS los módulos: tamaño, peso y espaciado idénticos */
+html.portal-nube .main-content :is(.page-hero .apps-title, .apps-hero .apps-title, .nube-titulo, .gd-header__title, .portfolio-header h1) {
+  font-size: clamp(32px, 4vw, 48px) !important; font-weight: 700 !important; line-height: 1.06 !important; letter-spacing: -0.03em !important; margin: 0 0 10px !important;
+}

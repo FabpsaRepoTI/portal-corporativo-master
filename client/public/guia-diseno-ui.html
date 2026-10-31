@@ -1,0 +1,759 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>CIDE Guía de Diseño UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+<style>
+/* Layout: índice fijo a la izquierda + documento en columna; los ejemplos usan los tokens reales de CIDE */
+:root {
+  --cide-primary:#2c7be5; --cide-primary-hover:#1a68d1; --cide-primary-soft:rgba(44,123,229,.12);
+  --cide-navy-800:#1e4a8a; --cide-navy-900:#0d1f3c;
+  --cide-bg:#edf2f9; --cide-bg-head:#edf2f9; --cide-surface:#fff; --cide-surface-2:#f8fafc; --cide-border:#e3ebf3;
+  --cide-text:#344050; --cide-text-secondary:#5e6e82; --cide-text-muted:#748194;
+  --cide-success:#198754; --cide-success-ink:#00865e; --cide-success-soft:rgba(0,184,148,.12);
+  --cide-warning:#f59e0b; --cide-warning-ink:#b45309; --cide-warning-soft:rgba(245,158,11,.14);
+  --cide-danger:#dc3545; --cide-danger-ink:#c0392b; --cide-danger-soft:rgba(230,83,61,.12);
+  --cide-muted-soft:#edf2f9; --cide-credit:#6f42c1;
+  --cide-thead-bg:var(--cide-navy-800); --cide-thead-color:rgba(255,255,255,.92);
+  --cide-row-stripe:rgba(44,123,229,.025); --cide-row-hover:rgba(44,123,229,.05);
+  --cide-shadow:0 4px 20px rgba(15,23,42,.06);
+  --bad:#c0392b; --good:#00865e;
+  --font:'Outfit','Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+  --r-sm:.35rem; --r:.5rem; --r-lg:.75rem;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --cide-primary:#5b9cf0; --cide-primary-hover:#7eb3f5; --cide-primary-soft:rgba(91,156,240,.15);
+  --cide-navy-800:#152a4a; --cide-navy-900:#0a1628;
+  --cide-bg:#0b1220; --cide-bg-head:#1a2740; --cide-surface:#151f32; --cide-surface-2:#1a2740; --cide-border:#2d3f5c;
+  --cide-text:#e8eef6; --cide-text-secondary:#c8d4e3; --cide-text-muted:#9fb0c7;
+  --cide-success-ink:#4ade80; --cide-success-soft:rgba(74,222,128,.14);
+  --cide-warning-ink:#fbbf24; --cide-warning-soft:rgba(251,191,36,.14);
+  --cide-danger-ink:#f5b5ab; --cide-danger-soft:rgba(230,83,61,.15); --cide-muted-soft:rgba(159,176,199,.12);
+  --cide-row-stripe:rgba(91,156,240,.04); --cide-row-hover:rgba(91,156,240,.08);
+  --cide-shadow:0 4px 24px rgba(0,0,0,.35); --bad:#f5b5ab; --good:#4ade80; color-scheme:dark }}
+:root[data-theme="dark"]{
+  --cide-primary:#5b9cf0; --cide-primary-hover:#7eb3f5; --cide-primary-soft:rgba(91,156,240,.15);
+  --cide-navy-800:#152a4a; --cide-navy-900:#0a1628;
+  --cide-bg:#0b1220; --cide-bg-head:#1a2740; --cide-surface:#151f32; --cide-surface-2:#1a2740; --cide-border:#2d3f5c;
+  --cide-text:#e8eef6; --cide-text-secondary:#c8d4e3; --cide-text-muted:#9fb0c7;
+  --cide-success-ink:#4ade80; --cide-success-soft:rgba(74,222,128,.14);
+  --cide-warning-ink:#fbbf24; --cide-warning-soft:rgba(251,191,36,.14);
+  --cide-danger-ink:#f5b5ab; --cide-danger-soft:rgba(230,83,61,.15); --cide-muted-soft:rgba(159,176,199,.12);
+  --cide-row-stripe:rgba(91,156,240,.04); --cide-row-hover:rgba(91,156,240,.08);
+  --cide-shadow:0 4px 24px rgba(0,0,0,.35); --bad:#f5b5ab; --good:#4ade80; color-scheme:dark }
+
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--cide-bg);color:var(--cide-text);font-family:var(--font);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.shell{display:grid;grid-template-columns:240px minmax(0,1fr);gap:1.5rem;max-width:1320px;margin:0 auto;padding:1rem 16px 4rem}
+nav.toc{position:sticky;top:calc(1rem + env(safe-area-inset-top,0px));align-self:start;background:var(--cide-surface);border:1px solid var(--cide-border);border-radius:1.25rem;padding:1rem .75rem;max-height:calc(100vh - 2rem);overflow:auto}
+.toc .brand{display:flex;gap:.6rem;align-items:center;padding:0 .4rem .8rem;border-bottom:1px solid var(--cide-border);margin-bottom:.6rem}
+.toc .logo{width:34px;height:34px;border-radius:.6rem;background:var(--cide-navy-800);color:#fff;display:grid;place-items:center;font-weight:700;font-size:.8rem;letter-spacing:.04em}
+.toc .brand b{display:block;font-size:.9rem;line-height:1.2}.toc .brand small{color:var(--cide-text-muted);font-size:.72rem}
+.toc a{display:flex;gap:.55rem;align-items:baseline;padding:.32rem .55rem;border-radius:.45rem;color:var(--cide-text-secondary);text-decoration:none;font-size:.82rem}
+.toc a span{font-family:var(--mono);font-size:.68rem;color:var(--cide-text-muted);min-width:1.3rem}
+.toc a:hover{background:var(--cide-primary-soft);color:var(--cide-primary)}
+main{min-width:0}
+section.doc{background:var(--cide-surface);border:1px solid var(--cide-border);border-radius:var(--r-lg);padding:1.75rem clamp(1rem,3vw,2.25rem);margin-bottom:1rem;scroll-margin-top:1rem}
+.eyebrow{font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--cide-primary);margin:0 0 .35rem}
+h1,h2,h3{font-family:var(--font);text-wrap:balance;color:var(--cide-text);line-height:1.2}
+h2{font-size:1.45rem;font-weight:600;margin:0 0 .6rem;letter-spacing:-.01em}
+h3{font-size:1rem;font-weight:600;margin:1.6rem 0 .5rem}
+p{margin:.4rem 0 .8rem;max-width:72ch;color:var(--cide-text-secondary)}
+p strong,li strong{color:var(--cide-text)}
+ul,ol{color:var(--cide-text-secondary);padding-left:1.2rem;max-width:72ch}
+li{margin:.2rem 0}
+code{font-family:var(--mono);font-size:.82em;background:var(--cide-bg-head);padding:.1em .35em;border-radius:.3rem;color:var(--cide-text)}
+pre{font-family:var(--mono);font-size:.78rem;line-height:1.55;background:var(--cide-navy-900);color:#dbe6f5;padding:1rem 1.1rem;border-radius:var(--r);overflow-x:auto;margin:.6rem 0 1rem}
+pre code{background:none;padding:0;color:inherit}
+
+/* portada */
+.cover{background:var(--cide-navy-800);color:#fff;border-radius:var(--r-lg);padding:clamp(1.5rem,4vw,3rem);margin-bottom:1rem;position:relative;overflow:hidden}
+.cover::after{content:"";position:absolute;right:-60px;top:-60px;width:320px;height:320px;border-radius:50%;border:48px solid rgba(255,255,255,.06)}
+.cover .eyebrow{color:rgba(255,255,255,.7)}
+.cover h1{color:#fff;font-size:clamp(1.8rem,4.5vw,2.8rem);font-weight:700;letter-spacing:-.02em;margin:.2rem 0 .7rem;max-width:20ch}
+.cover p{color:rgba(255,255,255,.82);max-width:60ch}
+.meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.2rem}
+.meta span{font-size:.75rem;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);padding:.25rem .65rem;border-radius:999px}
+
+/* tablas de documento */
+.tw{overflow-x:auto;border:1px solid var(--cide-border);border-radius:var(--r);margin:.6rem 0 1rem}
+table.t{width:100%;border-collapse:collapse;font-size:.82rem}
+table.t th{background:var(--cide-thead-bg);color:var(--cide-thead-color);font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:.5rem .75rem;white-space:nowrap}
+table.t td{padding:.55rem .75rem;border-top:1px solid var(--cide-border);vertical-align:top;color:var(--cide-text-secondary)}
+table.t td:first-child{color:var(--cide-text);font-weight:500}
+table.t tbody tr:nth-child(even) td{background:var(--cide-row-stripe)}
+table.t tbody tr:hover td{background:var(--cide-row-hover)}
+.mono{font-family:var(--mono);font-size:.78rem}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+
+/* color */
+.swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:.75rem;margin:.6rem 0 1rem}
+.sw{border:1px solid var(--cide-border);border-radius:var(--r);overflow:hidden;background:var(--cide-surface)}
+.sw .chip{height:64px;border-bottom:1px solid var(--cide-border)}
+.sw .b{padding:.55rem .7rem}
+.sw b{display:block;font-size:.85rem}
+.sw .hex{font-family:var(--mono);font-size:.72rem;color:var(--cide-text-muted)}
+.sw .use{font-size:.75rem;color:var(--cide-text-secondary);margin-top:.25rem;line-height:1.4}
+
+/* do / dont */
+.dd{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.75rem;margin:.6rem 0 1rem}
+.do,.dont{border:1px solid var(--cide-border);border-radius:var(--r);padding:.8rem 1rem;font-size:.85rem;color:var(--cide-text-secondary)}
+.do{border-top:3px solid var(--good)}.dont{border-top:3px solid var(--bad)}
+.do b,.dont b{display:flex;gap:.4rem;align-items:center;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;margin-bottom:.3rem}
+.do b{color:var(--good)}.dont b{color:var(--bad)}
+.do ul,.dont ul{margin:0}
+.pill-act,.pill-rec{display:inline-block;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:.12rem .45rem;border-radius:.25rem;vertical-align:middle;margin-right:.35rem}
+.pill-act{background:var(--cide-muted-soft);color:var(--cide-text-muted)}
+.pill-rec{background:var(--cide-primary-soft);color:var(--cide-primary)}
+
+/* ejemplos vivos: componentes CIDE */
+.stage{background:var(--cide-bg);border:1px dashed var(--cide-border);border-radius:var(--r);padding:1rem;margin:.6rem 0 1rem;overflow-x:auto}
+.stage-label{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--cide-text-muted);margin-bottom:.5rem;font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center}
+.btn{font-family:var(--font);display:inline-flex;align-items:center;gap:.4rem;font-size:.75rem;font-weight:500;padding:.35rem .75rem;border-radius:var(--r-sm);border:1px solid transparent;cursor:pointer;line-height:1.5;background:none;color:var(--cide-text)}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3px var(--cide-primary-soft)}
+.btn-primary{background:var(--cide-primary);border-color:var(--cide-primary);color:#fff}.btn-primary:hover{background:var(--cide-primary-hover)}
+.btn-os{border-color:var(--cide-border);color:var(--cide-text-secondary);background:var(--cide-surface)}.btn-os:hover{background:var(--cide-bg-head)}
+.btn-od{border-color:rgba(220,53,69,.45);color:var(--cide-danger-ink);background:var(--cide-surface)}.btn-od:hover{background:var(--cide-danger-soft)}
+.btn-success{background:var(--cide-success);border-color:var(--cide-success);color:#fff}
+.btn[disabled]{opacity:.55;cursor:not-allowed}
+.btn-action{width:28px;height:28px;padding:0;justify-content:center;font-size:.7rem}
+.btn-ow{border-color:rgba(245,158,11,.5);color:var(--cide-warning-ink);background:var(--cide-surface)}
+.btn-op{border-color:rgba(44,123,229,.45);color:var(--cide-primary);background:var(--cide-surface)}
+.spin{width:.8em;height:.8em;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:s .75s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+.badge{display:inline-flex;align-items:center;gap:.3rem;font-size:.6875rem;font-weight:600;padding:.25em .55em;border-radius:.25rem;letter-spacing:.02em;white-space:nowrap;line-height:1.4}
+.badge .dot{width:.4rem;height:.4rem;border-radius:50%;background:currentColor}
+.b-primary{background:var(--cide-primary-soft);color:var(--cide-primary)}
+.b-success{background:var(--cide-success-soft);color:var(--cide-success-ink)}
+.b-warning{background:var(--cide-warning-soft);color:var(--cide-warning-ink)}
+.b-danger{background:var(--cide-danger-soft);color:var(--cide-danger-ink)}
+.b-muted{background:var(--cide-muted-soft);color:var(--cide-text-muted)}
+.b-credit{background:rgba(111,66,193,.13);color:#7e57c2}
+.card{background:var(--cide-surface);border:1px solid var(--cide-border);border-radius:var(--r);overflow:hidden;min-width:0}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.75rem 1rem;border-bottom:1px solid var(--cide-border);font-weight:600;font-size:.9375rem}
+.card-b{padding:.75rem 1rem 1rem}
+.filters{display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end;padding:.75rem 1rem;background:var(--cide-bg-head);border-bottom:1px solid var(--cide-border)}
+.f{display:flex;flex-direction:column;gap:.2rem;min-width:0}
+.f label,.flabel{font-size:.75rem;font-weight:500;color:var(--cide-text-secondary)}
+.filters .f label{font-size:.6875rem;color:var(--cide-text-muted)}
+.ctl{font-family:var(--font);font-size:.8125rem;color:var(--cide-text);background:var(--cide-surface);border:1px solid var(--cide-border);border-radius:var(--r-sm);padding:.3rem .6rem;min-height:31px;width:100%}
+.ctl:focus{outline:none;border-color:var(--cide-primary);box-shadow:0 0 0 3px var(--cide-primary-soft)}
+.ctl.req{border-left:3px solid rgba(220,53,69,.25)}
+.ctl.invalid{border-color:var(--cide-danger)}
+.ctl[readonly]{background:var(--cide-surface-2);color:var(--cide-text-secondary)}
+.ctl:disabled{background:var(--cide-bg-head);color:var(--cide-text-muted)}
+.search{position:relative}.search svg{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:var(--cide-text-muted);font-size:.72rem}.search .ctl{padding-left:1.9rem}
+.help{font-size:.6875rem;color:var(--cide-text-muted)}.err{font-size:.6875rem;color:var(--cide-danger-ink)}
+.req-star{color:var(--cide-danger);font-weight:700}
+.dtable{width:100%;border-collapse:collapse;font-size:.8125rem}
+.dtable th{background:var(--cide-thead-bg);color:var(--cide-thead-color);font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;text-align:left;padding:.5rem .75rem;white-space:nowrap}
+.dtable td{padding:.5rem .75rem;border-top:1px solid var(--cide-border);vertical-align:middle;color:var(--cide-text)}
+.dtable tbody tr:nth-child(even) td{background:var(--cide-row-stripe)}
+.dtable tbody tr:hover td{background:var(--cide-row-hover)}
+.dtable tr.sel td{background:var(--cide-primary-soft)}.dtable tr.sel td:first-child{box-shadow:inset 3px 0 0 var(--cide-primary)}
+.dtable .id{font-family:var(--mono);font-size:.76rem;font-weight:600}
+.dtable .sub{display:block;font-size:.72rem;color:var(--cide-text-muted)}
+.dtable .act{text-align:right;white-space:nowrap;width:1%}
+.dtable .act .row{justify-content:flex-end;gap:.25rem;flex-wrap:nowrap}
+.dt-foot{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:.5rem;padding:.6rem 1rem;border-top:1px solid var(--cide-border);font-size:.75rem;color:var(--cide-text-muted)}
+.pag{display:flex;gap:.15rem}.pag span{min-width:28px;height:28px;display:grid;place-items:center;border:1px solid var(--cide-border);border-radius:var(--r-sm);font-size:.75rem;color:var(--cide-text-secondary);background:var(--cide-surface)}
+.pag span.on{background:var(--cide-primary);border-color:var(--cide-primary);color:#fff}
+.alert{display:flex;gap:.6rem;align-items:flex-start;font-size:.8125rem;border-radius:var(--r);padding:.65rem .85rem;border:1px solid}
+.alert svg{margin-top:.2rem}
+.a-s{background:var(--cide-success-soft);color:var(--cide-success-ink);border-color:rgba(0,184,148,.3)}
+.a-w{background:var(--cide-warning-soft);color:var(--cide-warning-ink);border-color:rgba(245,158,11,.35)}
+.a-d{background:var(--cide-danger-soft);color:var(--cide-danger-ink);border-color:rgba(230,83,61,.35)}
+.a-i{background:var(--cide-primary-soft);color:var(--cide-primary);border-color:rgba(44,123,229,.3)}
+.empty{display:flex;flex-direction:column;align-items:center;gap:.4rem;text-align:center;padding:2rem 1rem;color:var(--cide-text-muted)}
+.empty svg{font-size:1.75rem;color:var(--cide-border)}
+.empty b{color:var(--cide-text);font-size:.875rem}.empty p{font-size:.75rem;margin:0;max-width:36ch;color:var(--cide-text-muted)}
+.modal{max-width:460px;background:var(--cide-surface);border:1px solid var(--cide-border);border-radius:var(--r);box-shadow:var(--cide-shadow)}
+.modal-h,.modal-f{padding:.75rem 1rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.modal-h{border-bottom:1px solid var(--cide-border)}.modal-f{border-top:1px solid var(--cide-border);justify-content:flex-end}
+.accent{display:flex;align-items:center;gap:.5rem;font-weight:600;font-size:.8125rem;text-transform:uppercase;letter-spacing:.04em}
+.accent::before{content:"";width:4px;height:1.1rem;border-radius:2px;background:var(--cide-primary)}
+.accent.danger::before{background:var(--cide-danger)}
+.modal-b{padding:1rem;font-size:.85rem;color:var(--cide-text-secondary)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.75rem}
+.kpi{background:var(--cide-surface);border:1px solid var(--cide-border);border-radius:var(--r);padding:.85rem 1rem}
+.kpi small{display:block;font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--cide-text-muted)}
+.kpi b{font-size:1.5rem;font-weight:600;font-variant-numeric:tabular-nums}
+.kpi em{font-style:normal;font-size:.72rem;color:var(--cide-text-muted)}
+.tabs{display:flex;gap:.25rem;border-bottom:1px solid var(--cide-border)}
+.tabs span{padding:.5rem .8rem;font-size:.8125rem;color:var(--cide-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs span.on{color:var(--cide-primary);border-color:var(--cide-primary);font-weight:600}
+.crumb{font-size:.75rem;color:var(--cide-text-muted)}.crumb b{color:var(--cide-text-secondary);font-weight:500}
+
+/* mock pantalla completa */
+.screen{display:grid;grid-template-columns:190px minmax(0,1fr);gap:.6rem;background:var(--cide-bg);padding:.6rem;border-radius:var(--r);border:1px solid var(--cide-border);min-width:720px}
+.m-side{background:var(--cide-surface);border:1px solid var(--cide-border);border-radius:1rem;padding:.75rem .55rem;font-size:.75rem}
+.m-side .it{display:flex;gap:.5rem;align-items:center;padding:.4rem .5rem;border-radius:.45rem;color:var(--cide-text-secondary)}
+.m-side .it.on{background:var(--cide-primary-soft);color:var(--cide-primary);font-weight:600}
+.m-side .grp{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--cide-text-muted);margin:.6rem .5rem .2rem}
+.m-top{display:flex;justify-content:space-between;align-items:center;height:42px;padding:0 .9rem;background:var(--cide-surface);border:1px solid var(--cide-border);border-radius:1rem;font-size:.8rem;font-weight:600}
+.m-top .row{color:var(--cide-text-muted)}
+.m-main{display:flex;flex-direction:column;gap:.6rem;min-width:0}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;flex-wrap:wrap}
+.ph h4{margin:0;font-size:.9375rem;font-weight:600;display:flex;gap:.4rem;align-items:center}.ph h4 svg{color:var(--cide-primary);font-size:.85rem}
+.ph small{display:block;font-size:.72rem;color:var(--cide-text-muted)}
+
+/* layout diagram */
+.flow{display:grid;gap:.35rem;max-width:520px;margin:.6rem 0 1rem}
+.flow div{display:flex;justify-content:space-between;align-items:center;gap:.5rem;padding:.45rem .8rem;border:1px solid var(--cide-border);border-radius:var(--r-sm);background:var(--cide-surface);font-size:.82rem}
+.flow div i{font-style:normal;font-size:.68rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.flow .req i{color:var(--cide-primary)}.flow .opt i{color:var(--cide-text-muted)}
+.typescale div{display:grid;grid-template-columns:130px minmax(0,1fr) 170px;gap:1rem;align-items:baseline;padding:.6rem 0;border-bottom:1px solid var(--cide-border)}
+.typescale code{font-size:.7rem}
+.typescale .meta2{font-family:var(--mono);font-size:.7rem;color:var(--cide-text-muted)}
+.space-bar{display:grid;grid-template-columns:110px 1fr 160px;gap:.75rem;align-items:center;padding:.3rem 0;font-size:.8rem}
+.space-bar i{display:block;height:10px;background:var(--cide-primary);border-radius:2px;opacity:.75}
+.radii{display:flex;flex-wrap:wrap;gap:1rem}
+.radii div{text-align:center;font-size:.72rem;color:var(--cide-text-muted)}
+.radii span{display:block;width:64px;height:64px;background:var(--cide-primary-soft);border:1px solid var(--cide-primary);margin-bottom:.35rem}
+.icons{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.5rem}
+.icons div{display:flex;flex-direction:column;align-items:center;gap:.35rem;padding:.7rem .4rem;border:1px solid var(--cide-border);border-radius:var(--r);font-size:.7rem;color:var(--cide-text-muted);text-align:center}
+.icons svg{font-size:1rem;color:var(--cide-text)}
+.check{list-style:none;padding:0;display:grid;gap:.4rem}
+.check li{display:flex;gap:.6rem;align-items:flex-start;padding:.55rem .8rem;border:1px solid var(--cide-border);border-radius:var(--r-sm);background:var(--cide-surface-2)}
+.check input{margin-top:.3rem;accent-color:var(--cide-primary);width:1rem;height:1rem;flex-shrink:0}
+.check label{color:var(--cide-text);font-size:.88rem}
+.check label small{display:block;color:var(--cide-text-muted);font-size:.75rem}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem}
+.prio{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;font-weight:600;font-size:.9rem;margin:.5rem 0 1rem}
+.prio span{padding:.3rem .7rem;border-radius:999px;background:var(--cide-primary-soft);color:var(--cide-primary)}
+.prio svg{color:var(--cide-text-muted);font-size:.7rem}
+footer.end{text-align:center;font-size:.75rem;color:var(--cide-text-muted);padding:1rem}
+
+@media (max-width: 991.98px){
+  .shell{grid-template-columns:1fr}
+  nav.toc{position:static;max-height:none}
+  .toc .links{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}
+}
+@media (max-width: 575.98px){
+  .typescale div{grid-template-columns:1fr}
+  .space-bar{grid-template-columns:80px 1fr}
+  .space-bar span:last-child{display:none}
+}
+@media (prefers-reduced-motion: reduce){.spin{animation:none}}
+</style>
+
+<div class="shell">
+<nav class="toc" aria-label="Índice">
+  <div class="brand"><div class="logo">CIDE</div><div><b>Guía de Diseño UI</b><small>Sistema visual · v1.0</small></div></div>
+  <div class="links">
+  <a href="#intro"><span>01</span>Introducción</a>
+  <a href="#principios"><span>02</span>Principios</a>
+  <a href="#color"><span>03</span>Color</a>
+  <a href="#tipografia"><span>04</span>Tipografía</a>
+  <a href="#espaciado"><span>05</span>Espaciado y medidas</a>
+  <a href="#layout"><span>06</span>Layout</a>
+  <a href="#componentes"><span>07</span>Componentes</a>
+  <a href="#tablas"><span>08</span>Tablas</a>
+  <a href="#formularios"><span>09</span>Formularios</a>
+  <a href="#estados"><span>10</span>Estados</a>
+  <a href="#iconos"><span>11</span>Iconografía</a>
+  <a href="#ux"><span>12</span>UX y comportamiento</a>
+  <a href="#a11y"><span>13</span>Accesibilidad</a>
+  <a href="#tokens"><span>14</span>Design Tokens</a>
+  <a href="#ejemplos"><span>15</span>Ejemplos</a>
+  <a href="#inconsistencias"><span>16</span>Antes y después</a>
+  <a href="#checklist"><span>17</span>Checklist</a>
+  </div>
+</nav>
+
+<main>
+<header class="cover">
+  <p class="eyebrow">Sistema de diseño · Uso interno</p>
+  <h1>CIDE — Guía de Diseño UI y Sistema Visual</h1>
+  <p>El lenguaje visual que CIDE ya usa, documentado como reglas. Sirve para que cualquier pantalla nueva se vea y se comporte como el resto del sistema, sin inventar estilos.</p>
+  <div class="meta"><span>CodeIgniter 3</span><span>Bootstrap 5.3.3</span><span>Font Awesome 6.5.2</span><span>DataTables 2</span><span>SweetAlert2</span><span>Outfit + JetBrains Mono</span><span>Octubre 2026</span></div>
+</header>
+
+<section class="doc" id="intro">
+  <p class="eyebrow">01 · Introducción</p>
+  <h2>Qué es esta guía y de dónde sale</h2>
+  <p>Todo lo que aparece aquí se extrajo del código de CIDE: <code>assets/css/cide-layout.css</code> (shell y tokens), <code>app-ui.css</code> (8 125 líneas: tablas, cards, badges, DataTables), <code>cide-forms.css</code> (validación), las hojas de cada módulo y los parciales de <code>application/views/layout</code>. No se inventó ningún estilo.</p>
+  <p>Cuando se propone un cambio, se marca así: <span class="pill-act">Actual</span> lo que hay hoy y <span class="pill-rec">Recomendación</span> lo que debe hacerse en pantallas nuevas.</p>
+  <h3>Dos entregables</h3>
+  <ul>
+    <li><strong>Esta guía:</strong> explica qué hacer y por qué.</li>
+    <li><strong>El kit <code>assets/design-system/</code>:</strong> <code>tokens.css</code>, <code>buttons.css</code>, <code>tables.css</code>, <code>forms.css</code>, <code>components.css</code>, <code>utilities.css</code> y <code>README.md</code>. Son las mismas reglas convertidas en CSS listo para cargar.</li>
+  </ul>
+</section>
+
+<section class="doc" id="principios">
+  <p class="eyebrow">02 · Principios</p>
+  <h2>Cómo decidir cuando la guía no lo dice</h2>
+  <div class="prio"><span>Funcionalidad</span><i class="fa-solid fa-chevron-right"></i><span>Claridad</span><i class="fa-solid fa-chevron-right"></i><span>Usabilidad</span><i class="fa-solid fa-chevron-right"></i><span>Consistencia</span><i class="fa-solid fa-chevron-right"></i><span>Estética</span></div>
+  <div class="grid2">
+    <div><h3>Compacto, no apretado</h3><p>CIDE es una herramienta administrativa: texto base de 13–14 px, controles <code>btn-sm</code> y tablas densas. La densidad se compensa con separadores finos y buena alineación, no con aire extra.</p></div>
+    <div><h3>Bootstrap primero</h3><p>Si Bootstrap 5 ya tiene el componente (modal, dropdown, tooltip, tabs), se usa ese con las clases CIDE encima. No se escribe un componente propio para lo mismo.</p></div>
+    <div><h3>El color comunica</h3><p>El azul indica acción o selección. Verde, ámbar y rojo indican estado. Ningún color se usa solo para decorar.</p></div>
+    <div><h3>Claro y oscuro siempre</h3><p>Toda pantalla funciona con <code>[data-theme="dark"]</code>. Si usas tokens, sale sola; si escribes un hex, se rompe.</p></div>
+  </div>
+</section>
+
+<section class="doc" id="color">
+  <p class="eyebrow">03 · Identidad visual · Paleta</p>
+  <h2>Paleta de colores</h2>
+  <p>Valores reales de <code>cide-layout.css</code> y <code>app-ui.css</code>. Cada color tiene una función; si tu caso no encaja en ninguna, probablemente no necesitas color.</p>
+  <h3>Marca y navegación</h3>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#2c7be5"></div><div class="b"><b>Primary · Azul CIDE</b><span class="hex">#2C7BE5 · rgb(44,123,229)</span><div class="use">Acción principal, elemento activo del menú, enlaces, foco, página actual. <strong>No</strong> lo uses como fondo de bloques grandes ni para estados.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#1a68d1"></div><div class="b"><b>Primary hover</b><span class="hex">#1A68D1 · rgb(26,104,209)</span><div class="use">Hover y active del botón primario. <strong>No</strong> lo uses como segundo azul de marca.</div></div></div>
+    <div class="sw"><div class="chip" style="background:rgba(44,123,229,.12)"></div><div class="b"><b>Primary soft</b><span class="hex">rgba(44,123,229,.12)</span><div class="use">Ítem activo del sidebar, fila seleccionada, badge “En proceso”, anillo de foco. <strong>No</strong> lo uses para texto.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#1e4a8a"></div><div class="b"><b>Navy 800</b><span class="hex">#1E4A8A · rgb(30,74,138)</span><div class="use">Encabezado de tablas (<code>--cide-thead-bg</code>). <strong>No</strong> lo uses en botones.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#0d1f3c"></div><div class="b"><b>Navy 900</b><span class="hex">#0D1F3C · rgb(13,31,60)</span><div class="use">Fondos profundos (login, bloques de código). Úsalo poco.</div></div></div>
+  </div>
+  <h3>Superficies, texto y bordes (claro / oscuro)</h3>
+  <div class="tw"><table class="t">
+    <thead><tr><th>Token</th><th>Claro</th><th>Oscuro</th><th>Uso</th><th>Uso incorrecto</th></tr></thead>
+    <tbody>
+    <tr><td><code>--cide-bg</code></td><td class="mono">#EDF2F9</td><td class="mono">#0B1220</td><td>Fondo de la aplicación</td><td>Fondo de cards o modales</td></tr>
+    <tr><td><code>--cide-surface</code></td><td class="mono">#FFFFFF</td><td class="mono">#151F32</td><td>Cards, sidebar, topbar, modales</td><td>Fondo de página completa</td></tr>
+    <tr><td><code>--cide-surface-2</code> / <code>--cide-bg-head</code></td><td class="mono">#F8FAFC / #EDF2F9</td><td class="mono">#1A2740</td><td>Barra de filtros, campos readonly, cabeceras suaves</td><td>Encabezado de tabla (ese es navy)</td></tr>
+    <tr><td><code>--cide-border</code></td><td class="mono">#E3EBF3</td><td class="mono">#2D3F5C</td><td>Bordes de card e input, separadores</td><td>Texto o iconos</td></tr>
+    <tr><td><code>--cide-text</code></td><td class="mono">#344050</td><td class="mono">#E8EEF6</td><td>Títulos, datos, valores</td><td>—</td></tr>
+    <tr><td><code>--cide-text-secondary</code></td><td class="mono">#5E6E82</td><td class="mono">#C8D4E3</td><td>Labels, descripciones, párrafos</td><td>Títulos</td></tr>
+    <tr><td><code>--cide-text-muted</code></td><td class="mono">#748194</td><td class="mono">#9FB0C7</td><td>Metadatos, subtítulos, ayuda</td><td>Texto que hay que leer para operar (contraste 4.1:1)</td></tr>
+    </tbody></table></div>
+  <h3>Semánticos</h3>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#198754"></div><div class="b"><b>Éxito</b><span class="hex">#198754 · texto tonal #00865E</span><div class="use">Guardado, activo, concluido, validación correcta.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#f59e0b"></div><div class="b"><b>Advertencia</b><span class="hex">#F59E0B · texto tonal #B45309</span><div class="use">Pendiente, por vencer, requiere revisión. Para texto usa siempre #B45309.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#dc3545"></div><div class="b"><b>Error / Peligro</b><span class="hex">#DC3545 · texto tonal #C0392B</span><div class="use">Errores, campos inválidos, eliminar, rechazado, bloqueado.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#2c7be5"></div><div class="b"><b>Información</b><span class="hex">= Primary</span><div class="use">Avisos neutros y estados en curso. <span class="pill-rec">Rec.</span> No uses el #0D6EFD o el #27BCFD de Bootstrap.</div></div></div>
+    <div class="sw"><div class="chip" style="background:#6f42c1"></div><div class="b"><b>Crédito</b><span class="hex">#6F42C1 · rgb(111,66,193)</span><div class="use">Exclusivo del dominio de crédito (<code>cide-modal-accent--credit</code>). No lo uses en otros módulos.</div></div></div>
+  </div>
+</section>
+
+<section class="doc" id="tipografia">
+  <p class="eyebrow">04 · Tipografía</p>
+  <h2>Outfit para todo, JetBrains Mono para claves</h2>
+  <p><strong>Outfit</strong> (Google Fonts, pesos 400/500/600/700) es la familia de texto y títulos (<code>--cide-font-sans</code>, <code>--cide-font-display</code>). <strong>JetBrains Mono</strong> (<code>--cide-font-mono</code>) se usa para folios, claves, series y código. Escala tomada de los tamaños más repetidos:</p>
+  <div class="typescale">
+    <div><code>--cide-fs-xl</code><span style="font-size:1.5rem;font-weight:600">1 284</span><span class="meta2">24px · 600 · KPI</span></div>
+    <div><code>--cide-fs-lg</code><span style="font-size:1.125rem;font-weight:600">Título de sección</span><span class="meta2">18px · 600</span></div>
+    <div><code>--cide-fs-md</code><span style="font-size:.9375rem;font-weight:600">Inventario TI · Equipos</span><span class="meta2">15px · 600 · .page-title</span></div>
+    <div><code>--cide-fs-base</code><span style="font-size:.875rem">Texto de cuerpo y párrafos</span><span class="meta2">14px · 400 · body · lh 1.5</span></div>
+    <div><code>--cide-fs</code><span style="font-size:.8125rem">Celdas de tabla y controles</span><span class="meta2">13px · 400</span></div>
+    <div><code>--cide-fs-xs</code><span style="font-size:.75rem;color:var(--cide-text-secondary)">Labels, botones sm, ayudas</span><span class="meta2">12px · 500</span></div>
+    <div><code>--cide-fs-2xs</code><span style="font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--cide-text-muted)">Encabezado de tabla</span><span class="meta2">11px · 600 · +5% · upper</span></div>
+    <div><code>--cide-font-mono</code><span style="font-family:var(--mono);font-size:.8rem;font-weight:600">EQ-2024-001</span><span class="meta2">12–13px · 600 · folios</span></div>
+  </div>
+  <div class="dd">
+    <div class="do"><b><i class="fa-solid fa-check"></i> Hacer</b><ul><li>Un solo <code>.page-title</code> por pantalla.</li><li>Labels en peso 500, valores en 400.</li><li>Cifras alineadas con <code>font-variant-numeric: tabular-nums</code>.</li></ul></div>
+    <div class="dont"><b><i class="fa-solid fa-xmark"></i> Evitar</b><ul><li>Tamaños fuera de escala (0.68, 0.72, 0.78 rem…).</li><li>Texto de menos de 11 px.</li><li>Mayúsculas en párrafos o botones.</li></ul></div>
+  </div>
+</section>
+
+<section class="doc" id="espaciado">
+  <p class="eyebrow">05 · Espaciado y medidas</p>
+  <h2>Escala base 4 px</h2>
+  <p>El código usa gaps de 0.2 a 1 rem sin escala fija (los más comunes: 0.35, 0.75, 0.5 rem). Se consolidan así:</p>
+  <div>
+    <div class="space-bar"><code>--cide-space-1</code><i style="width:4px"></i><span class="mono">4px · iconos con texto</span></div>
+    <div class="space-bar"><code>--cide-space-2</code><i style="width:8px"></i><span class="mono">8px · gap entre botones</span></div>
+    <div class="space-bar"><code>--cide-space-3</code><i style="width:12px"></i><span class="mono">12px · padding de celda / card-header</span></div>
+    <div class="space-bar"><code>--cide-space-4</code><i style="width:16px"></i><span class="mono">16px · padding de card, contenido</span></div>
+    <div class="space-bar"><code>--cide-space-5</code><i style="width:20px"></i><span class="mono">20px · padding lateral de .cide-main</span></div>
+    <div class="space-bar"><code>--cide-space-6</code><i style="width:24px"></i><span class="mono">24px · entre secciones de formulario</span></div>
+    <div class="space-bar"><code>--cide-space-8</code><i style="width:32px"></i><span class="mono">32px · estado vacío, bloques</span></div>
+  </div>
+  <h3>Dimensiones fijas</h3>
+  <div class="tw"><table class="t"><thead><tr><th>Elemento</th><th>Valor</th><th>Fuente</th></tr></thead><tbody>
+    <tr><td>Sidebar</td><td class="mono">272px, flotante con gap 0.85rem y radio 1.25rem</td><td class="mono">--cide-sidebar-w</td></tr>
+    <tr><td>Topbar</td><td class="mono">58px</td><td class="mono">--cide-topbar-h</td></tr>
+    <tr><td>Navegación superior (modo horizontal)</td><td class="mono">72px</td><td class="mono">--cide-top-nav-h</td></tr>
+    <tr><td>Contenido</td><td class="mono">padding 1rem 1.25rem</td><td class="mono">.cide-main</td></tr>
+    <tr><td>Botón de acción en tabla</td><td class="mono">28 × 28px</td><td class="mono">.btn-action</td></tr>
+    <tr><td>Botón e input sm</td><td class="mono">≈31px de alto</td><td class="mono">.btn-sm / .form-control-sm</td></tr>
+    <tr><td>Botón e input normal</td><td class="mono">38px</td><td class="mono">Bootstrap</td></tr>
+    <tr><td>Fila de tabla</td><td class="mono">≈36px (padding .5rem .75rem)</td><td class="mono">.table-cide</td></tr>
+    <tr><td>Iconos</td><td class="mono">11px en tabla · 14px en títulos y menú</td><td class="mono">--cide-icon-sm / --cide-icon</td></tr>
+  </tbody></table></div>
+  <h3>Radios</h3>
+  <p><span class="pill-act">Actual</span> 12 valores distintos (0.35, 0.4, 0.45, 0.5, 0.55, 0.65, 0.75 rem, 10px…). <span class="pill-rec">Recomendación</span> Usar solo estos cinco:</p>
+  <div class="radii">
+    <div><span style="border-radius:.35rem"></span>sm · 0.35rem<br>botones, inputs</div>
+    <div><span style="border-radius:.5rem"></span>md · 0.5rem<br>cards, modales</div>
+    <div><span style="border-radius:.75rem"></span>lg · 0.75rem<br>paneles</div>
+    <div><span style="border-radius:1.25rem"></span>nav · 1.25rem<br>sidebar / topbar</div>
+    <div><span style="border-radius:999px;width:96px;height:32px;margin:16px 0 .35rem"></span>pill<br>chips</div>
+  </div>
+</section>
+
+<section class="doc" id="layout">
+  <p class="eyebrow">06 · Layout</p>
+  <h2>Estructura de una pantalla CIDE</h2>
+  <p>El shell (<code>layout/index.php</code>) ya resuelve sidebar, topbar, footer y loader global. Cada vista solo construye lo que va dentro de <code>.cide-main</code>.</p>
+  <div class="flow">
+    <div class="req">Sidebar (<code>.cide-sidebar</code>, del layout)<i>Obligatorio</i></div>
+    <div class="req">Topbar (<code>.cide-topbar</code>, del layout)<i>Obligatorio</i></div>
+    <div class="opt">Breadcrumb (solo en vistas de detalle o edición)<i>Opcional</i></div>
+    <div class="req">Título <code>.page-title</code> con icono<i>Obligatorio</i></div>
+    <div class="opt">Descripción <code>.page-subtitle</code><i>Opcional</i></div>
+    <div class="req">Acciones de página, a la derecha del título<i>Si existen</i></div>
+    <div class="opt">KPIs<i>Opcional</i></div>
+    <div class="opt">Filtros <code>.cide-filters</code> (dentro de la card)<i>En listados</i></div>
+    <div class="req">Contenido en <code>.card-cide</code>: tabla, formulario o dashboard<i>Obligatorio</i></div>
+  </div>
+<pre><code>&lt;div class="cide-page-header"&gt;
+  &lt;div&gt;
+    &lt;h1 class="page-title"&gt;&lt;i class="fas fa-laptop"&gt;&lt;/i&gt;Inventario TI&lt;/h1&gt;
+    &lt;span class="page-subtitle"&gt;Equipos asignados por sucursal y departamento&lt;/span&gt;
+  &lt;/div&gt;
+  &lt;div class="cide-page-actions"&gt;
+    &lt;a class="btn btn-primary btn-sm" href="…/create"&gt;&lt;i class="fas fa-plus"&gt;&lt;/i&gt;&lt;span&gt;Nuevo equipo&lt;/span&gt;&lt;/a&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="card-cide"&gt; … filtros + tabla … &lt;/div&gt;</code></pre>
+  <p><strong>Responsive:</strong> debajo de 991.98px el sidebar pasa a drawer (botón <code>fa-bars</code> en el topbar). Debajo de 767.98px los filtros se apilan y la tabla hace scroll horizontal dentro de la card, nunca la página entera.</p>
+</section>
+
+<section class="doc" id="componentes">
+  <p class="eyebrow">07 · Componentes</p>
+  <h2>Catálogo de componentes</h2>
+
+  <h3>Botones</h3>
+  <p><strong>Resuelven:</strong> ejecutar una acción. <strong>Úsalos</strong> para acciones; para navegar a otra vista usa <code>&lt;a class="btn"&gt;</code>. <strong>No</strong> pongas más de un primario por zona.</p>
+  <div class="stage"><div class="stage-label">Jerarquía · todos .btn-sm</div><div class="row">
+    <button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i>Guardar</button>
+    <button class="btn btn-os"><i class="fa-solid fa-arrow-left"></i>Regresar</button>
+    <button class="btn btn-od"><i class="fa-solid fa-trash"></i>Eliminar</button>
+    <button class="btn btn-success"><i class="fa-solid fa-check"></i>Autorizar</button>
+    <button class="btn btn-primary" disabled><span class="spin"></span>Guardando…</button>
+    <button class="btn btn-primary" disabled>Deshabilitado</button>
+  </div></div>
+  <div class="tw"><table class="t"><thead><tr><th>Rol</th><th>Clase</th><th>Cuándo</th></tr></thead><tbody>
+    <tr><td>Primaria</td><td class="mono">btn btn-primary btn-sm</td><td>Guardar, crear, buscar. Una por formulario o encabezado.</td></tr>
+    <tr><td>Secundaria</td><td class="mono">btn btn-outline-secondary btn-sm</td><td>Cancelar, regresar, limpiar filtros, exportar.</td></tr>
+    <tr><td>Destructiva</td><td class="mono">btn btn-outline-danger btn-sm</td><td>Eliminar o rechazar. Siempre con confirmación.</td></tr>
+    <tr><td>Confirmación de negocio</td><td class="mono">btn btn-success btn-sm</td><td>Autorizar o aprobar en flujos (BPM, crédito).</td></tr>
+    <tr><td>Acción de fila</td><td class="mono">btn btn-sm btn-outline-* btn-action</td><td>Solo icono, 28px, con <code>title</code> + tooltip.</td></tr>
+  </tbody></table></div>
+  <p><strong>Estados:</strong> normal, hover (<code>--cide-primary-hover</code>), foco (anillo de 3px <code>--cide-primary-soft</code>), deshabilitado (opacidad .55) y cargando (spinner + texto en gerundio, botón deshabilitado). <strong>Orden:</strong> secundaria a la izquierda, primaria a la derecha.</p>
+
+  <h3>Badges</h3>
+  <p><strong>Resuelven:</strong> mostrar un estado o categoría corta. <strong>No</strong> son clicables y no llevan más de dos palabras.</p>
+  <div class="stage"><div class="row">
+    <span class="badge b-primary">En proceso</span><span class="badge b-success">Activo</span><span class="badge b-warning">Pendiente</span><span class="badge b-danger">Rechazado</span><span class="badge b-muted">Inactivo</span><span class="badge b-credit">Crédito</span><span class="badge b-success"><span class="dot"></span>Conectado</span>
+  </div></div>
+
+  <h3>Cards</h3>
+  <p><code>.card-cide</code>: borde de 1px <code>--cide-border</code>, radio 0.5rem y sin sombra. El header (15px, 600) lleva título a la izquierda y acciones a la derecha. Para separar contenido usa cards; no anides cards dentro de cards.</p>
+
+  <h3>Alertas</h3>
+  <div class="stage"><div style="display:grid;gap:.5rem">
+    <div class="alert a-s"><i class="fa-solid fa-circle-check"></i><div>Equipo EQ-2024-001 guardado correctamente.</div></div>
+    <div class="alert a-w"><i class="fa-solid fa-triangle-exclamation"></i><div>La garantía de 3 equipos vence en los próximos 30 días.</div></div>
+    <div class="alert a-d"><i class="fa-solid fa-circle-xmark"></i><div>No se pudo conectar con el ERP. Revisa la conexión en Conexiones ERP e intenta de nuevo.</div></div>
+    <div class="alert a-i"><i class="fa-solid fa-circle-info"></i><div>Los cambios se aplican a partir del siguiente cierre.</div></div>
+  </div></div>
+  <p><strong>Alerta en página</strong> para algo persistente en el contexto. <strong>SweetAlert2</strong> para el resultado de una acción o una confirmación. No uses una alerta para lo que cabe en un <code>invalid-feedback</code> junto al campo.</p>
+
+  <h3>Modales</h3>
+  <div class="stage"><div class="modal">
+    <div class="modal-h"><span class="accent">Asignar equipo</span><i class="fa-solid fa-xmark" style="color:var(--cide-text-muted)"></i></div>
+    <div class="modal-b">El encabezado usa <code>.cide-modal-accent</code> con una barra de color según el dominio: <code>--primary</code>, <code>--success</code>, <code>--warning</code> o <code>--credit</code>.</div>
+    <div class="modal-f"><button class="btn btn-os">Cancelar</button><button class="btn btn-primary">Asignar</button></div>
+  </div></div>
+  <p><strong>Úsalos</strong> para formularios cortos (hasta unos 6 campos) o para ver un detalle sin perder el listado. <strong>No</strong> para formularios largos (usa una vista propia) ni para un modal encima de otro.</p>
+
+  <h3>Tabs, breadcrumbs, dropdowns y tooltips</h3>
+  <div class="stage">
+    <div class="crumb">Inventario TI / Equipos / <b>EQ-2024-001</b></div>
+    <div class="tabs" style="margin-top:.75rem"><span class="on">Datos generales</span><span>Asignaciones</span><span>Mantenimientos</span></div>
+  </div>
+  <ul>
+    <li><strong>Tabs</strong> (<code>nav-tabs</code> de Bootstrap): para secciones del mismo registro. Máximo 5–6 pestañas.</li>
+    <li><strong>Breadcrumb:</strong> solo en vistas de detalle o edición de más de un nivel.</li>
+    <li><strong>Dropdown:</strong> para acciones secundarias de una fila cuando hay más de 3 (menú <code>fa-ellipsis-vertical</code>).</li>
+    <li><strong>Tooltip</strong> (<code>data-bs-toggle="tooltip"</code>): obligatorio en botones que solo tienen icono. Texto con verbo: “Editar equipo”.</li>
+  </ul>
+
+  <h3>Loader y estado vacío</h3>
+  <div class="grid2">
+    <div class="stage"><div class="stage-label">Loader global</div><p style="font-size:.8rem;margin:0">Usa <code>#cideLoader</code> (layout) para operaciones que bloquean la pantalla (más de 1 s). Para cargas parciales, un spinner dentro del botón o de la tabla. Nunca los dos a la vez.</p></div>
+    <div class="card"><div class="empty"><i class="fa-solid fa-box-open"></i><b>No hay equipos con estos filtros</b><p>Cambia la sucursal o limpia los filtros para ver todos los registros.</p><button class="btn btn-os"><i class="fa-solid fa-filter-circle-xmark"></i>Limpiar filtros</button></div></div>
+  </div>
+</section>
+
+<section class="doc" id="tablas">
+  <p class="eyebrow">08 · Tablas empresariales</p>
+  <h2>El estándar de tabla CIDE</h2>
+  <p>Clase base <code>table table-hover table-cide align-middle</code> dentro de <code>.card-cide</code>; con DataTables 2, envolver en <code>.cide-dt</code>. El encabezado navy es la firma visual de CIDE.</p>
+  <div class="stage" style="padding:0;border-style:solid">
+  <div class="card" style="border:0;border-radius:var(--r)">
+    <div class="filters">
+      <div class="f search" style="flex:1 1 200px"><label for="q1">Buscar</label><div class="search"><i class="fa-solid fa-magnifying-glass"></i><input id="q1" class="ctl" placeholder="Folio, serie o usuario"></div></div>
+      <div class="f" style="flex:0 1 160px"><label for="s1">Sucursal</label><select id="s1" class="ctl"><option>Todas</option><option>Matriz</option></select></div>
+      <div class="f" style="flex:0 1 150px"><label for="e1">Estatus</label><select id="e1" class="ctl"><option>Todos</option><option>Activo</option></select></div>
+      <div class="row" style="margin-left:auto"><button class="btn btn-os">Limpiar</button><button class="btn btn-primary"><i class="fa-solid fa-magnifying-glass"></i>Buscar</button></div>
+    </div>
+    <div style="overflow-x:auto">
+    <table class="dtable">
+      <thead><tr><th>Folio</th><th>Equipo</th><th>Asignado a</th><th>Estatus</th><th class="num">Costo</th><th class="act">Acciones</th></tr></thead>
+      <tbody>
+        <tr><td class="id">EQ-2024-001</td><td>Laptop Dell Latitude 5440<span class="sub">SN 7H2K9P3</span></td><td>R. Salinas<span class="sub">Sistemas · Matriz</span></td><td><span class="badge b-success">Activo</span></td><td class="num">$24,850.00</td><td class="act"><div class="row"><button class="btn btn-op btn-action" title="Ver equipo" aria-label="Ver equipo"><i class="fa-solid fa-eye"></i></button><button class="btn btn-ow btn-action" title="Editar equipo" aria-label="Editar equipo"><i class="fa-solid fa-pen"></i></button><button class="btn btn-os btn-action" title="Inactivar equipo" aria-label="Inactivar equipo"><i class="fa-solid fa-user-slash"></i></button></div></td></tr>
+        <tr class="sel"><td class="id">EQ-2024-014</td><td>Monitor LG 24MK430H<span class="sub">SN 304NTKF1B</span></td><td>M. Reyes<span class="sub">Crédito · Sucursal Norte</span></td><td><span class="badge b-warning">Pendiente</span></td><td class="num">$3,190.00</td><td class="act"><div class="row"><button class="btn btn-op btn-action" title="Ver equipo" aria-label="Ver equipo"><i class="fa-solid fa-eye"></i></button><button class="btn btn-ow btn-action" title="Editar equipo" aria-label="Editar equipo"><i class="fa-solid fa-pen"></i></button><button class="btn btn-os btn-action" title="Inactivar equipo" aria-label="Inactivar equipo"><i class="fa-solid fa-user-slash"></i></button></div></td></tr>
+        <tr><td class="id">EQ-2023-087</td><td>Impresora HP LaserJet M404<span class="sub">SN VNB3K12345</span></td><td>—<span class="sub">Sin asignar</span></td><td><span class="badge b-muted">Inactivo</span></td><td class="num">$6,400.00</td><td class="act"><div class="row"><button class="btn btn-op btn-action" title="Ver equipo" aria-label="Ver equipo"><i class="fa-solid fa-eye"></i></button><button class="btn btn-btn btn-action" style="border-color:rgba(25,135,84,.45);color:var(--cide-success-ink);background:var(--cide-surface)" title="Reactivar equipo" aria-label="Reactivar equipo"><i class="fa-solid fa-rotate-left"></i></button></div></td></tr>
+      </tbody>
+    </table></div>
+    <div class="dt-foot"><span>Mostrando 1–3 de 128 equipos</span><div class="pag"><span>‹</span><span class="on">1</span><span>2</span><span>3</span><span>›</span></div></div>
+  </div></div>
+
+  <div class="tw"><table class="t"><thead><tr><th>Aspecto</th><th>Regla</th></tr></thead><tbody>
+    <tr><td>Encabezado</td><td>Fondo navy, 11px, 600, mayúsculas, +5% de tracking. Nombres cortos (“Folio”, no “Número de folio del equipo”).</td></tr>
+    <tr><td>Filas</td><td>13px, padding .5rem .75rem, separador horizontal de 1px. Sin bordes verticales.</td></tr>
+    <tr><td>Hover / selección</td><td>Hover con tono primario al 4%. Seleccionada: <code>.is-selected</code> con fondo soft y una barra de 3px a la izquierda.</td></tr>
+    <tr><td>Primera columna</td><td>Identificador (folio, clave) en JetBrains Mono 600: es lo que el usuario busca con la vista.</td></tr>
+    <tr><td>Datos largos</td><td>Dato principal + <code>.cell-sub</code> debajo (serie, departamento). Si no cabe: <code>.col-truncate</code> con <code>title</code>.</td></tr>
+    <tr><td>Números</td><td><code>.col-num</code>: alineados a la derecha, tabulares, con formato de moneda.</td></tr>
+    <tr><td>Estados</td><td>Siempre <code>badge-cide-*</code>, nunca texto de color suelto.</td></tr>
+    <tr><td>Acciones</td><td>Última columna, a la derecha, hasta 3 botones <code>.btn-action</code>. Si hay más, menú contextual <code>fa-ellipsis-vertical</code>.</td></tr>
+    <tr><td>Ordenamiento</td><td>Por defecto, la fecha más reciente o el folio de forma descendente. Desactivarlo en la columna de acciones.</td></tr>
+    <tr><td>Filtros</td><td>Barra <code>.cide-filters</code> sobre la tabla, dentro de la card. Botón “Limpiar” siempre visible cuando hay filtros activos.</td></tr>
+    <tr><td>Paginación</td><td>Abajo: info a la izquierda y páginas a la derecha. 25 filas por defecto.</td></tr>
+    <tr><td>Muchas columnas</td><td>Máximo unas 8 visibles. Las demás van al detalle o como texto secundario. Usa DataTables responsive o scroll horizontal dentro de la card.</td></tr>
+    <tr><td>Vacío</td><td>Estado vacío <code>.cide-empty</code> con la causa y la acción para resolverla, no solo “Sin datos”.</td></tr>
+  </tbody></table></div>
+  <h3>Qué elemento usar en una celda</h3>
+  <div class="tw"><table class="t"><thead><tr><th>Usar</th><th>Cuando</th></tr></thead><tbody>
+    <tr><td>Texto</td><td>Datos: nombres, fechas, montos, descripciones.</td></tr>
+    <tr><td>Badge</td><td>Estado o categoría con un conjunto cerrado de valores.</td></tr>
+    <tr><td>Icono</td><td>Indicador binario con tooltip (adjunto, verificado). Nunca como única forma de comunicar un estado.</td></tr>
+    <tr><td>Botón .btn-action</td><td>Hasta 3 acciones frecuentes de la fila.</td></tr>
+    <tr><td>Menú contextual</td><td>4 o más acciones, o acciones poco frecuentes o destructivas.</td></tr>
+  </tbody></table></div>
+</section>
+
+<section class="doc" id="formularios">
+  <p class="eyebrow">09 · Formularios</p>
+  <h2>Estructura estándar</h2>
+  <p>Base existente: <code>cide-forms.css</code> con <code>.cide-form-standard</code> y <code>needs-validation</code> de Bootstrap. Los obligatorios llevan label en 600, asterisco rojo y un borde izquierdo tenue.</p>
+  <div class="stage"><div class="card"><div class="card-h">Alta de equipo</div><div class="card-b">
+    <p class="cide-label" style="font-size:.6875rem;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--cide-text-muted);margin:0 0 .6rem">Datos generales</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:.9rem">
+      <div class="f"><label class="flabel" for="fs" style="font-weight:600">Número de serie <span class="req-star">*</span></label><input id="fs" class="ctl req" value="7H2K9P3"><span class="help">Como aparece en la etiqueta del equipo</span></div>
+      <div class="f"><label class="flabel" for="ft" style="font-weight:600">Tipo <span class="req-star">*</span></label><select id="ft" class="ctl req invalid"><option>Selecciona…</option></select><span class="err"><i class="fa-solid fa-circle-exclamation"></i> Selecciona el tipo de equipo.</span></div>
+      <div class="f"><label class="flabel" for="fd">Fecha de compra</label><input id="fd" type="date" class="ctl" value="2026-03-14"></div>
+      <div class="f"><label class="flabel" for="fr">Folio</label><input id="fr" class="ctl" readonly value="EQ-2024-001"><span class="help">Se genera al guardar</span></div>
+      <div class="f"><label class="flabel" for="fx">Sucursal</label><input id="fx" class="ctl" disabled value="Matriz"><span class="help">Sin permiso para cambiarla</span></div>
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--cide-border)"><button class="btn btn-os">Cancelar</button><button class="btn btn-primary"><i class="fa-solid fa-floppy-disk"></i>Guardar equipo</button></div>
+  </div></div></div>
+  <div class="tw"><table class="t"><thead><tr><th>Elemento</th><th>Regla</th></tr></thead><tbody>
+    <tr><td>Label</td><td>Siempre visible, encima del campo y unido con <code>for</code>/<code>id</code>. 12px, 500 (600 si es obligatorio). El placeholder no sustituye al label.</td></tr>
+    <tr><td>Obligatorio</td><td><code>&lt;span class="cide-required"&gt;*&lt;/span&gt;</code> + atributo <code>required</code>.</td></tr>
+    <tr><td>Error</td><td>Junto al campo con <code>.invalid-feedback</code>: qué falta y cómo corregirlo (“Selecciona el tipo de equipo”, no “Campo inválido”). Validar al enviar y luego en cada cambio.</td></tr>
+    <tr><td>Éxito</td><td>SweetAlert2 <code>icon: 'success'</code> o redirección con una alerta flash. No marques en verde cada campo válido.</td></tr>
+    <tr><td>Readonly</td><td>Dato visible que el sistema calcula. Fondo <code>--cide-surface-2</code>.</td></tr>
+    <tr><td>Disabled</td><td>Sin permiso o pendiente de otro campo. Explica el porqué con <code>.form-text</code>.</td></tr>
+    <tr><td>Fechas</td><td><code>type="date"</code> nativo. Se muestran como dd/mm/aaaa en tablas.</td></tr>
+    <tr><td>Agrupación</td><td>Grid de Bootstrap <code>row g-3</code>, 2–3 columnas en escritorio y 1 en móvil. Secciones con título en mayúsculas de 11px.</td></tr>
+    <tr><td>Acciones</td><td>Abajo a la derecha: Cancelar (secundario) y luego la acción con verbo + objeto (“Guardar equipo”).</td></tr>
+  </tbody></table></div>
+</section>
+
+<section class="doc" id="estados">
+  <p class="eyebrow">10 · Estados y semántica de color</p>
+  <h2>Un estado, un color, siempre</h2>
+  <p>El mismo estado se ve igual en todos los módulos. El color nunca va solo: siempre acompaña a un texto.</p>
+  <div class="tw"><table class="t"><thead><tr><th>Estado</th><th>Ejemplo</th><th>Clase</th><th>Significado</th></tr></thead><tbody>
+    <tr><td>Éxito</td><td><span class="badge b-success">Guardado</span></td><td class="mono">badge-cide-success</td><td>La acción terminó bien</td></tr>
+    <tr><td>Error</td><td><span class="badge b-danger">Error</span></td><td class="mono">badge-cide-danger</td><td>Falló, requiere acción</td></tr>
+    <tr><td>Advertencia</td><td><span class="badge b-warning">Por vencer</span></td><td class="mono">badge-cide-warning</td><td>Hay que atenderlo pronto</td></tr>
+    <tr><td>Información</td><td><span class="badge b-primary">Informativo</span></td><td class="mono">badge-cide-info</td><td>Dato neutro</td></tr>
+    <tr><td>Pendiente</td><td><span class="badge b-warning">Pendiente</span></td><td class="mono">badge-cide-warning</td><td>Espera acción de alguien</td></tr>
+    <tr><td>En proceso</td><td><span class="badge b-primary"><span class="dot"></span>En proceso</span></td><td class="mono">badge-cide-primary</td><td>Avanzando en el flujo</td></tr>
+    <tr><td>Concluido</td><td><span class="badge b-success">Concluido</span></td><td class="mono">badge-cide-success</td><td>Flujo cerrado bien</td></tr>
+    <tr><td>Cancelado</td><td><span class="badge b-muted" style="text-decoration:line-through">Cancelado</span></td><td class="mono">badge-cide-muted</td><td>Cerrado sin efecto (no es un error)</td></tr>
+    <tr><td>Bloqueado</td><td><span class="badge b-danger"><i class="fa-solid fa-lock"></i>Bloqueado</span></td><td class="mono">badge-cide-danger + fa-lock</td><td>Impide operar hasta que se resuelva</td></tr>
+    <tr><td>Inactivo</td><td><span class="badge b-muted">Inactivo</span></td><td class="mono">badge-cide-muted</td><td>Existe pero no participa</td></tr>
+  </tbody></table></div>
+</section>
+
+<section class="doc" id="iconos">
+  <p class="eyebrow">11 · Iconografía</p>
+  <h2>Font Awesome 6, estilo sólido</h2>
+  <p>CIDE carga Font Awesome 6.5.2 desde cdnjs. La mayoría de las vistas usan la sintaxis de v5 (<code>fas fa-edit</code>), que sigue funcionando. <span class="pill-rec">Recomendación</span> En código nuevo, usa <code>fa-solid fa-pen</code>. No mezcles estilos (regular, light) ni otras bibliotecas.</p>
+  <div class="icons">
+    <div><i class="fa-solid fa-floppy-disk"></i>Guardar<br><code>fa-floppy-disk</code></div>
+    <div><i class="fa-solid fa-plus"></i>Crear<br><code>fa-plus</code></div>
+    <div><i class="fa-solid fa-pen"></i>Editar<br><code>fa-pen</code></div>
+    <div><i class="fa-solid fa-eye"></i>Ver<br><code>fa-eye</code></div>
+    <div><i class="fa-solid fa-trash"></i>Eliminar<br><code>fa-trash</code></div>
+    <div><i class="fa-solid fa-user-slash"></i>Inactivar<br><code>fa-user-slash</code></div>
+    <div><i class="fa-solid fa-magnifying-glass"></i>Buscar<br><code>fa-magnifying-glass</code></div>
+    <div><i class="fa-solid fa-arrow-left"></i>Regresar<br><code>fa-arrow-left</code></div>
+    <div><i class="fa-solid fa-file-pdf"></i>PDF<br><code>fa-file-pdf</code></div>
+    <div><i class="fa-solid fa-file-excel"></i>Excel<br><code>fa-file-excel</code></div>
+    <div><i class="fa-solid fa-xmark"></i>Cerrar<br><code>fa-xmark</code></div>
+    <div><i class="fa-solid fa-database"></i>ERP<br><code>fa-database</code></div>
+  </div>
+  <ul style="margin-top:1rem">
+    <li><strong>Tamaño:</strong> heredado del texto. 11px en <code>.btn-action</code>, 14px en títulos y menú.</li>
+    <li><strong>Color:</strong> el del texto que acompaña (<code>currentColor</code>). En <code>.page-title</code> el icono va en primario.</li>
+    <li><strong>Botones:</strong> icono a la izquierda del texto con 0.35rem de separación. Si el botón solo tiene icono: <code>aria-label</code> + tooltip.</li>
+    <li><strong>Accesibilidad:</strong> los iconos decorativos llevan <code>aria-hidden="true"</code>.</li>
+  </ul>
+</section>
+
+<section class="doc" id="ux">
+  <p class="eyebrow">12 · UX y comportamiento</p>
+  <h2>Cómo responde la interfaz</h2>
+  <div class="grid2">
+    <div><h3>Feedback</h3><p>Toda acción responde en menos de 1 s: el botón entra en carga y luego aparece SweetAlert2 o una alerta. Usa <code>confirmButtonColor: '#2c7be5'</code> (hoy conviven <code>#2563eb</code> y <code>#1a6b2f</code>).</p></div>
+    <div><h3>Acciones destructivas</h3><p>Confirmación con SweetAlert2 <code>icon: 'warning'</code>, título con verbo + objeto (“¿Eliminar EQ-2024-001?”), consecuencia en el texto y botón de confirmar en rojo con el mismo verbo. Cancelar recibe el foco.</p></div>
+    <div><h3>Carga</h3><p>Más de 1 s: loader en el botón o la tabla. Si bloquea toda la pantalla: <code>#cideLoader</code>. Nunca dejes la pantalla en blanco.</p></div>
+    <div><h3>Búsqueda y filtros</h3><p>La búsqueda filtra al escribir (con debounce de unos 300 ms) o con Enter. Los filtros se aplican con un botón y se conservan al volver del detalle.</p></div>
+    <div><h3>Mensajes</h3><p>Cuenta qué pasó y qué hacer: “No se pudo conectar con el ERP. Revisa la conexión e intenta de nuevo.” Sin “Error 500” ni disculpas.</p></div>
+    <div><h3>Permisos</h3><p>Si el usuario no tiene permiso (helper <code>puede()</code>), el botón no se muestra, como ya hace <code>botones_estatus.php</code>. Un campo visible sin permiso de edición se muestra como readonly.</p></div>
+    <div><h3>Prevención de errores</h3><p>Deshabilita “Guardar” mientras se envía (evita el doble envío). Usa selects en lugar de texto libre cuando el valor es un catálogo. Confirma antes de salir con cambios sin guardar.</p></div>
+    <div><h3>Responsive</h3><p>Prueba a 375px y a 768px. Los botones de encabezado se apilan y las tablas hacen scroll dentro de su card.</p></div>
+  </div>
+</section>
+
+<section class="doc" id="a11y">
+  <p class="eyebrow">13 · Accesibilidad</p>
+  <h2>Reglas mínimas</h2>
+  <div class="tw"><table class="t"><thead><tr><th>Tema</th><th>Regla</th></tr></thead><tbody>
+    <tr><td>Contraste</td><td>Texto ≥ 4.5:1. <span class="pill-act">Actual</span> <code>--cide-text-muted</code> #748194 sobre blanco da ≈4.1:1 y el blanco sobre <code>#2c7be5</code> ≈4.2:1. <span class="pill-rec">Recomendación</span> Muted solo para metadatos de 12px o más; el texto que se necesita para operar va en <code>--cide-text-secondary</code> (≈5.4:1).</td></tr>
+    <tr><td>Tamaño</td><td>Mínimo 11px (encabezados y badges); 13px para datos.</td></tr>
+    <tr><td>Foco</td><td>Siempre visible: anillo de 3px <code>--cide-primary-soft</code> o outline de 2px primario. Nunca <code>outline: none</code> sin sustituto.</td></tr>
+    <tr><td>Teclado</td><td>Todo se opera con Tab, Enter y Esc. Los elementos clicables son <code>&lt;button&gt;</code> o <code>&lt;a&gt;</code>, nunca un <code>&lt;div onclick&gt;</code>.</td></tr>
+    <tr><td>Labels</td><td>Cada control con <code>&lt;label for&gt;</code>. Botones de icono con <code>aria-label</code>.</td></tr>
+    <tr><td>Errores</td><td>Texto junto al campo y <code>aria-invalid="true"</code>. No basta con el borde rojo.</td></tr>
+    <tr><td>Color</td><td>El estado nunca se comunica solo por color: siempre con texto o icono.</td></tr>
+    <tr><td>Movimiento</td><td>Respeta <code>prefers-reduced-motion</code> (ya contemplado en tres hojas).</td></tr>
+  </tbody></table></div>
+</section>
+
+<section class="doc" id="tokens">
+  <p class="eyebrow">14 · Design Tokens</p>
+  <h2>Variables globales</h2>
+  <p>Archivo: <code>assets/design-system/tokens.css</code>. Conserva los nombres <code>--cide-*</code> que ya existen, con sus mismos valores, y agrega las escalas.</p>
+  <div class="tw"><table class="t"><thead><tr><th>Grupo</th><th>Tokens</th></tr></thead><tbody>
+    <tr><td>Colors</td><td class="mono">--cide-primary · -hover · -soft · --cide-navy-600…900 · --cide-bg · --cide-surface · --cide-surface-2 · --cide-border · --cide-text · -secondary · -muted</td></tr>
+    <tr><td>States</td><td class="mono">--cide-{success|warning|danger|info} · -ink · -soft · --cide-muted-soft · --cide-credit</td></tr>
+    <tr><td>Typography</td><td class="mono">--cide-font-sans · -display · -mono · --cide-fs-2xs…xl · --cide-lh</td></tr>
+    <tr><td>Spacing</td><td class="mono">--cide-space-1 (4px) · 2 · 3 · 4 · 5 · 6 · 8 (32px)</td></tr>
+    <tr><td>Radius</td><td class="mono">--cide-radius-sm · --cide-radius · --cide-radius-lg · --cide-nav-radius · --cide-radius-pill</td></tr>
+    <tr><td>Shadows</td><td class="mono">--cide-shadow · --cide-nav-shadow · --cide-focus-ring</td></tr>
+    <tr><td>Components</td><td class="mono">--cide-control-h-sm (28px) · --cide-control-h (38px) · --cide-icon-sm · --cide-icon · --cide-thead-*</td></tr>
+    <tr><td>Layout</td><td class="mono">--cide-sidebar-w (272px) · --cide-topbar-h (58px) · --cide-top-nav-h · --cide-nav-gap · --cide-content-max</td></tr>
+    <tr><td>Breakpoints</td><td class="mono">575.98 · 767.98 · 991.98 · 1199.98px (Bootstrap)</td></tr>
+  </tbody></table></div>
+<pre><code>:root,
+[data-theme="light"] {
+    --cide-primary: #2c7be5;
+    --cide-success: #198754;
+    --cide-warning: #f59e0b;
+    --cide-danger:  #dc3545;
+    --cide-text:    #344050;
+    --cide-bg:      #edf2f9;
+    --cide-border:  #e3ebf3;
+    --cide-space-4: 1rem;
+    --cide-radius:  0.5rem;
+}
+[data-theme="dark"] {
+    --cide-primary: #5b9cf0;
+    --cide-text:    #e8eef6;
+    --cide-bg:      #0b1220;
+    --cide-border:  #2d3f5c;
+}
+
+/* En la hoja de tu módulo: */
+.inv-resumen { padding: var(--cide-space-4); border: 1px solid var(--cide-border); border-radius: var(--cide-radius); }</code></pre>
+</section>
+
+<section class="doc" id="ejemplos">
+  <p class="eyebrow">15 · Ejemplos</p>
+  <h2>Pantalla completa: listado con KPIs</h2>
+  <p>Los componentes de esta guía, montados juntos dentro del shell de CIDE.</p>
+  <div style="overflow-x:auto;margin:.6rem 0 1rem">
+  <div class="screen">
+    <aside class="m-side">
+      <div class="row" style="padding:.2rem .5rem .6rem;gap:.5rem"><div class="logo" style="width:26px;height:26px;border-radius:.45rem;background:var(--cide-navy-800);color:#fff;display:grid;place-items:center;font-size:.6rem;font-weight:700">CIDE</div><b style="font-size:.8rem">CIDE</b></div>
+      <div class="grp">Operación</div>
+      <div class="it"><i class="fa-solid fa-house"></i>Inicio</div>
+      <div class="it"><i class="fa-solid fa-users"></i>Clientes</div>
+      <div class="it"><i class="fa-solid fa-file-invoice-dollar"></i>Crédito</div>
+      <div class="grp">Sistemas</div>
+      <div class="it on"><i class="fa-solid fa-laptop"></i>Inventario TI</div>
+      <div class="it"><i class="fa-solid fa-diagram-project"></i>BPM</div>
+      <div class="it"><i class="fa-solid fa-database"></i>Conexiones ERP</div>
+    </aside>
+    <div class="m-main">
+      <div class="m-top"><span>Panel de control</span><span class="row"><i class="fa-solid fa-bell"></i><i class="fa-solid fa-moon"></i><i class="fa-solid fa-circle-user"></i></span></div>
+      <div class="ph"><div><h4><i class="fa-solid fa-laptop"></i>Inventario TI</h4><small>Equipos asignados por sucursal y departamento</small></div><div class="row"><button class="btn btn-os"><i class="fa-solid fa-file-excel"></i>Exportar</button><button class="btn btn-primary"><i class="fa-solid fa-plus"></i>Nuevo equipo</button></div></div>
+      <div class="kpis">
+        <div class="kpi"><small>Equipos</small><b>128</b><em>en 6 sucursales</em></div>
+        <div class="kpi"><small>Asignados</small><b>112</b><em>87.5% del total</em></div>
+        <div class="kpi"><small>Garantía por vencer</small><b style="color:var(--cide-warning-ink)">3</b><em>próximos 30 días</em></div>
+      </div>
+      <div class="card"><div class="dt-foot" style="border:0;border-bottom:1px solid var(--cide-border)"><span>Filtros + tabla según la sección 08</span><span class="badge b-primary">table-cide</span></div><div class="empty" style="padding:1.25rem"><i class="fa-solid fa-table"></i><p>Ver ejemplo completo en Tablas</p></div></div>
+    </div>
+  </div></div>
+  <p>En las secciones 07 a 10 hay ejemplos de formulario, modal, botones, tarjetas, filtros y estados.</p>
+</section>
+
+<section class="doc" id="inconsistencias">
+  <p class="eyebrow">16 · Antes y después</p>
+  <h2>Inconsistencias encontradas en el código</h2>
+  <div class="tw"><table class="t"><thead><tr><th>Problema (actual)</th><th>Por qué importa</th><th>Regla</th></tr></thead><tbody>
+    <tr><td>Tres azules primarios: <code>#2c7be5</code> (64 usos), <code>#2563eb</code> (31) y <code>#1d4ed8</code> (16), más un “primary” verde <code>#1a6b2f</code> en <code>cide-articulos-accesos.css</code></td><td>El usuario no distingue qué es una acción; los módulos parecen sistemas distintos</td><td>Solo <code>var(--cide-primary)</code></td></tr>
+    <tr><td>Los tokens base se definen dos veces (<code>cide-layout.css</code> y <code>app-ui.css</code>) con <code>--cide-primary-soft</code> distinto (.12 y .10)</td><td>El resultado depende del orden de carga</td><td>Una sola fuente: <code>tokens.css</code></td></tr>
+    <tr><td>Prefijos de variables por módulo: <code>--hot-*</code>, <code>--cotiz-*</code>, <code>--mto-*</code>, <code>--primary</code></td><td>Cada módulo reinventa su paleta y rompe el modo oscuro</td><td>Reutilizar <code>--cide-*</code>; agregar al kit lo que falte</td></tr>
+    <tr><td>Más de 15 tamaños de fuente entre 0.65 y 1.05rem</td><td>Jerarquía difusa; el texto de 0.65rem es ilegible</td><td>Escala <code>--cide-fs-*</code> (7 pasos)</td></tr>
+    <tr><td>12 radios distintos</td><td>Botones y cards se ven de familias diferentes</td><td>5 radios <code>--cide-radius-*</code></td></tr>
+    <tr><td>Cinco verdes de éxito (#00865e, #198754, #059669, #047857, #00d27a)</td><td>“Activo” no se ve igual en todas partes</td><td><code>--cide-success</code> y <code>--cide-success-ink</code></td></tr>
+    <tr><td>Dos botones de acción de tabla: <code>.btn-action</code> (28px) y <code>.btn-cide-icon</code> (26px)</td><td>Filas con alturas y alineación distintas</td><td>Solo <code>.btn-action</code></td></tr>
+    <tr><td><code>.btn-cide-primary</code> en 155 lugares, pero sin color propio (solo ajusta el tamaño)</td><td>Parece una variante pero no lo es; causa confusión</td><td><code>btn btn-primary btn-sm</code></td></tr>
+    <tr><td><code>.page-title</code> de 15px general y 1.05rem en BPM; el título de citas fija <code>#2d3748</code></td><td>El hex fijo rompe el modo oscuro</td><td><code>--cide-fs-md</code> + <code>--cide-text</code></td></tr>
+    <tr><td><code>confirmButtonColor</code> de SweetAlert con 4 valores</td><td>Las confirmaciones cambian de color según el módulo</td><td><code>#2c7be5</code>; <code>#dc3545</code> solo en destructivas</td></tr>
+    <tr><td>Breakpoints mezclados (768px y 767.98px; 800px y 650px)</td><td>Saltos de layout a 1px de diferencia</td><td>Breakpoints de Bootstrap con .98</td></tr>
+    <tr><td>Badges de estado en tres sistemas (<code>badge-cide-*</code>, <code>badge-estatus--*</code>, <code>badge-*-lighten</code>)</td><td>El mismo estado se ve diferente</td><td>Solo <code>badge-cide-*</code> + tabla de la sección 10</td></tr>
+    <tr><td>Sintaxis de iconos v5 (<code>fas</code>) con Font Awesome 6 cargado; el CSS referencia “Font Awesome 5 Free”</td><td>Funciona, pero los pseudo-elementos pueden fallar</td><td><code>fa-solid</code> en código nuevo</td></tr>
+  </tbody></table></div>
+  <div class="dd">
+    <div class="dont"><b><i class="fa-solid fa-xmark"></i> Antes</b>
+<pre><code>.mi-modulo .btn-guardar {
+  background: #2563eb;
+  border-radius: 10px;
+  font-size: .78rem;
+}</code></pre></div>
+    <div class="do"><b><i class="fa-solid fa-check"></i> Después</b>
+<pre><code>&lt;button class="btn btn-primary btn-sm"&gt;
+  &lt;i class="fas fa-save"&gt;&lt;/i&gt;
+  &lt;span&gt;Guardar&lt;/span&gt;
+&lt;/button&gt;
+&lt;!-- sin CSS propio --&gt;</code></pre></div>
+  </div>
+</section>
+
+<section class="doc" id="checklist">
+  <p class="eyebrow">17 · Reglas para desarrolladores</p>
+  <h2>Antes de crear una nueva pantalla</h2>
+  <ul class="check">
+    <li><input type="checkbox" id="c1"><label for="c1">¿Estoy usando los colores oficiales?<small>Solo <code>var(--cide-*)</code>; ningún hex en la hoja del módulo.</small></label></li>
+    <li><input type="checkbox" id="c2"><label for="c2">¿Estoy usando los componentes existentes?<small>card-cide, table-cide, badge-cide-*, btn-action, cide-form-standard, cide-modal-accent.</small></label></li>
+    <li><input type="checkbox" id="c3"><label for="c3">¿Estoy usando la tipografía correcta?<small>Outfit con la escala <code>--cide-fs-*</code>; JetBrains Mono para folios.</small></label></li>
+    <li><input type="checkbox" id="c4"><label for="c4">¿Estoy respetando el spacing?<small><code>--cide-space-*</code> o las utilidades de Bootstrap (g-3, gap-2, mb-3).</small></label></li>
+    <li><input type="checkbox" id="c5"><label for="c5">¿Estoy usando correctamente los estados?<small>Según la tabla de la sección 10, siempre con texto.</small></label></li>
+    <li><input type="checkbox" id="c6"><label for="c6">¿La pantalla mantiene la jerarquía visual?<small>Un page-title, una acción primaria por zona, acciones a la derecha.</small></label></li>
+    <li><input type="checkbox" id="c7"><label for="c7">¿La tabla sigue el estándar?<small>Encabezado navy, folio en mono, acciones al final, estado vacío útil.</small></label></li>
+    <li><input type="checkbox" id="c8"><label for="c8">¿La interfaz funciona con teclado?<small>Tab, Enter y Esc; foco visible; aria-label en botones de icono.</small></label></li>
+    <li><input type="checkbox" id="c9"><label for="c9">¿Los mensajes son claros?<small>Qué pasó y qué hacer. Confirmaciones con verbo + objeto.</small></label></li>
+    <li><input type="checkbox" id="c10"><label for="c10">¿Estoy creando CSS duplicado innecesariamente?<small>Si una regla ya existe en el kit o en Bootstrap, no la reescribas.</small></label></li>
+    <li><input type="checkbox" id="c11"><label for="c11">¿Funciona en modo oscuro y a 375px?<small>Revisa con <code>data-theme="dark"</code> y en móvil.</small></label></li>
+  </ul>
+</section>
+
+<footer class="end">CIDE — Guía de Diseño UI y Sistema Visual · v1.0 · Octubre 2026 · Kit: <code>assets/design-system/</code></footer>
+</main>
+</div>
+
+</body></html>

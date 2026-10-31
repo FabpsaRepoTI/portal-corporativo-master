@@ -1,0 +1,158 @@
+/* client/src/components/DataTable.css */
+.dt-wrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.dt-scroll {
+  overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ── Tabla ── */
+.dt-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.dt-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--bg-elevated);
+}
+
+.dt-table th {
+  padding: 11px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.dt-th--sortable {
+  cursor: pointer;
+}
+.dt-th--sortable:hover {
+  color: var(--text-h);
+}
+
+.dt-sort-icon {
+  margin-left: 4px;
+  opacity: 0.5;
+  font-size: 10px;
+}
+
+.dt-table td {
+  padding: 11px 14px;
+  color: var(--text-body);
+  border-bottom: 1px solid var(--border-dim);
+  vertical-align: middle;
+}
+
+.dt-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.dt-row--clickable {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.dt-row--clickable:hover {
+  background: var(--bg-hover);
+}
+
+/* ── Vacío ── */
+.dt-empty {
+  text-align: center !important;
+  padding: 52px 24px !important;
+}
+.dt-empty-icon {
+  display: block;
+  font-size: 32px;
+  margin-bottom: 10px;
+  opacity: 0.6;
+}
+.dt-empty-text {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+/* ── Skeleton ── */
+.dt-skeleton {
+  display: block;
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--border) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: dt-shimmer 1.4s infinite;
+  width: 75%;
+}
+@keyframes dt-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── Paginador ── */
+.dt-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
+}
+.dt-pager__info {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.dt-pager__btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dt-pager__btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+}
+.dt-pager__btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-h);
+}
+.dt-pager__btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.dt-pager__page {
+  font-size: 12px;
+  color: var(--text-h);
+  min-width: 80px;
+  text-align: center;
+}

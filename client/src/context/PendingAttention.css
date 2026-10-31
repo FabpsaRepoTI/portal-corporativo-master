@@ -1,0 +1,24 @@
+.pending-attention{position:fixed;bottom:20px;right:22px;z-index:180;font-size:12px;max-width:calc(100vw - 28px)}
+.pending-attention-trigger{display:flex;align-items:center;gap:9px;background:var(--text-h);color:var(--bg-surface);border:1px solid var(--border);border-radius:28px;padding:11px 16px;box-shadow:0 6px 24px #0002;cursor:pointer;font:inherit}
+.pending-attention-trigger b,.mds-pending-count{background:var(--danger,#ed4768);color:white;min-width:21px;height:21px;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;padding:0 6px;font-size:11px;font-weight:700}
+.pending-attention-panel{background:var(--bg-surface);border:1px solid var(--border);color:var(--text-h);border-radius:12px;padding:16px;margin-bottom:10px;box-shadow:0 10px 36px #0002;width:330px;max-width:100%}
+.pending-attention-panel>strong{display:block;margin-bottom:10px}
+.pending-attention-panel button{display:flex;justify-content:space-between;gap:12px;width:100%;padding:12px 0;border:0;border-bottom:1px solid var(--border);background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.pending-attention-panel small{display:block;color:var(--text-muted);font-size:10px;margin-top:12px}
+.mds-pending-count{margin-left:6px;flex-shrink:0}
+.pending-attention button:focus-visible{outline:2px solid var(--primary);outline-offset:3px}
+@media(max-width:768px){.pending-attention{bottom:12px;right:12px}.pending-attention-trigger{padding:10px 12px;font-size:11px}}
+.pending-attention-panel{position:absolute;right:0;bottom:calc(100% + 10px);margin:0;width:330px;max-width:calc(100vw - 28px);box-sizing:border-box}
+.pending-attention-trigger{padding:9px 13px;font-size:11px;font-weight:600;background:linear-gradient(120deg,#163e55,#087d89);color:#fff;border:1px solid #58bfca66;box-shadow:0 4px 16px #087d8933;transition:box-shadow .15s;transform:none}
+.pending-attention-trigger:hover,.pending-attention-trigger:active{transform:none;box-shadow:0 5px 20px #087d8950}
+.pending-attention-trigger b{min-width:19px;height:19px;font-size:10px}
+
+/* Estado por tickets pausados +24 h: ámbar con alguno, rojo con más de 2 */
+.pending-attention--alerta .pending-attention-trigger{background:var(--warning,#f59f00);color:#fff;border-color:transparent}
+.pending-attention--critico .pending-attention-trigger{background:var(--danger,#ed4768);color:#fff;border-color:transparent;animation:pa-pulse 1.6s ease-in-out infinite}
+.pending-attention--alerta .pending-attention-trigger b,.pending-attention--critico .pending-attention-trigger b{background:#fff;color:var(--danger,#ed4768)}
+.pending-attention--critico .pending-attention-trigger i{animation:pa-shake 1.2s ease-in-out infinite}
+.pending-attention-panel .pending-attention-pausa b{color:var(--danger,#ed4768)}
+@keyframes pa-pulse{0%,100%{box-shadow:0 6px 24px #0002,0 0 0 0 color-mix(in srgb,var(--danger,#ed4768) 55%,transparent)}50%{box-shadow:0 6px 24px #0002,0 0 0 10px transparent}}
+@keyframes pa-shake{0%,60%,100%{transform:rotate(0)}10%,30%,50%{transform:rotate(-14deg)}20%,40%{transform:rotate(14deg)}}
+@media(prefers-reduced-motion:reduce){.pending-attention--critico .pending-attention-trigger,.pending-attention--critico .pending-attention-trigger i{animation:none}}

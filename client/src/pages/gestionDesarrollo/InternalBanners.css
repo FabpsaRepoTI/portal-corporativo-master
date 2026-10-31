@@ -1,0 +1,20 @@
+/* Internal FABPSA messages. Artwork participates in layout instead of overflowing an absolute crop. */
+.gd-root .gd-reference-hero.gd-internal-banner{display:grid;grid-template-columns:minmax(0,1fr) 180px;align-items:center;gap:16px;width:100%;max-width:660px;min-height:142px;padding:16px 24px;border-radius:20px;overflow:visible;isolation:isolate;justify-self:end;background:linear-gradient(110deg,#dce8ff,#d3ebfb 75%,#d5e4ff);}
+.gd-root .gd-internal-banner .gd-reference-hero-copy{max-width:none;min-width:0;padding:0;}
+.gd-root .gd-internal-banner .gd-reference-hero-copy strong{font-size:18px;line-height:1.35;letter-spacing:-.25px;color:#102a53;font-weight:700;}
+.gd-root .gd-internal-banner .gd-reference-hero-copy p{font-size:13px!important;line-height:1.6;margin:7px 0 0!important;color:#456189!important;max-width:360px;}
+.gd-root .gd-internal-banner-art{display:block;width:100%;height:112px;min-width:0;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 8%,#000 93%,transparent),linear-gradient(0deg,transparent,#000 7%,#000 94%,transparent);mask-composite:intersect;}
+.gd-root .gd-reference-hero.gd-internal-banner--schedule{grid-template-columns:minmax(0,1fr) 210px;background:linear-gradient(115deg,#a7b8ff,#b6ddfc 70%,#c4edfb);}
+.gd-root .gd-reference-hero.gd-internal-banner--documentation{background:linear-gradient(110deg,#d9e8ff,#cdeafb 75%,#dceaff);}
+.gd-root.gd-view-cronograma .gd-internal-banner,.gd-root.gd-view-documentacion .gd-internal-banner{width:50%;flex-shrink:0;}
+.gd-root.gd-view-documentacion .gd-header{margin-top:0;margin-bottom:10px;}
+@media(max-width:1250px){.gd-root .gd-reference-hero.gd-internal-banner{grid-template-columns:minmax(0,1fr) 135px;gap:12px;padding:16px 18px;}.gd-root .gd-internal-banner .gd-reference-hero-copy strong{font-size:16px;}.gd-root .gd-internal-banner .gd-reference-hero-copy p{font-size:12px!important;}.gd-root .gd-reference-hero.gd-internal-banner--schedule{grid-template-columns:minmax(0,1fr) 165px;}}
+@media(max-width:1100px){.gd-root.gd-view-cronograma .gd-internal-banner,.gd-root.gd-view-documentacion .gd-internal-banner{width:100%;max-width:none;}.gd-root.gd-view-cronograma .gd-header{flex-wrap:wrap;}.gd-root .gd-reference-hero.gd-internal-banner{min-height:128px;}}
+@media(max-width:1000px){.gd-root.gd-view-portafolio .gd-internal-banner{max-width:none;}}
+@media(max-width:600px){.gd-root .gd-reference-hero.gd-internal-banner,.gd-root .gd-reference-hero.gd-internal-banner--schedule{grid-template-columns:minmax(0,1fr) 110px;gap:12px;min-height:132px;padding:17px 16px;border-radius:17px;}.gd-root .gd-internal-banner .gd-reference-hero-copy strong{font-size:15px;}.gd-root .gd-internal-banner .gd-reference-hero-copy p{font-size:11px!important;line-height:1.5;}.gd-root .gd-internal-banner-art{height:98px;}}
+@media(max-width:350px){.gd-root .gd-reference-hero.gd-internal-banner,.gd-root .gd-reference-hero.gd-internal-banner--schedule{grid-template-columns:minmax(0,1fr) 86px;gap:8px;padding:14px 12px;}}
+
+.gd-root .gd-internal-banner-art{height:auto;max-height:112px;}
+
+.gd-root .gd-header__icon:has(.gd-heading-art){width:110px;height:88px;flex-shrink:0;background:transparent;box-shadow:none;border:0;border-radius:0;overflow:visible}.gd-root .gd-heading-art{display:flex;width:110px;height:88px;align-items:center;justify-content:center}.gd-root .gd-header__icon .gd-heading-art svg{width:100%;height:auto;max-height:88px;overflow:hidden;mask-image:linear-gradient(90deg,transparent,#000 9%,#000 92%,transparent)}
+@media(max-width:600px){.gd-root .gd-header__icon:has(.gd-heading-art),.gd-root .gd-heading-art{width:76px;height:68px}}

@@ -1,0 +1,135 @@
+/* Preparación del SIT: tres hojas apiladas, renglones que se "escriben",
+   una línea de lectura que las recorre y un sello verde que confirma.
+   Usa los tokens del portal (App.css). */
+.sit-prep {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 46vh;
+  padding: 48px 16px;
+  text-align: center;
+  animation: sit-prep-entra 0.35s ease-out both;
+}
+.sit-prep--reservado {
+  animation: none;
+}
+
+.sit-prep__ilustracion {
+  position: relative;
+  width: 92px;
+  height: 108px;
+  margin-bottom: 18px;
+}
+.sit-prep__hoja {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-s);
+}
+.sit-prep__hoja--3 { transform: translate(10px, -8px) rotate(5deg); opacity: 0.55; }
+.sit-prep__hoja--2 { transform: translate(5px, -4px) rotate(2.5deg); opacity: 0.8; }
+.sit-prep__hoja--1 {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 22px 14px 0;
+  overflow: hidden;
+}
+.sit-prep__renglon {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  transform-origin: left center;
+  animation: sit-prep-escribe 2.4s ease-in-out infinite;
+}
+.sit-prep__renglon:nth-child(2) { animation-delay: 0.15s; }
+.sit-prep__renglon--corto { width: 60%; animation-delay: 0.3s; }
+
+.sit-prep__sello {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 14px;
+  animation: sit-prep-sello 2.4s ease-in-out infinite;
+}
+
+.sit-prep__escaner {
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  top: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--primary);
+  opacity: 0.7;
+  animation: sit-prep-escanea 2.4s ease-in-out infinite;
+}
+
+.sit-prep__titulo {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text-h);
+}
+.sit-prep__texto {
+  margin: 0;
+  max-width: 420px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.sit-prep__nota {
+  margin: 6px 0 0;
+  max-width: 440px;
+  min-height: 1.4em;
+  font-size: 12px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+.sit-prep__nota.is-visible { opacity: 1; }
+.sit-prep__tiempo { font-variant-numeric: tabular-nums; }
+
+@keyframes sit-prep-entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sit-prep-escribe {
+  0%, 10%  { transform: scaleX(0.15); background: var(--border); }
+  45%, 80% { transform: scaleX(1); background: color-mix(in srgb, var(--primary) 35%, var(--border)); }
+  100%     { transform: scaleX(1); background: var(--border); }
+}
+@keyframes sit-prep-escanea {
+  0%   { top: 8%;  opacity: 0; }
+  15%  { opacity: 0.7; }
+  60%  { top: 88%; opacity: 0.7; }
+  70%, 100% { top: 88%; opacity: 0; }
+}
+@keyframes sit-prep-sello {
+  0%, 55%  { transform: scale(0); opacity: 0; }
+  65%      { transform: scale(1.12); opacity: 1; }
+  72%, 90% { transform: scale(1); opacity: 1; }
+  100%     { transform: scale(0.9); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sit-prep,
+  .sit-prep__renglon,
+  .sit-prep__sello,
+  .sit-prep__escaner { animation: none; }
+  .sit-prep__renglon { transform: none; }
+  .sit-prep__sello { opacity: 1; transform: none; }
+  .sit-prep__escaner { display: none; }
+}

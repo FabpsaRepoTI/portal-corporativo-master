@@ -1,0 +1,42 @@
+.vje-toolbar-right[hidden]{display:none}
+
+.vje-development-report{display:contents}
+
+/* Development shares the operations layout, with its own restrained indigo identity. */
+.vje-root--development{--primary:#7164ee;--secondary:#566be8}
+.vje-root--development .vje-banner{background:linear-gradient(115deg,color-mix(in srgb,var(--bg-surface) 86%,#8172f4),var(--bg-surface) 65%);border-color:color-mix(in srgb,var(--border) 65%,#8172f4);border-left:3px solid #8172f4}
+.vje-root--development .vje-banner-eyebrow{color:#7164ee}
+.vje-root--development .vje-card-head{background:color-mix(in srgb,var(--bg-surface) 96%,#8172f4)}
+.vje-root--development .vje-btn-ia{background:#5144bb}
+.vje-root--development .vje-banner-estado{letter-spacing:-.6px}
+.vje-modal.vje-modal--development{--primary:#8172f4;max-height:calc(100dvh - 48px);background:var(--bg-surface);border:1px solid color-mix(in srgb,var(--border) 65%,#8172f4);border-radius:16px;box-shadow:0 24px 90px #11183940;overflow:hidden}
+.vje-modal.vje-modal--development.vje-modal--ancho{width:1040px;max-width:calc(100vw - 32px)}
+.vje-modal--development .vje-modal-head{background:linear-gradient(110deg,color-mix(in srgb,var(--bg-surface) 85%,#8172f4),var(--bg-surface));border-top:3px solid #8172f4;padding:22px 24px}
+.vje-modal--development .vje-modal-title{color:var(--text-h);font-size:17px}
+.vje-modal--development .vje-modal-body{background:color-mix(in srgb,var(--bg-surface) 97%,#8172f4);scrollbar-width:thin;scrollbar-color:var(--border) transparent;overflow-x:hidden}
+.vje-modal--development .vje-tabla-wrap{overflow:visible;border:1px solid var(--border);border-radius:10px;background:var(--bg-surface)}
+.vje-modal--development .vje-tabla{width:100%;min-width:0;table-layout:fixed}
+.vje-modal--development .vje-tabla th,.vje-modal--development .vje-tabla td{white-space:normal;overflow-wrap:anywhere;padding:12px 10px;min-width:0;width:auto}
+.vje-modal--development .vje-tabla th:nth-child(2){width:25%}
+.vje-modal--development .vje-tabla th:nth-child(1){width:19%}
+.vje-modal--development .vje-tabla th:nth-child(3){width:11%}
+.vje-modal--development .vje-tabla .vje-asunto{white-space:normal;overflow:visible;max-width:none;display:block}
+.vje-modal--development .vje-tabla .vje-folio{white-space:normal;color:#8172f4}
+.vje-modal--development .vje-tabla th{background:color-mix(in srgb,var(--bg-surface) 92%,#8172f4)}
+.vje-modal--development .vje-tabla tbody tr:nth-child(even){background:color-mix(in srgb,var(--bg-surface) 97%,#8172f4)}
+.vje-modal--development .vje-tabla tbody tr:hover{background:color-mix(in srgb,var(--bg-surface) 90%,#8172f4)}
+.vje-modal--development .vje-tk-cell{background:var(--bg-surface);border-radius:9px}
+.vje-modal--development .vje-tk-desc{border-radius:9px;background:var(--bg-elevated)}
+.dev-modal-tools{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px;font-size:11px;color:var(--text-muted)}
+.dev-modal-tools input{width:300px;max-width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;color:var(--text-h);background:var(--bg-surface);font:inherit}
+.dev-modal-progress{display:none}
+.vje-modal--development .dev-modal-progress{display:block;width:100%;height:5px;margin-bottom:6px;accent-color:#8172f4}
+@media(max-width:640px){
+ .vje-modal--development .dev-modal-tools{align-items:stretch;flex-direction:column}
+ .vje-modal--development .vje-tabla thead{display:none}
+ .vje-modal--development .vje-tabla,.vje-modal--development .vje-tabla tbody{display:block}
+ .vje-modal--development .vje-tabla tr{display:grid;grid-template-columns:1fr 1fr;padding:10px;border-bottom:1px solid var(--border)}
+ .vje-modal--development .vje-tabla td{display:block;border:0;padding:7px}
+ .vje-modal--development .vje-tabla td:nth-child(1),.vje-modal--development .vje-tabla td:nth-child(2){grid-column:1/-1}
+ .vje-modal--development .vje-tabla td:before{content:attr(data-label);display:block;font-size:9px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}
+}

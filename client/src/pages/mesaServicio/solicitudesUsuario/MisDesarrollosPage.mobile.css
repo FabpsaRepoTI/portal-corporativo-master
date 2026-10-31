@@ -1,0 +1,188 @@
+/* ═══════════════════════════════════════════════════════════════
+   MisDesarrollosPage.mobile.css
+   Igual que SolicitudesDesarrolloPage — Mobile overrides
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── KPI STRIP ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .sdp-kpi-strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 12px 14px 0;
+    gap: 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sdp-kpi-strip::-webkit-scrollbar {
+    display: none;
+  }
+  .sdp-kpi-chip {
+    flex: 0 0 auto;
+    min-width: 90px;
+    padding: 8px 10px;
+    gap: 7px;
+  }
+  .kpi-icon-wrap {
+    width: 26px;
+    height: 26px;
+    font-size: 14px;
+  }
+  .kpi-count {
+    font-size: 17px;
+  }
+  .kpi-label {
+    font-size: 10px;
+  }
+}
+
+/* ── TOOLBAR ────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .sdp-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 10px 14px;
+    gap: 8px;
+  }
+  .sdp-search-wrap {
+    max-width: none;
+    min-width: 0;
+  }
+  .sdp-toolbar-filters {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sdp-toolbar-filters::-webkit-scrollbar {
+    display: none;
+  }
+  .sdp-filter-select {
+    flex: 0 0 auto;
+    min-width: 130px;
+    font-size: 12px;
+    height: 34px;
+  }
+  .sdp-toolbar-spacer {
+    display: none;
+  }
+}
+
+/* ── TABLA → cards en móvil ─────────────────────────────────── */
+@media (max-width: 640px) {
+  .sdp-table-wrap {
+    padding: 0 14px;
+  }
+  .sdp-table {
+    border: none;
+    background: transparent;
+    border-radius: 0;
+  }
+  .sdp-table thead {
+    display: none;
+  }
+  .sdp-table tbody tr {
+    display: block;
+    background: var(--bg-card, #fff);
+    border: 1px solid var(--border, #e5e7eb);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    padding: 0;
+    cursor: pointer;
+    transition:
+      border-color 0.15s,
+      box-shadow 0.15s;
+  }
+  .sdp-table tbody tr:hover {
+    border-color: #4f46e5;
+    box-shadow: 0 2px 10px rgba(79, 70, 229, 0.1);
+  }
+  .sdp-table tbody tr:last-child {
+    border-bottom: 1px solid var(--border, #e5e7eb);
+  }
+  .sdp-table td {
+    display: none;
+    padding: 0;
+  }
+
+  /* Mostrar solo las celdas de la card móvil */
+  .sdp-table td.col-chevron,
+  .sdp-table td.col-titulo-main {
+    display: block;
+  }
+
+  .sdp-table td.col-chevron {
+    display: flex;
+    justify-content: flex-end;
+    padding: 10px 14px 0;
+    color: var(--text-secondary, #9ca3af);
+  }
+  .sdp-table td.col-titulo-main {
+    padding: 4px 14px 12px;
+  }
+  .titulo-text--truncado {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+}
+
+/* ── MODAL en móvil ─────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .sdp-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .msd-modal-wrap {
+    border-radius: 20px 20px 0 0;
+    max-width: 100%;
+    max-height: 92dvh;
+  }
+  .msd-modal-header-bar {
+    padding: 16px 16px 10px;
+  }
+  .msd-modal-titulo {
+    font-size: 15px;
+  }
+  .sdp-panel-tab span {
+    display: none;
+  }
+  .sdp-panel-tab {
+    padding: 10px 10px;
+  }
+  .sdp-panel-tab i {
+    font-size: 16px;
+  }
+  .sdp-panel-body {
+    padding: 12px;
+  }
+  .sdp-resumen-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* ── PAGINACIÓN ─────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .sdp-pagination {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 14px 16px;
+    gap: 10px;
+  }
+}
+
+/* ── PANEL TABS en móvil ────────────────────────────────────── */
+@media (max-width: 640px) {
+  .sdp-panel-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .sdp-panel-tabs::-webkit-scrollbar {
+    display: none;
+  }
+}

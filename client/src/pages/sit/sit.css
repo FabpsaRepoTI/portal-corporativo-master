@@ -1,0 +1,467 @@
+/* pages/sit/sit.css — base compartida del módulo SIT
+   (botones, tarjetas, tablas, estados). Cada página/componente tiene
+   además su propio .css. */
+
+.sit-root {
+  --sit-verde: #22c55e;
+  --sit-amarillo: #f59e0b;
+  --sit-rojo: #ef4444;
+  --sit-gris: #94a3b8;
+  --sit-card: var(--bg-surface);
+  --sit-hover: rgba(148, 163, 184, 0.08);
+  --sit-input: rgba(15, 23, 42, 0.55);
+  padding: 28px 32px 56px;
+  color: var(--text-body);
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+[data-theme="light"] .sit-root {
+  --sit-hover: rgba(15, 23, 42, 0.04);
+  --sit-input: #ffffff;
+}
+
+/* ── Encabezado ─────────────────────────────── */
+.sit-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.sit-header__title {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+/* Encabezado estilo Mesa de Servicio: título + descripción breve, sin ícono */
+.sit-header__sub {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+.sit-header small {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--primary);
+  font-weight: 600;
+}
+.sit-header small::before {
+  content: "";
+  width: 24px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--primary);
+  opacity: 0.6;
+}
+.sit-header h1 {
+  margin: 4px 0 0;
+  font-size: clamp(24px, 3vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.7px;
+  line-height: 1.15;
+  color: var(--text-h);
+}
+.sit-header__actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ── Breadcrumb ─────────────────────────────── */
+.sit-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.sit-breadcrumb a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.sit-breadcrumb a:hover {
+  text-decoration: underline;
+}
+.sit-breadcrumb span {
+  color: var(--text-h);
+  font-weight: 600;
+}
+
+/* ── Botones ────────────────────────────────── */
+.sit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-h);
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.sit-btn:hover:not(:disabled) {
+  background: var(--sit-hover);
+}
+.sit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.sit-btn--primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #0b1324;
+}
+.sit-btn--primary:hover:not(:disabled) {
+  background: var(--primary-l);
+}
+.sit-btn--sm {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+.sit-btn--danger {
+  color: var(--sit-rojo);
+  border-color: color-mix(in srgb, var(--sit-rojo) 40%, transparent);
+}
+
+/* ── Tarjetas y tablas ──────────────────────── */
+.sit-card {
+  background: var(--sit-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px 20px;
+}
+.sit-card__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 15px;
+  color: var(--text-h);
+}
+
+.sit-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--sit-card);
+}
+.sit-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.sit-table th {
+  background: var(--bg-elevated);
+  text-align: left;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.sit-table td {
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.sit-table tbody tr:last-child td {
+  border-bottom: none;
+}
+.sit-table tbody tr:hover td {
+  background: var(--sit-hover);
+}
+.sit-table strong {
+  color: var(--text-h);
+}
+.sit-table small {
+  display: block;
+  color: var(--text-muted);
+}
+
+/* Anchos de columna según contenido: las columnas cortas (códigos,
+   badges, fechas, acciones) toman solo lo que ocupan y no se parten;
+   el espacio restante se lo quedan las columnas de texto libre, que
+   envuelven solo cuando de verdad no caben. */
+.sit-table .sit-col-fit {
+  width: 1%;
+  white-space: nowrap;
+}
+.sit-table td.sit-col-fit small {
+  white-space: nowrap;
+}
+.sit-table .sit-col-texto {
+  min-width: 180px;
+  overflow-wrap: anywhere;
+}
+.sit-table .sit-col-acciones {
+  text-align: right;
+}
+.sit-table .sit-col-archivo {
+  max-width: 340px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Etiquetas ──────────────────────────────── */
+.sit-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--border);
+  color: var(--text-h);
+  white-space: nowrap;
+}
+.sit-tag--planta {
+  color: var(--primary);
+  border-color: var(--border-accent);
+}
+.sit-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sit-val--ok { color: var(--sit-verde); }
+.sit-val--parcial { color: var(--sit-amarillo); }
+.sit-val--rechazo { color: var(--sit-rojo); }
+.sit-val--pendiente { color: var(--sit-gris); }
+
+/* ── Estados ────────────────────────────────── */
+.sit-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.sit-state i {
+  font-size: 34px;
+}
+.sit-state h3 {
+  margin: 0;
+  color: var(--text-h);
+  font-size: 16px;
+}
+.sit-state--error i {
+  color: var(--sit-rojo);
+}
+.sit-spin {
+  animation: sit-spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes sit-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Formularios ────────────────────────────── */
+.sit-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--sit-input);
+  color: var(--text-h);
+  font-size: 13px;
+  font-family: inherit;
+}
+.sit-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* ── Toast ──────────────────────────────────── */
+.sit-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  max-width: min(420px, calc(100vw - 48px));
+}
+.sit-toast--success { background: #16a34a; }
+.sit-toast--error { background: #dc2626; }
+
+@media (max-width: 640px) {
+  .sit-root { padding: 18px 16px 40px; }
+  .sit-header h1 { font-size: 24px; }
+  .sit-header { align-items: flex-start; }
+}
+
+
+/* ══ Layout alineado con el portal (hero de Aplicativos, ancho completo) ══ */
+.sit-root {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+  min-height: calc(100vh - 62px);
+  background: var(--bg-base);
+}
+.sit-root > :not(.page-hero):not(.sit-toast) {
+  margin-left: 3rem;
+  margin-right: 3rem;
+}
+.sit-root > .page-hero + * {
+  margin-top: 2rem;
+}
+.sit-root > :last-child {
+  margin-bottom: 2.5rem;
+}
+
+/* Botones como Mesa de Servicio: secundario claro con borde, primario
+   verde con texto blanco (nunca verde con negro). */
+.sit-btn {
+  background: var(--bg-surface);
+  color: var(--text-body);
+  font-weight: 500;
+}
+.sit-btn:hover:not(:disabled) {
+  border-color: var(--border-accent);
+  color: var(--text-h);
+  background: var(--bg-surface);
+}
+.sit-btn--primary,
+.sit-btn--primary:hover:not(:disabled) {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-weight: 600;
+}
+.sit-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+/* Encabezados de tabla como Mesa de Servicio: sin mayúsculas, gris suave */
+.sit-table th {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12.5px;
+  font-weight: 500;
+}
+
+@media (max-width: 760px) {
+  .sit-root > :not(.page-hero):not(.sit-toast) {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+}
+
+
+/* ══ Movimiento (entrada al módulo y microinteracciones) ══════════════
+   La entrada corre una sola vez al montar la página; refrescar datos o
+   cambiar filtros no la repite. Todo se apaga con prefers-reduced-motion. */
+.sit-root > * {
+  animation: sit-entra 0.42s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.sit-root > :nth-child(2) { animation-delay: 0.06s; }
+.sit-root > :nth-child(3) { animation-delay: 0.12s; }
+.sit-root > :nth-child(4) { animation-delay: 0.18s; }
+.sit-root > :nth-child(n + 5) { animation-delay: 0.24s; }
+.sit-root > .sit-toast { animation: none; }
+
+/* Las tarjetas internas del tablero (plantas, KPI) entran en cascada corta */
+.sit-dash__plantas > * { animation: sit-entra 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.sit-dash__plantas > :nth-child(2) { animation-delay: 0.08s; }
+
+/* Cambio de filtro / página: la lista aparece con un fade breve */
+.sit-fade { animation: sit-fade 0.22s ease-out both; }
+
+/* Respuesta táctil: botones, KPI, pestañas y filas */
+.sit-btn,
+.sit-art__tab,
+.sit-pn,
+.sit-dash__chip {
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.12s, box-shadow 0.15s;
+}
+.sit-btn:active:not(:disabled),
+.sit-art__tab:active,
+.sit-pn:active:not(:disabled),
+.sit-dash__chip:active {
+  transform: scale(0.97);
+}
+.sit-dash__nivel {
+  transition: border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+.sit-dash__nivel:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-s);
+}
+.sit-dash__nivel:active { transform: translateY(0) scale(0.985); }
+.sit-dash__nivel.is-active .sit-dash__dot { animation: sit-pulso 0.4s ease-out; }
+.sit-table tbody tr td { transition: background 0.15s; }
+.sit-input { transition: border-color 0.15s, box-shadow 0.15s; }
+
+@keyframes sit-entra {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes sit-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes sit-pulso {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.6); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sit-root > *,
+  .sit-dash__plantas > *,
+  .sit-fade,
+  .sit-dash__nivel.is-active .sit-dash__dot { animation: none; }
+  .sit-btn:active:not(:disabled),
+  .sit-art__tab:active,
+  .sit-pn:active:not(:disabled),
+  .sit-dash__chip:active,
+  .sit-dash__nivel:hover,
+  .sit-dash__nivel:active { transform: none; }
+}
+
+/* Envoltorio de los modales en <body>: solo aporta las variables del módulo */
+.sit-root.sit-portal {
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  max-width: none;
+  background: none;
+}
+.sit-root.sit-portal > * {
+  margin: 0 !important;
+}

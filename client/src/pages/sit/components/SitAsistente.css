@@ -1,0 +1,165 @@
+/* Fab-i · Información Técnica — botón flotante y panel lateral del SIT (paleta azul del tema nube del SIT) */
+.sit-fabi {
+  position: relative;
+  display: inline-block;
+  aspect-ratio: 910 / 1035;
+  flex: none;
+}
+.sit-fabi img,
+.sit-fabi .mrb__disfraz {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+.sit-fabi--fab { width: 52px; }
+.sit-fabi--head { width: 46px; }
+
+.sit-bot-fab {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px 6px 8px;
+  border: 1px solid #dbe6f6;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(20, 50, 120, 0.16);
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.sit-bot-fab:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(20, 50, 120, 0.22); }
+.sit-bot-fab:focus-visible { outline: 3px solid #3b9bff; outline-offset: 2px; }
+.sit-bot-fab .sit-fabi { animation: sit-fabi-flota 3.2s ease-in-out infinite; }
+.sit-bot-fab__txt { display: flex; flex-direction: column; text-align: left; line-height: 1.15; }
+.sit-bot-fab__txt strong { font-size: 14px; color: #0b1736; }
+.sit-bot-fab__txt small { font-size: 11px; color: #6a7896; }
+@keyframes sit-fabi-flota { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+
+.sit-bot-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  background: rgba(15, 23, 42, 0.28);
+  display: flex;
+  justify-content: flex-end;
+}
+.sit-bot {
+  width: min(420px, 100%);
+  height: 100%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -12px 0 32px rgba(15, 23, 42, 0.18);
+  animation: sit-bot-entra 0.22s ease-out;
+}
+@keyframes sit-bot-entra { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.sit-bot__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e3eaf4;
+}
+.sit-bot__head > div { flex: 1; min-width: 0; }
+.sit-bot__head h2 { margin: 0; font-size: 16px; color: #0b1736; }
+.sit-bot__head p { margin: 2px 0 0; font-size: 12px; color: #6a7896; }
+.sit-bot__head button {
+  border: 0; background: transparent; font-size: 20px; color: #6a7896; cursor: pointer;
+  width: 34px; height: 34px; border-radius: 8px;
+}
+.sit-bot__head button:hover { background: #eef3fb; }
+
+.sit-bot__contexto {
+  padding: 8px 16px;
+  font-size: 12.5px;
+  color: #1d4e9e;
+  background: #edf3fd;
+  border-bottom: 1px solid #e3eaf4;
+}
+
+.sit-bot__mensajes { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.sit-bot__bienvenida strong { display: block; color: #0b1736; margin-bottom: 4px; }
+.sit-bot__bienvenida p { margin: 0; font-size: 13.5px; color: #33415f; line-height: 1.45; }
+.sit-bot__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.sit-bot__chips button {
+  border: 1px solid #d3e2f7; background: #fff; color: #1d3f7a; border-radius: 999px;
+  padding: 6px 12px; font-size: 12.5px; cursor: pointer;
+}
+.sit-bot__chips button:hover:not(:disabled) { background: #edf3fd; }
+
+.sit-bot__msg { max-width: 88%; }
+.sit-bot__msg p { margin: 0; padding: 9px 12px; border-radius: 12px; font-size: 13.5px; line-height: 1.45; white-space: pre-line; }
+.sit-bot__msg--user { align-self: flex-end; }
+.sit-bot__msg--user p { background: #0b1736; color: #fff; border-bottom-right-radius: 4px; }
+.sit-bot__msg--assistant { align-self: flex-start; }
+.sit-bot__msg--assistant p { background: #f1f5fc; color: #1b2540; border-bottom-left-radius: 4px; }
+.sit-bot__ir {
+  margin-top: 6px; border: 1px solid #d3e2f7; background: #fff; color: #1e7bf0;
+  border-radius: 8px; padding: 6px 10px; font-size: 12.5px; font-weight: 600; cursor: pointer;
+}
+.sit-bot__ir:hover { background: #edf3fd; }
+.sit-bot__pensando { display: flex; align-items: center; gap: 4px; font-size: 12.5px; color: #6a7896; }
+.sit-bot__pensando span { width: 6px; height: 6px; border-radius: 50%; background: #3b9bff; animation: sit-bot-punto 1s infinite; }
+.sit-bot__pensando span:nth-child(2) { animation-delay: 0.15s; }
+.sit-bot__pensando span:nth-child(3) { animation-delay: 0.3s; margin-right: 6px; }
+@keyframes sit-bot-punto { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+.sit-bot__error { margin: 0; font-size: 12.5px; color: #b42318; }
+
+.sit-bot__form { display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e3eaf4; }
+.sit-bot__form textarea {
+  flex: 1; resize: none; border: 1px solid #d6e1f2; border-radius: 10px; padding: 8px 10px;
+  font: inherit; font-size: 13.5px;
+}
+.sit-bot__form textarea:focus { outline: 2px solid #3b9bff; border-color: transparent; }
+.sit-bot__form button {
+  width: 42px; border: 0; border-radius: 10px; background: #1e7bf0; color: #fff; font-size: 18px; cursor: pointer;
+}
+.sit-bot__form button:disabled { background: #b9c8e2; cursor: default; }
+.sit-bot__pie { padding: 0 16px 12px; font-size: 11px; color: #7887a3; }
+
+@media (max-width: 600px) {
+  .sit-bot-fab { right: 14px; bottom: 14px; padding-right: 8px; }
+  .sit-bot-fab__txt { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sit-bot-fab .sit-fabi, .sit-bot, .sit-bot__pensando span { animation: none; }
+}
+
+/* Botón flotante siempre sólido y visible (los temas globales no lo transparentan) */
+.sit-bot-fab.sit-bot-fab {
+  background: #ffffff !important;
+  border: 1.5px solid #3b9bff !important;
+  box-shadow: 0 10px 28px rgba(20, 50, 120, 0.28), 0 0 0 4px rgba(59, 155, 255, 0.14);
+  backdrop-filter: none;
+}
+.sit-bot-fab__txt strong { color: #0b1736 !important; font-weight: 700; }
+.sit-bot-fab__txt small { color: #1e7bf0 !important; font-weight: 600; }
+
+[data-theme="dark"] .sit-bot-fab.sit-bot-fab {
+  background: #0f1d3d !important;
+  border-color: #3b9bff !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 0 4px rgba(59, 155, 255, 0.22);
+}
+[data-theme="dark"] .sit-bot-fab__txt strong { color: #ffffff !important; }
+[data-theme="dark"] .sit-bot-fab__txt small { color: #9ccbff !important; }
+[data-theme="dark"] .sit-bot { background: #0f1a33; color: #e6edf9; }
+[data-theme="dark"] .sit-bot__head,
+[data-theme="dark"] .sit-bot__form { border-color: #22345c; }
+[data-theme="dark"] .sit-bot__head h2,
+[data-theme="dark"] .sit-bot__bienvenida strong { color: #fff; }
+[data-theme="dark"] .sit-bot__head p,
+[data-theme="dark"] .sit-bot__bienvenida p,
+[data-theme="dark"] .sit-bot__pie { color: #9fb1d1; }
+[data-theme="dark"] .sit-bot__contexto { background: #162a52; color: #c5dcff; border-color: #22345c; }
+[data-theme="dark"] .sit-bot__chips button,
+[data-theme="dark"] .sit-bot__ir { background: #162a52; border-color: #2b4577; color: #c5dcff; }
+[data-theme="dark"] .sit-bot__msg--assistant p { background: #18264a; color: #e6edf9; }
+[data-theme="dark"] .sit-bot__msg--user p { background: #1e7bf0; }
+[data-theme="dark"] .sit-bot__form textarea { background: #0b1428; color: #e6edf9; border-color: #2b4577; }

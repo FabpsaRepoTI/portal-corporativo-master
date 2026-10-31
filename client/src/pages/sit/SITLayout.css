@@ -1,0 +1,217 @@
+/* Aplicación SIT: barra lateral, barra superior y pestañas propias (como el SGC),
+   con la identidad azul "nube" del SIT. Todo va bajo .sit-app. */
+
+.sit-app {
+  --st-fondo: #eaf1fb;
+  --st-panel: #ffffff;
+  --st-lado: #f7faff;
+  --st-borde: #dbe6f6;
+  --st-texto: #33415f;
+  --st-titulo: #0b1736;
+  --st-muted: #6a7896;
+  --st-azul: #1e7bf0;
+  --st-azul-2: #3b9bff;
+  --st-violeta: #8b5cf6;
+  --st-suave: #edf3fd;
+  --st-activo: rgba(30, 123, 240, 0.12);
+  --st-side-w: 248px;
+  display: flex;
+  min-height: 100vh;
+  background: var(--st-fondo);
+  color: var(--st-texto);
+  font-family: "Inter", system-ui, sans-serif;
+}
+[data-theme="dark"] .sit-app {
+  --st-fondo: #0a1226;
+  --st-panel: #111d39;
+  --st-lado: #0d1730;
+  --st-borde: rgba(140, 170, 230, 0.16);
+  --st-texto: #c6d2ea;
+  --st-titulo: #eef3ff;
+  --st-muted: #8c9bba;
+  --st-azul: #4d9bff;
+  --st-azul-2: #7ab6ff;
+  --st-suave: rgba(77, 155, 255, 0.08);
+  --st-activo: rgba(77, 155, 255, 0.16);
+}
+
+/* ── Barra lateral ── */
+.st-side {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  width: var(--st-side-w);
+  height: 100vh;
+  padding: 14px 12px 16px;
+  overflow-y: auto;
+  border-right: 1px solid var(--st-borde);
+  background: var(--st-lado);
+}
+.st-side__portal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 5px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--st-muted);
+  cursor: pointer;
+}
+.st-side__portal:hover { background: var(--st-suave); color: var(--st-azul); }
+.st-marca { display: flex; align-items: center; gap: 11px; margin: 14px 6px 18px; }
+.st-marca__sello {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--st-azul), var(--st-violeta));
+  color: #fff;
+  font-size: 22px;
+  box-shadow: 0 8px 20px rgba(30, 123, 240, 0.28);
+  flex-shrink: 0;
+}
+.st-marca strong {
+  display: block;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  background: linear-gradient(135deg, var(--st-azul), var(--st-violeta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.st-marca__sub { display: block; font-size: 12.5px; font-weight: 600; color: var(--st-titulo); }
+.st-marca__tag { display: block; font-size: 11px; color: var(--st-muted); }
+.st-nav__grupo { padding: 14px 10px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--st-muted); }
+.st-nav { display: grid; gap: 2px; }
+.st-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--st-texto);
+  text-decoration: none;
+  transition: background 0.12s, color 0.12s;
+}
+.st-nav__item .ti { font-size: 18px; color: var(--st-muted); }
+.st-nav__item:hover { background: var(--st-suave); color: var(--st-titulo); text-decoration: none; }
+.st-nav__item.active { background: var(--st-activo); color: var(--st-azul); font-weight: 600; }
+.st-nav__item.active .ti { color: var(--st-azul); }
+.st-side__pie {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding: 12px;
+  border: 1px solid var(--st-borde);
+  border-radius: 12px;
+  background: var(--st-panel);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--st-muted);
+}
+.st-side__pie .ti { margin-top: 1px; color: var(--st-azul); }
+.st-side__pie p { margin: 0; }
+
+/* ── Área principal ── */
+.st-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.st-top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--st-borde);
+  background: color-mix(in srgb, var(--st-panel) 88%, transparent);
+  backdrop-filter: blur(10px);
+}
+.st-top__menu { display: none; place-items: center; width: 36px; height: 36px; border: 0; border-radius: 8px; background: none; color: var(--st-texto); font-size: 20px; cursor: pointer; }
+.st-top__titulo { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--st-titulo); }
+.st-top__titulo .ti { color: var(--st-azul); font-size: 18px; }
+.st-top__derecha { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.st-perfil { display: flex; align-items: center; gap: 9px; padding: 4px 10px 4px 4px; border: 1px solid var(--st-borde); border-radius: 99px; background: var(--st-panel); }
+.st-perfil__foto { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.st-perfil__foto--ini { display: grid; place-items: center; background: linear-gradient(135deg, var(--st-azul), var(--st-violeta)); color: #fff; font-size: 12px; font-weight: 700; }
+.st-perfil__txt { display: grid; line-height: 1.2; }
+.st-perfil__txt b { font-size: 12.5px; color: var(--st-titulo); }
+.st-perfil__txt small { font-size: 11px; color: var(--st-muted); }
+
+/* ── Pestañas ── */
+.st-tabs { position: sticky; top: 56px; z-index: 29; border-bottom: 1px solid var(--st-borde); background: var(--st-lado); }
+.st-tabs__lista { display: flex; gap: 2px; padding: 6px 12px 0; overflow-x: auto; scrollbar-width: thin; }
+.st-tab {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  max-width: 280px;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+  color: var(--st-muted);
+}
+.st-tab:hover { background: var(--st-suave); }
+.st-tab.is-on { position: relative; top: 1px; border-color: var(--st-borde); background: var(--st-fondo); color: var(--st-azul); }
+.st-tab__ir {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 8px 6px 8px 12px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.st-tab__sub { font-weight: 500; opacity: 0.8; overflow: hidden; text-overflow: ellipsis; }
+.st-tab__x { display: grid; place-items: center; width: 22px; height: 22px; margin-right: 6px; border: 0; border-radius: 6px; background: none; color: inherit; cursor: pointer; opacity: 0.6; }
+.st-tab__x:hover { background: var(--st-activo); opacity: 1; }
+
+.st-cargando { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 80px 20px; color: var(--st-muted); }
+.st-giro { animation: st-giro 0.9s linear infinite; }
+@keyframes st-giro { to { transform: rotate(360deg); } }
+
+/* Las páginas del SIT llenan el área principal */
+.st-main > .sit-root { flex: 1; min-height: 0 !important; }
+
+/* ── Móvil: la barra lateral se vuelve cajón ── */
+.st-side-fondo { display: none; }
+@media (max-width: 960px) {
+  .st-top__menu { display: grid; }
+  .st-side {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 0 16px 40px rgba(11, 23, 54, 0.2);
+  }
+  .sit-app.is-menu .st-side { transform: none; }
+  .sit-app.is-menu .st-side-fondo { display: block; position: fixed; inset: 0; z-index: 39; background: rgba(11, 23, 54, 0.35); }
+  .st-perfil__txt { display: none; }
+  .st-perfil { padding: 2px; }
+  .st-top__titulo { font-size: 13px; }
+}
+@media print {
+  .st-side, .st-top, .st-tabs { display: none !important; }
+}

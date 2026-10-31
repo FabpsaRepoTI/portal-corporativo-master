@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="210" viewBox="0 0 360 210" fill="none">
+<defs><linearGradient id="screen" x1="105" y1="30" x2="260" y2="156" gradientUnits="userSpaceOnUse"><stop stop-color="#102a66"/><stop offset="1" stop-color="#185dc0"/></linearGradient><linearGradient id="frame" x1="83" y1="20" x2="290" y2="190" gradientUnits="userSpaceOnUse"><stop stop-color="#bddaff"/><stop offset=".55" stop-color="#4385ff"/><stop offset="1" stop-color="#1c4edf"/></linearGradient><filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#2563eb" flood-opacity=".19"/></filter></defs>
+<ellipse cx="180" cy="185" rx="136" ry="14" fill="#4385ff" opacity=".10"/>
+<g filter="url(#shadow)"><rect x="81" y="24" width="205" height="141" rx="12" fill="url(#frame)"/><rect x="89" y="32" width="189" height="123" rx="7" fill="url(#screen)"/><path d="M60 166h248l17 15c3 4 0 9-7 9H49c-7 0-10-5-6-9z" fill="#92baff"/><path d="M149 166h70l-6 9h-58z" fill="#dceaff"/></g>
+<circle cx="102" cy="44" r="3" fill="#ff889b"/><circle cx="113" cy="44" r="3" fill="#ffd978"/><circle cx="124" cy="44" r="3" fill="#4fe4c0"/>
+<path d="M94 54h179" stroke="#74a3ff" opacity=".4"/>
+<path d="m144 77-21 20 21 20m74-40 21 20-21 20m-28-46-17 52" stroke="#8bf5e0" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M110 138h44m9 0h21m10 0h59" stroke="#6d9df7" stroke-width="4" stroke-linecap="round"/>
+<g filter="url(#shadow)"><rect x="35" y="82" width="64" height="65" rx="13" fill="#eff7ff" stroke="#a5c7ff"/><path d="M53 101v28m0-15h23v-13" stroke="#3776ef" stroke-width="3"/><circle cx="53" cy="100" r="5" fill="#397aff"/><circle cx="76" cy="99" r="5" fill="#2ac4a4"/><circle cx="53" cy="130" r="5" fill="#397aff"/>
+<rect x="262" y="117" width="63" height="59" rx="12" fill="#d9fff4" stroke="#6bdfc4"/><path d="m278 146 10 9 21-23" stroke="#0aad86" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></g>
+<path d="M306 61v16m-8-8h16M56 44v10m-5-5h10" stroke="#5794ff" stroke-width="3" stroke-linecap="round"/><circle cx="319" cy="98" r="4" fill="#6ae3c8"/>
+</svg>

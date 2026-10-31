@@ -1,0 +1,224 @@
+/* ═══════════════════════════════════════════════════════════════════
+   MESA DE SERVICIO — Shell & Tab Navigation
+   Prefijo: .mds-*
+   No modifica estilos de .mha-* ni .hws-*
+═══════════════════════════════════════════════════════════════════ */
+
+/* ── Shell ───────────────────────────────────────────────────────── */
+.mds-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--bg-base);
+}
+
+/* ── Tab Bar container ───────────────────────────────────────────── */
+.mds-tabbar {
+  position: relative;
+  background: var(--bg-surface);
+  padding: 0 20px;
+  flex-shrink: 0;
+  /* La línea inferior la pone .mds-tabbar-rule, no border-bottom directo */
+}
+
+.mds-tabbar-inner {
+  display: flex;
+  gap: 2px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Línea de separación completa debajo del tabbar */
+.mds-tabbar-rule {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Tab button ──────────────────────────────────────────────────── */
+.mds-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 18px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+  z-index: 1; /* sobre .mds-tabbar-rule */
+  border-radius: 8px 8px 0 0;
+  margin-bottom: -1px; /* se superpone al rule para que el active tape la línea */
+}
+
+/* Hover — sutil, no llamativo */
+.mds-tab:hover:not(.mds-tab--active) {
+  color: var(--text-body);
+  background: var(--bg-hover);
+}
+
+/* Focus accesible */
+.mds-tab:focus-visible {
+  outline: 2px solid var(--tc, var(--primary));
+  outline-offset: -2px;
+}
+
+/* ── Icono del tab ───────────────────────────────────────────────── */
+.mds-tab-icon-wrap {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 14px;
+  flex-shrink: 0;
+  transition:
+    background 0.15s,
+    color 0.15s;
+  color: inherit;
+}
+
+/* ── Label ───────────────────────────────────────────────────────── */
+.mds-tab-label {
+  line-height: 1;
+}
+
+/* ── Estado ACTIVO ───────────────────────────────────────────────── */
+.mds-tab--active {
+  color: var(--tc);
+  font-weight: 600;
+  background: var(--tb);
+  border-bottom-color: var(--tc);
+}
+
+.mds-tab--active .mds-tab-icon-wrap {
+  background: var(--tbr);
+  color: var(--tc);
+}
+
+/* Indicador animado (línea inferior) — ya lo hace border-bottom,
+   pero este span añade el efecto de entrada */
+.mds-tab-indicator {
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--tc);
+  border-radius: 2px 2px 0 0;
+  animation: mdsIndicatorIn 0.2s ease both;
+}
+
+.apps-back {
+  margin-top: 20px;
+}
+
+@keyframes mdsIndicatorIn {
+  from {
+    transform: scaleX(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* ── Contenido con animación de entrada al cambiar tab ───────────── */
+.mds-content {
+  flex: 1;
+}
+
+.mds-content > * {
+  animation: mdsContentIn 0.18s ease both;
+}
+
+@keyframes mdsContentIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ── Header ──────────────────────────────────────────────────────── */
+.mds-header {
+  padding: 20px 24px 0;
+  background: var(--bg-base);
+}
+
+/* Botón volver */
+.mds-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+  margin-bottom: 20px;
+  transition: color 0.15s;
+}
+.mds-back:hover {
+  color: var(--text-h);
+}
+.mds-back i {
+  font-size: 15px;
+}
+
+/* Hero row — ícono + título + descripción */
+.mds-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.mds-hero-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 16px;
+  background: rgba(124, 140, 248, 0.12);
+  color: #7c8cf8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+}
+
+.mds-hero-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-h);
+  margin: 0 0 4px;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.mds-hero-desc {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.5;
+}

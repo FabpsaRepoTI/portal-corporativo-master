@@ -1,0 +1,30 @@
+const {chromium,expect}=require('@playwright/test'),fs=require('fs'),http=require('http'),assert=require('node:assert/strict');
+(async()=>{
+ const server=http.createServer((req,res)=>{res.setHeader('Content-Type',req.url==='/bundle.js'?'text/javascript':'text/html');res.end(req.url==='/bundle.js'?fs.readFileSync('.flujo-desarrollo-review/bundle.js'):'<!doctype html><html data-theme="light"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><div id="root"></div><script src="/bundle.js"></script>')}).listen(4365);
+ const browser=await chromium.launch();try{
+ const page=await browser.newPage({viewport:{width:1500,height:1050}}),errors=[],writes=[];page.on('pageerror',e=>errors.push(e.message));
+ const catalog=[['portal','Portal Corporativo'],['mesa_servicio','Mesa de Servicio'],['desarrollo_software','Desarrollo de Software'],['gestion_desarrollo','Gestión de Desarrollo'],['mantenimiento','Mantenimiento'],['escaner','Escáner CEDIS'],['cultura_digital','Cultura Digital'],['usuarios_admin','Administración de usuarios'],['usuarios_crear','Crear usuarios'],['escaner_contabilidad','Contabilidad · solo consulta'],['futuro','Nuevo módulo']].map(([clave,nombre])=>({clave,nombre,icono:'ti-layout-grid'}));
+ const users=[{login:'GABRIEL',name:'Gabriel Santiago',area:'SISTEMAS',sitio:'PLANTA'},{login:'CONTADOR',name:'Usuario Contabilidad',area:'CONTABILIDAD',sitio:'SUR 121'}];let owner=true,conflict=false;
+ const state={GABRIEL:{modulos:['portal','mesa_servicio','gestion_desarrollo'],esMto:false,revision:'v1'},CONTADOR:{modulos:['portal'],esMto:false,revision:'v1'}},history=[];
+ await page.route('**/api/**',async route=>{const url=new URL(route.request().url()),path=url.pathname;
+  if(path.endsWith('/capacidades'))return route.fulfill({json:{puedeVerUsuarios:true,puedeCrear:true,puedeGestionarCreacion:owner}});
+  if(path==='/api/usuarios')return route.fulfill({json:users});if(path==='/api/permisos/modulos')return route.fulfill({json:catalog});
+  const login=path.split('/')[4];if(path.endsWith('/historial'))return route.fulfill({json:{items:history.filter(h=>h.login===login),nextCursor:null}});
+  if(route.request().method()==='PUT'){if(conflict)return route.fulfill({status:409,json:{error:'Los accesos cambiaron. Recarga los permisos antes de guardar.'}});const body=route.request().postDataJSON();writes.push(body);history.unshift({id:history.length+1,login,responsable:'JMRAMIREZ',nombreResponsable:'Juan Ramírez',fecha:'2026-09-24T18:00:00Z',antes:state[login],despues:body});state[login]={...body,revision:'v2'};return route.fulfill({json:{ok:true,...state[login]}});}
+  return route.fulfill({json:state[login]});
+ });
+ await page.goto('http://localhost:4365/?view=accesos');await page.getByRole('button',{name:/Gabriel Santiago/}).click();await expect(page.getByRole('checkbox',{name:'Portal Corporativo',exact:true})).toBeChecked();
+ await page.getByRole('checkbox',{name:'Escáner CEDIS',exact:true}).check();await page.getByLabel(/Contabilidad · solo consulta/).check();
+ await page.getByRole('button',{name:/Usuario Contabilidad/}).click();await expect(page.getByText('Tienes cambios sin guardar.')).toBeVisible();await page.getByRole('button',{name:'Seguir editando'}).click();
+ await page.getByText('Revisar cambios',{exact:true}).click();await expect(page.getByText('Conceder · Escáner CEDIS',{exact:true})).toBeVisible();
+ await page.screenshot({animations:'disabled',path:'../_docs/gestion-desarrollo-revision/accesos-pagina-claro.png',fullPage:true});
+ await page.getByRole('button',{name:'Guardar accesos',exact:true}).click();await expect(page.getByText('Accesos guardados correctamente.')).toBeVisible();assert.equal(writes.length,1);assert.equal(writes[0].revision,'v1');
+ await page.getByRole('button',{name:'Historial de cambios',exact:true}).click();await expect(page.getByText('Juan Ramírez',{exact:true})).toBeVisible();await expect(page.locator('.access-history li')).toHaveCount(2);
+ await page.getByRole('button',{name:'Permisos',exact:true}).click();await page.getByRole('checkbox',{name:'Escáner CEDIS',exact:true}).uncheck();await expect(page.getByLabel(/Contabilidad · solo consulta/)).toHaveCount(0);
+ await page.getByRole('button',{name:/Usuario Contabilidad/}).click();await page.getByRole('button',{name:'Descartar y continuar'}).click();await expect(page.locator('.access-person')).toContainText('Usuario Contabilidad');await expect(page.getByRole('checkbox',{name:'Escáner CEDIS',exact:true})).not.toBeChecked();assert.equal(await page.evaluate(()=>sessionStorage.getItem('fabpsa:accesos:dev:CONTADOR')),null);
+ await page.getByRole('checkbox',{name:'Administración de usuarios',exact:true}).check();await page.getByLabel(/Crear usuarios/).check();conflict=true;await page.getByRole('button',{name:'Guardar accesos',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Los accesos cambiaron');await expect(page.getByRole('button',{name:'Guardar accesos',exact:true})).toBeEnabled();
+ await page.getByRole('button',{name:'Descartar',exact:true}).click();await page.getByLabel('Buscar módulo').fill('Nuevo módulo');await expect(page.getByRole('checkbox',{name:'Nuevo módulo',exact:true})).toBeVisible();await page.getByLabel('Buscar módulo').fill('');
+ await page.evaluate(()=>document.documentElement.dataset.theme='dark');await page.screenshot({animations:'disabled',path:'../_docs/gestion-desarrollo-revision/accesos-pagina-oscuro.png',fullPage:true});await page.setViewportSize({width:390,height:844});await page.screenshot({animations:'disabled',path:'../_docs/gestion-desarrollo-revision/accesos-pagina-movil.png',fullPage:true});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ owner=false;await page.reload();await expect(page.locator('.access-page')).toHaveCount(0);assert.deepEqual(errors,[]);console.log('PASS: owner-only access page, groups, child permissions, draft guard, save/audit, conflict, dynamic catalog, dark/mobile.');
+ }finally{await browser.close();server.closeAllConnections();server.close();}
+})().catch(e=>{console.error(e);process.exitCode=1});

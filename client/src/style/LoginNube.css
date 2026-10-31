@@ -1,0 +1,234 @@
+/* LoginNube.css — inicio de sesión con el estilo actual del portal (azul
+   hielo, títulos azul marino, acento en degradado violeta → azul, botón azul
+   brillante, tarjeta blanca redondeada). Va después de Loggin.css y anula su
+   escenario de temporada. */
+.lg2-root {
+  --n-marino: #0b1736;
+  --n-texto: #33415f;
+  --n-muted: #6a7896;
+  --n-azul: #1e7bf0;
+  --n-azul-2: #3b9bff;
+  --n-violeta: #8b5cf6;
+  --n-borde: #dbe6f6;
+  --n-suave: #edf3fd;
+  background:
+    radial-gradient(1100px 620px at 88% -10%, rgba(139, 92, 246, 0.1), transparent 60%),
+    radial-gradient(900px 700px at 0% 0%, rgba(59, 155, 255, 0.14), transparent 60%),
+    linear-gradient(180deg, #eaf1fb 0%, #f4f8fe 100%) !important;
+  color: var(--n-texto) !important;
+}
+.lg2-root::before,
+.lg2-root::after,
+.lg2-bg-image,
+.lg2-dm-picado,
+.lg2-dm-glow,
+.lg2-dm-petalo,
+[class^="dm-"],
+[class*=" dm-"] { display: none !important; }
+
+/* Ilustración del portal en lugar de la mascota */
+.lg2-dm { background: none !important; }
+.lg2-dm-figure { animation: none !important; transform: none !important; }
+.lg2-dm-mascot { animation: none !important; filter: drop-shadow(0 22px 30px rgba(30, 90, 190, 0.18)) !important; }
+
+/* Marca y frase */
+.lg2-brand-title--main { color: var(--n-marino) !important; text-shadow: none !important; }
+.lg2-brand-title--accent {
+  background: linear-gradient(95deg, var(--n-violeta) 0%, var(--n-azul-2) 55%, #22b8f0 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent !important; text-shadow: none !important;
+}
+.lg2-frase { color: var(--n-texto) !important; text-shadow: none !important; }
+.lg2-frase-accent { color: var(--n-azul) !important; }
+
+/* Tarjetas de servicios */
+.lg2-service {
+  background: #fff !important; border: 1px solid var(--n-borde) !important; border-radius: 16px !important;
+  box-shadow: 0 1px 2px rgba(23, 63, 135, 0.05), 0 10px 26px rgba(30, 90, 190, 0.07) !important; backdrop-filter: none !important;
+}
+.lg2-service-ico { border-radius: 12px !important; background: color-mix(in srgb, var(--c) 12%, transparent) !important; color: var(--c) !important; }
+.lg2-service-name { color: var(--n-marino) !important; }
+.lg2-service-desc { color: var(--n-muted) !important; }
+.lg2-service-chevron { color: var(--n-muted) !important; }
+.lg2-security-item { color: var(--n-muted) !important; background: none !important; border-color: var(--n-borde) !important; }
+
+/* Panel de acceso */
+.lg2-panel {
+  background: #fff !important; border: 1px solid var(--n-borde) !important; border-radius: 24px !important;
+  box-shadow: 0 30px 70px rgba(15, 40, 100, 0.14) !important; backdrop-filter: none !important;
+}
+.lg2-panel-eyebrow {
+  display: inline-flex !important; align-items: center; gap: 8px; width: fit-content;
+  padding: 6px 14px; border-radius: 999px; background: #fff; box-shadow: 0 6px 18px rgba(30, 90, 190, 0.1);
+  color: var(--n-azul) !important; font-weight: 700 !important; letter-spacing: 0.14em !important;
+}
+.lg2-panel-dot { background: var(--n-azul) !important; box-shadow: 0 0 0 3px rgba(30, 123, 240, 0.18) !important; }
+.lg2-panel-title { color: var(--n-marino) !important; font-weight: 800 !important; letter-spacing: -0.03em !important; text-shadow: none !important; }
+.lg2-panel-sub, .lg2-label, .lg2-sec-line, .lg2-footer { color: var(--n-muted) !important; }
+.lg2-input {
+  background: #fff !important; border: 1px solid var(--n-borde) !important; border-radius: 12px !important; color: var(--n-marino) !important;
+}
+.lg2-input:focus { border-color: var(--n-azul) !important; box-shadow: 0 0 0 4px rgba(30, 123, 240, 0.14) !important; }
+.lg2-iico, .lg2-eye { color: var(--n-muted) !important; }
+.lg2-btn {
+  background: linear-gradient(135deg, var(--n-azul), var(--n-azul-2)) !important; color: #fff !important; border: 0 !important;
+  border-radius: 12px !important; box-shadow: 0 10px 24px rgba(30, 123, 240, 0.3) !important; text-shadow: none !important;
+}
+.lg2-btn:hover:not(:disabled) { filter: brightness(1.05); }
+
+/* Pantalla de carga y ventana de error */
+.lg2-loading { background: linear-gradient(180deg, #eaf1fb 0%, #f4f8fe 100%) !important; color: var(--n-marino) !important; }
+.lg2-loading :is(.lg2-loading-title, .lg2-loading-pct, .lg2-loading-name) { color: var(--n-marino) !important; }
+.lg2-loading :is(.lg2-loading-sub, .lg2-loading-label) { color: var(--n-muted) !important; }
+.lg2-loading-bar { background: var(--n-suave) !important; }
+.lg2-loading-bar-fill { background: linear-gradient(90deg, var(--n-violeta), var(--n-azul-2)) !important; }
+.lg2-modal { background: #fff !important; border-radius: 22px !important; border: 1px solid var(--n-borde) !important; }
+.lg2-modal-ilustracion { display: grid; place-items: center; height: auto !important; font-size: 44px; color: var(--n-azul); }
+.lg2-modal-titulo { color: var(--n-marino) !important; }
+.lg2-modal-texto { color: var(--n-muted) !important; }
+.lg2-modal-divisor { display: none !important; }
+.lg2-modal-btn { background: linear-gradient(135deg, var(--n-azul), var(--n-azul-2)) !important; color: #fff !important; border: 0 !important; border-radius: 12px !important; }
+.lg2-frase, .lg2-frase * { color: var(--n-texto) !important; -webkit-text-fill-color: currentColor; }
+.lg2-frase .lg2-frase-accent { color: var(--n-azul) !important; }
+.lg2-panel-eyebrow, .lg2-panel-eyebrow * { color: var(--n-azul) !important; }
+.lg2-input-wrap, .lg2-input-wrap * { box-shadow: none !important; }
+.lg2-input-wrap { border-radius: 12px !important; }
+.lg2-input { border: 1px solid var(--n-borde) !important; outline: 0 !important; }
+.lg2-input:focus { border-color: var(--n-azul) !important; box-shadow: 0 0 0 4px rgba(30, 123, 240, 0.14) !important; }
+.lg2-security-item { box-shadow: none !important; filter: none !important; background: #fff !important; }
+.lg2-security-item * { filter: none !important; box-shadow: none !important; }
+.lg2-security::before, .lg2-security::after, .lg2-security-item::before, .lg2-security-item::after { display: none !important; }
+
+/* Más específicas que Loggin.css (que se carga después en el bundle) */
+html body .lg2-root .lg2-frase, html body .lg2-root .lg2-left > p { color: #33415f !important; text-shadow: none !important; }
+html body .lg2-root .lg2-frase-accent { color: #1e7bf0 !important; }
+html body .lg2-root .lg2-panel-eyebrow span { color: #1e7bf0 !important; }
+html body .lg2-root .lg2-input-wrap { border: 1px solid #dbe6f6 !important; border-radius: 12px !important; box-shadow: none !important; }
+html body .lg2-root .lg2-input-wrap:focus-within { border-color: #1e7bf0 !important; box-shadow: 0 0 0 4px rgba(30, 123, 240, 0.14) !important; }
+html body .lg2-root .lg2-input { color: #0b1736 !important; border: 0 !important; box-shadow: none !important; }
+html body .lg2-root .lg2-security-item { background: #fff !important; border: 1px solid #dbe6f6 !important; color: #6a7896 !important; box-shadow: none !important; }
+html body .lg2-root .lg2-security-item i { color: #1e7bf0 !important; }
+html body .lg2-root .lg2-security-item + .lg2-security-item::before { display: none !important; }
+html body .lg2-root .lg2-btn:disabled { opacity: 0.55; }
+html body .lg2-root .lg2-dm { display: none !important; }
+
+/* ════════════════════════════════════════════════════════════
+   ESTILO APPLE (macOS / visionOS): fondo de color vivo que se mueve muy
+   despacio, tarjetas de vidrio esmerilado, letra del sistema, botón píldora.
+   ════════════════════════════════════════════════════════════ */
+html body .lg2-root {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif !important;
+  background: linear-gradient(160deg, #1d3fb8 0%, #3a2fa8 50%, #0e5fa8 100%) !important;
+  overflow: hidden;
+  isolation: isolate;
+}
+html body .lg2-root *:not(.ti):not([class^="ti-"]) { font-family: inherit !important; }
+/* Manchas de color: la "malla" de los fondos de Apple */
+html body .lg2-root::before,
+html body .lg2-root::after {
+  content: "" !important;
+  display: block !important;
+  position: absolute;
+  inset: -25%;
+  z-index: -1;
+  pointer-events: none;
+  filter: blur(60px) saturate(160%) brightness(1.1);
+}
+html body .lg2-root::before {
+  background:
+    radial-gradient(38% 42% at 18% 22%, #3b82f6 0%, transparent 70%),
+    radial-gradient(34% 40% at 82% 18%, #a855f7 0%, transparent 70%),
+    radial-gradient(40% 46% at 72% 82%, #06b6d4 0%, transparent 70%),
+    radial-gradient(36% 40% at 22% 84%, #6366f1 0%, transparent 70%),
+    radial-gradient(30% 34% at 50% 50%, #ec4899 0%, transparent 70%);
+  opacity: 0.95;
+  animation: lgMalla 26s ease-in-out infinite alternate;
+}
+html body .lg2-root::after {
+  background:
+    radial-gradient(30% 34% at 60% 30%, #60a5fa 0%, transparent 70%),
+    radial-gradient(26% 30% at 30% 60%, #c084fc 0%, transparent 70%);
+  opacity: 0.6;
+  animation: lgMalla2 32s ease-in-out infinite alternate;
+}
+@keyframes lgMalla { 0% { transform: translate(0, 0) rotate(0deg) scale(1); } 100% { transform: translate(4%, -3%) rotate(12deg) scale(1.08); } }
+@keyframes lgMalla2 { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(-6%, 5%) scale(1.15); } }
+@media (prefers-reduced-motion: reduce) { html body .lg2-root::before, html body .lg2-root::after { animation: none; } }
+
+/* Lado izquierdo en blanco sobre el color */
+html body .lg2-root .lg2-brand-title--main { color: #fff !important; letter-spacing: -0.04em !important; font-weight: 800 !important; }
+html body .lg2-root .lg2-brand-title--accent {
+  background: linear-gradient(95deg, #e0e7ff, #ffffff 45%, #bae6fd) !important;
+  -webkit-background-clip: text !important; background-clip: text !important; color: transparent !important;
+  letter-spacing: -0.04em !important; font-weight: 800 !important;
+}
+html body .lg2-root .lg2-brand-logo { background: rgba(255, 255, 255, 0.9); border-radius: 18px; padding: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18); }
+html body .lg2-root .lg2-frase, html body .lg2-root .lg2-left > p { color: rgba(255, 255, 255, 0.85) !important; font-size: 17px !important; }
+html body .lg2-root .lg2-frase-accent { color: #fff !important; font-weight: 700; }
+
+/* Vidrio esmerilado */
+html body .lg2-root .lg2-service,
+html body .lg2-root .lg2-security-item {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border: 1px solid rgba(255, 255, 255, 0.28) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  box-shadow: 0 8px 30px rgba(10, 20, 60, 0.18) !important;
+  border-radius: 18px !important;
+}
+html body .lg2-root .lg2-service { transition: transform 0.2s ease, background 0.2s ease; }
+html body .lg2-root .lg2-service:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.22) !important; }
+html body .lg2-root .lg2-service-ico { background: rgba(255, 255, 255, 0.92) !important; border-radius: 12px !important; }
+html body .lg2-root .lg2-service-name { color: #fff !important; font-weight: 600 !important; }
+html body .lg2-root :is(.lg2-service-desc, .lg2-service-chevron) { color: rgba(255, 255, 255, 0.75) !important; }
+html body .lg2-root .lg2-security-item { border-radius: 999px !important; color: rgba(255, 255, 255, 0.9) !important; }
+html body .lg2-root .lg2-security-item i { color: #fff !important; }
+
+/* Tarjeta de acceso: vidrio claro, muy redondeada */
+html body .lg2-root .lg2-panel {
+  background: rgba(255, 255, 255, 0.78) !important;
+  backdrop-filter: blur(40px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.7) !important;
+  border-radius: 32px !important;
+  box-shadow: 0 40px 90px rgba(10, 20, 70, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+html body .lg2-root .lg2-panel-eyebrow { background: rgba(30, 123, 240, 0.1) !important; box-shadow: none !important; }
+html body .lg2-root .lg2-panel-title { font-size: 40px !important; font-weight: 800 !important; letter-spacing: -0.04em !important; color: #0b1736 !important; }
+html body .lg2-root .lg2-input-wrap { background: rgba(255, 255, 255, 0.9) !important; border: 1px solid rgba(15, 40, 100, 0.12) !important; border-radius: 14px !important; }
+html body .lg2-root .lg2-input { font-size: 16px !important; background: transparent !important; }
+html body .lg2-root .lg2-btn {
+  border-radius: 999px !important; height: 52px; font-size: 16px !important; font-weight: 600 !important;
+  background: linear-gradient(135deg, #0a84ff, #5e5ce6) !important;
+  box-shadow: 0 14px 34px rgba(10, 132, 255, 0.4) !important;
+}
+html body .lg2-root .lg2-btn:disabled { opacity: 0.5; box-shadow: none !important; }
+html body .lg2-root .lg2-loading { background: transparent !important; }
+
+/* Sin las pastillas de seguridad */
+html body .lg2-root .lg2-security { display: none !important; }
+/* Pantalla de bienvenida (al entrar): texto blanco sobre el mismo fondo de color */
+html body .lg2-root .lg2-loading { background: transparent !important; }
+html body .lg2-root .lg2-loading-inner {
+  background: rgba(255, 255, 255, 0.14) !important; border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  backdrop-filter: blur(30px) saturate(170%); -webkit-backdrop-filter: blur(30px) saturate(170%);
+  border-radius: 32px !important; padding: 40px 56px !important; box-shadow: 0 40px 90px rgba(10, 20, 70, 0.3) !important;
+}
+html body .lg2-root .lg2-loading :is(.lg2-loading-title, .lg2-loading-pct, .lg2-loading-name, .lg2-loading-name *) { color: #fff !important; text-shadow: none !important; }
+html body .lg2-root .lg2-loading :is(.lg2-loading-sub, .lg2-loading-label) { color: rgba(255, 255, 255, 0.8) !important; }
+html body .lg2-root .lg2-loading-bar { background: rgba(255, 255, 255, 0.22) !important; border-radius: 999px; }
+html body .lg2-root .lg2-loading-bar-fill { background: #fff !important; border-radius: 999px; }
+html body .lg2-root .lg2-loading-logo { background: rgba(255, 255, 255, 0.92); border-radius: 18px; padding: 8px; }
+
+/* Apple refinado: misma idea (color + vidrio) pero más profundo y sobrio,
+   como los fondos de macOS: azul noche, índigo y un brillo cian suave. */
+html body .lg2-root { background: linear-gradient(160deg, #0b1f5c 0%, #1b2a7a 45%, #0d3f7a 100%) !important; }
+html body .lg2-root::before {
+  background:
+    radial-gradient(40% 45% at 15% 20%, #2f6bff 0%, transparent 70%),
+    radial-gradient(36% 42% at 85% 15%, #7c5cff 0%, transparent 70%),
+    radial-gradient(42% 48% at 75% 85%, #0fb5d6 0%, transparent 70%),
+    radial-gradient(38% 42% at 20% 85%, #4b5bdc 0%, transparent 70%) !important;
+  opacity: 0.7 !important;
+}
+html body .lg2-root::after { opacity: 0.35 !important; }
+html body .lg2-root .lg2-panel { background: rgba(255, 255, 255, 0.86) !important; }

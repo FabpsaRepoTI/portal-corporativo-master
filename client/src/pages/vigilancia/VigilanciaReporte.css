@@ -1,0 +1,1468 @@
+/* ============================================================
+   VigilanciaReporte.css — Vigilancia · Detalle de Reporte
+   ============================================================ */
+
+.vigr-page {
+  padding: 1.5rem 2rem;
+  max-width: 1600px;
+  width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* ── Toast ── */
+.vig-toast {
+  position: fixed;
+  top: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.2rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  animation: vigr-slide-in 0.25s ease;
+}
+.vig-toast--success { background: var(--primary); color: #fff; }
+.vig-toast--error   { background: #ef4444; color: #fff; }
+.vig-toast--warning { background: #f59e0b; color: #fff; }
+
+@keyframes vigr-slide-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Spinner ── */
+.vig-spin {
+  animation: vigr-spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes vigr-spin { to { transform: rotate(360deg); } }
+
+/* ── Header ── */
+.vigr-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.vigr-header__left {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+.vigr-header__icon {
+  font-size: 2rem;
+  color: var(--primary);
+}
+.vigr-header__title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+.vigr-header__meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.3rem;
+}
+.vigr-header__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.vigr-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Badges ── */
+.vigr-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-draft {
+  background: color-mix(in srgb, #f59e0b 18%, transparent);
+  color: #d97706;
+}
+.badge-closed {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+}
+.vigr-turno-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--secondary);
+  background: color-mix(in srgb, var(--secondary) 12%, transparent);
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+}
+
+/* ── Botones ── */
+.vigr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, background 0.15s;
+}
+.vigr-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.vigr-btn--primary  { background: var(--primary); color: #fff; }
+.vigr-btn--primary:hover:not(:disabled) { opacity: 0.88; }
+.vigr-btn--ghost    { background: transparent; color: var(--text-body); border: 1px solid var(--border); }
+.vigr-btn--ghost:hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+.vigr-btn--danger   { background: #ef4444; color: #fff; }
+.vigr-btn--danger:hover:not(:disabled) { opacity: 0.88; }
+.vigr-btn--sm       { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+/* ── Cabecera display (folio + meta en una sola línea) ── */
+.vigr-cabecera {
+  background: var(--bg-surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 0.9rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.vigr-cabecera__left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.vigr-cabecera__icon {
+  font-size: 1.6rem;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+.vigr-cabecera__folio {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-h);
+  line-height: 1.2;
+}
+.vigr-cabecera__sitio {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.vigr-cabecera__meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.vigr-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+.vigr-meta-item .ti {
+  font-size: 0.9rem;
+}
+/* ── Cabecera editable (form) ── */
+.vigr-cabecera-edit {
+  background: var(--bg-surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 1.1rem 1.25rem;
+}
+.vigr-cabecera__title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 0 0 0.85rem;
+}
+.vigr-cabecera__row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.vigr-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 140px;
+}
+.vigr-form-group label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vigr-form-group select,
+.vigr-form-group input[type="date"],
+.vigr-form-group input[type="text"],
+.vigr-form-group input[type="number"],
+.vigr-form-group textarea {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-body);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.vigr-form-group select:focus,
+.vigr-form-group input:focus,
+.vigr-form-group textarea:focus {
+  border-color: var(--primary);
+}
+.vigr-form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+/* ── Turno grid en cabecera ── */
+.vigr-turno-grid {
+  display: flex;
+  gap: 0.5rem;
+}
+.vigr-turno-opt {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-base);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.vigr-turno-opt:hover { border-color: var(--primary); color: var(--primary); }
+.vigr-turno-opt--active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 14%, var(--bg-surface));
+  color: var(--primary);
+}
+
+/* ── Tabs ── */
+.vigr-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 2px solid var(--border);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.vigr-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s, border-color 0.15s;
+}
+.vigr-tab:hover { color: var(--primary); }
+.vigr-tab--active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* ── Sección / panel ── */
+.vigr-section {
+  background: var(--bg-surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.vigr-section__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 5%, var(--bg-surface));
+}
+.vigr-section__title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-h);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.vigr-section__body {
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* ── Tabla interna ── */
+.vigr-table-wrap {
+  overflow-x: auto;
+}
+.vigr-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+.vigr-table thead th {
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-surface));
+  color: var(--text-muted);
+  font-size: 0.71rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.6rem 0.85rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.vigr-table td {
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-body);
+  vertical-align: middle;
+}
+.vigr-table tr:last-child td { border-bottom: none; }
+.vigr-table input, .vigr-table select, .vigr-table textarea {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-body);
+  padding: 0.35rem 0.55rem;
+  font-size: 0.84rem;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+}
+.vigr-table input:focus, .vigr-table select:focus, .vigr-table textarea:focus {
+  border-color: var(--primary);
+}
+.vigr-table input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--primary);
+}
+
+/* ── Accordion de ejecutivos / vehículos ── */
+.vigr-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.vigr-acc-card {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+.vigr-acc-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.vigr-acc-card__head:hover {
+  background: color-mix(in srgb, var(--primary) 6%, var(--bg-base));
+}
+.vigr-acc-card__head-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.vigr-acc-card__chevron {
+  font-size: 1rem;
+  color: var(--text-muted);
+  transition: transform 0.2s;
+}
+.vigr-acc-card__chevron--open { transform: rotate(180deg); }
+.vigr-acc-card__body {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+/* ── Cards de ejecutivos / vehículos (acordeón) ── */
+.vigr-card {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--bg-base);
+}
+.vigr-card + .vigr-card { margin-top: 0.6rem; }
+.vigr-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.vigr-card__header:hover {
+  background: color-mix(in srgb, var(--primary) 6%, var(--bg-base));
+}
+.vigr-card__title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-h);
+}
+.vigr-card__title .ti {
+  font-size: 1.15rem;
+  color: var(--primary);
+}
+.vigr-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+.vigr-card__arrow {
+  font-size: 1rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* ── Badge de estado (En sitio / Fuera) ── */
+.vigr-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.vigr-status-badge--salida {
+  background: color-mix(in srgb, #ef4444 16%, transparent);
+  color: #dc2626;
+}
+.vigr-status-badge--entrada {
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  color: var(--primary);
+}
+.vigr-status-badge--none {
+  background: color-mix(in srgb, var(--text-muted) 14%, transparent);
+  color: var(--text-muted);
+}
+
+/* ── Acción rápida (registrar salida/entrada en un clic) ── */
+.vigr-quick-wrap {
+  position: relative;
+}
+.vigr-quick-popover {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 20;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 180px;
+}
+.vigr-quick-popover label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+.vigr-quick-popover--portal {
+  z-index: 9999;
+}
+.vigr-quick-popover__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
+/* ── Placa/descripción secundaria junto al nombre ── */
+.vigr-placa {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* ── Fila de kilometraje (siempre visible, sin expandir) ── */
+.vigr-km-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  border-top: 1px solid var(--border);
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+}
+.vigr-km-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.vigr-km-hint {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--text-muted);
+  opacity: 0.8;
+}
+.vigr-km-edit {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.vigr-card__body {
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.vigr-sub-head {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.vigr-empty-sm {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+/* ── Fila de movimiento (salida/entrada) ── */
+.vigr-mov-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.vigr-mov-tipo--salida {
+  background: color-mix(in srgb, #ef4444 16%, transparent);
+  color: #dc2626;
+}
+.vigr-mov-tipo--entrada {
+  background: color-mix(in srgb, var(--primary) 16%, transparent);
+  color: var(--primary);
+}
+.vigr-mov-hora {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-body);
+}
+.vigr-mov-hora--edit {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 5px;
+  padding: 0.1rem 0.3rem;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+}
+.vigr-mov-hora--edit:hover {
+  border-color: var(--border);
+  background: var(--bg-base);
+}
+.vigr-mov-hora--edit:focus {
+  border-color: var(--primary);
+  background: var(--bg-base);
+  cursor: text;
+}
+
+.vigr-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.vigr-icon-btn:hover {
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-surface));
+  color: var(--primary);
+}
+.vigr-icon-btn--danger:hover {
+  background: color-mix(in srgb, #ef4444 12%, var(--bg-surface));
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+/* ── Movimientos inline ── */
+.vigr-mov-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.vigr-mov-row .vigr-form-group { flex: 1; min-width: 110px; }
+.vigr-mov-row:not(:has(.vigr-form-group)) {
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+
+/* ── Rondines grid ── */
+.vigr-rondines-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+}
+.vigr-rondin-card {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 0.85rem 1rem;
+  background: var(--bg-base);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.vigr-rondin-card__title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vigr-rondin-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+.vigr-rondin-area {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.vigr-rondin-check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--text-body);
+  font-weight: 600;
+}
+.vigr-rondin-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary);
+}
+
+/* ── Observaciones generales ── */
+.vigr-obs-section {
+  background: var(--bg-surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 1rem 1.25rem;
+}
+.vigr-obs-section__title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin: 0 0 0.7rem;
+}
+
+/* ── Estados vacíos ── */
+.vig-center,
+.vigr-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 3.5rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.vig-center .ti,
+.vigr-center .ti { font-size: 2rem; }
+.vig-center--error,
+.vigr-center--error { color: #ef4444; }
+
+/* ── Badge req ── */
+.vigr-req { color: #ef4444; margin-left: 2px; }
+
+/* ── Divider ── */
+.vigr-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.25rem 0;
+}
+
+/* ── Chip contador ── */
+.vigr-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0 0.35rem;
+}
+
+/* ══════════════════════════════════════════════════
+   TAB PERSONAL — rediseño
+   ══════════════════════════════════════════════════ */
+
+/* Encabezado de sección con título + subtítulo */
+.vigr-section__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.vigr-section__title-group {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: var(--primary);
+  font-size: 1.1rem;
+}
+.vigr-section__title-group h3 {
+  margin: 0 0 0.15rem;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+.vigr-section__subtitle {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.vigr-section__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Banner de cambios sin guardar */
+.vigr-dirty-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);
+}
+
+/* Grid de campos de personal — lista vertical espaciosa */
+.vigr-personal-grid {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0;
+}
+.vigr-personal-field {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.12s;
+}
+.vigr-personal-field:last-child { border-bottom: none; }
+.vigr-personal-field:hover { background: color-mix(in srgb, var(--primary) 3%, transparent); }
+
+.vigr-personal-field__label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding-top: 0.35rem;
+}
+.vigr-personal-field__name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+.vigr-personal-field__desc {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+.vigr-personal-field__value {
+  padding: 0.45rem 0;
+  font-size: 0.875rem;
+  color: var(--text-body);
+  line-height: 1.5;
+}
+
+/* Textarea y input de personal */
+.vigr-textarea {
+  width: 100%;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-body);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.vigr-textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.vigr-input {
+  width: 100%;
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-body);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.vigr-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+/* Texto muted para valor vacío */
+.vigr-muted { color: var(--text-muted); font-style: italic; }
+
+/* Sección de personal extra */
+.vigr-personal-extra {
+  margin: 0 1.25rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.vigr-personal-extra__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--secondary) 8%, var(--bg-surface));
+  border-bottom: 1px solid var(--border);
+}
+.vigr-personal-extra__row {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+.vigr-personal-extra__row:last-child { border-bottom: none; }
+.vigr-personal-extra__row .vigr-personal-field {
+  grid-template-columns: 1fr;
+  border-bottom: none;
+  border-right: 1px solid var(--border);
+  padding: 0.85rem 1rem;
+}
+.vigr-personal-extra__row .vigr-personal-field:last-child { border-right: none; }
+.vigr-personal-field--sm  { flex: 0 0 140px; }
+.vigr-personal-field--grow { flex: 1; }
+
+/* Botones vig-btn (alias sin prefijo vigr-) */
+.vig-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.vig-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.vig-btn--primary { background: var(--primary); color: #fff; }
+.vig-btn--primary:hover:not(:disabled) { opacity: 0.88; }
+.vig-btn--ghost   { background: transparent; color: var(--text-body); border: 1px solid var(--border); }
+.vig-btn--ghost:hover:not(:disabled) { background: color-mix(in srgb, var(--primary) 8%, transparent); }
+.vig-btn--danger  { background: #ef4444; color: #fff; }
+.vig-btn--danger:hover:not(:disabled) { opacity: 0.88; }
+.vig-btn--sm      { padding: 0.3rem 0.7rem; font-size: 0.8rem; }
+
+/* Topbar */
+.vigr-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.vig-badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border-radius: 99px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.badge-draft  { background: color-mix(in srgb, #f59e0b 18%, transparent); color: #d97706; }
+.badge-closed { background: color-mix(in srgb, var(--primary) 18%, transparent); color: var(--primary); }
+
+/* Cabecera editable (panel desplegable) */
+.vigr-cab-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.vigr-cab-edit__form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 1rem 1.25rem;
+  background: var(--bg-surface);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+.vig-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 140px;
+}
+.vig-form-group label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.vig-form-group input,
+.vig-form-group select {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-body);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.vig-form-group input:focus,
+.vig-form-group select:focus { border-color: var(--primary); }
+
+/* Loading / error */
+.vigr-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 4rem 1rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.vigr-loading--error { color: #ef4444; }
+
+/* Tab content wrapper */
+.vigr-tab-content { display: flex; flex-direction: column; gap: 0; }
+
+/* ── Inputs/select compactos reutilizados en varias pestañas ── */
+.vigr-input-sm,
+.vigr-select-sm {
+  background: var(--bg-base);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-body);
+  padding: 0.35rem 0.5rem;
+  font-size: 0.82rem;
+  outline: none;
+  font-family: inherit;
+}
+.vigr-input-sm:focus,
+.vigr-select-sm:focus {
+  border-color: var(--primary);
+}
+.vigr-input-sm:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.vigr-input-sm--full {
+  width: 100%;
+}
+
+/* ── Tabla editable de Vehículos ── */
+.vigr-veh-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 4%, var(--bg-surface));
+  flex-wrap: wrap;
+}
+.vigr-veh-toolbar__count {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.vigr-veh-toolbar__action {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-body);
+}
+
+.vigr-veh-table-wrap {
+  overflow-x: auto;
+}
+.vigr-veh-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+.vigr-veh-table thead th {
+  position: sticky;
+  top: 0;
+  background: color-mix(in srgb, var(--primary) 8%, var(--bg-surface));
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.55rem 0.6rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.vigr-veh-th--check,
+.vigr-veh-td--check {
+  width: 2rem;
+  text-align: center;
+}
+.vigr-veh-th--mov { text-align: center; }
+.vigr-veh-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.vigr-veh-table tr:last-child td { border-bottom: none; }
+.vigr-veh-table tr:hover td { background: color-mix(in srgb, var(--primary) 4%, transparent); }
+.vigr-veh-row--selected td { background: color-mix(in srgb, var(--primary) 8%, transparent); }
+
+.vigr-veh-td--unidad { white-space: nowrap; }
+.vigr-veh-unidad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.vigr-veh-unidad > span:first-child {
+  font-weight: 700;
+  color: var(--text-h);
+}
+.vigr-veh-obs-ro {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.vigr-veh-mov-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.vigr-time-cell {
+  width: 78px;
+}
+.vigr-veh-mov-saving {
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+.vigr-veh-mov-del,
+.vigr-veh-mov-edit {
+  width: 20px;
+  height: 20px;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.vigr-veh-mov-cell:hover .vigr-veh-mov-del,
+.vigr-veh-mov-cell:hover .vigr-veh-mov-edit {
+  opacity: 1;
+}
+
+/* Hora ya registrada: badge de solo lectura hasta que se da clic para corregir */
+.vigr-time-badge {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-body);
+  font-family: inherit;
+  cursor: pointer;
+}
+.vigr-time-badge:hover:not(:disabled) {
+  border-color: var(--border);
+  background: var(--bg-base);
+}
+.vigr-time-badge:disabled {
+  cursor: default;
+  color: var(--text-muted);
+}
+
+/* Siguiente casilla vacía: un clic registra con la hora actual */
+.vigr-time-badge--empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  border: 1px dashed var(--border);
+  color: var(--primary);
+  font-weight: 700;
+}
+.vigr-time-badge--empty:hover {
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  border-color: var(--primary);
+}
+
+.vigr-time-dash {
+  color: var(--text-muted);
+  opacity: 0.5;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  outline: none;
+  display: inline-block;
+}
+.vigr-time-dash:focus {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 40%, transparent);
+}
+
+/* ── Ubicación e incidencia de vehículos (destino → unidades) ── */
+.vigr-destino-row {
+  padding: 0.85rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.vigr-destino-row:last-child { border-bottom: none; }
+.vigr-destino-row__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.vigr-destino-row__nombre {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+.vigr-destino-row__chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+.vigr-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.4rem 0.15rem 0.55rem;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.vigr-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0.7;
+}
+.vigr-chip__remove:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--primary) 25%, transparent);
+}
+.vigr-chip__remove .ti { font-size: 0.7rem; }
+
+/* ── Typeahead: agregar unidad sin modal ── */
+.vigr-typeahead {
+  position: relative;
+  display: inline-block;
+}
+.vigr-typeahead__list {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 15;
+  min-width: 140px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+  padding: 0.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.vigr-typeahead__item {
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 0.4rem 0.55rem;
+  border-radius: 5px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-body);
+  cursor: pointer;
+}
+.vigr-typeahead__item:hover,
+.vigr-typeahead__item--active {
+  background: color-mix(in srgb, var(--primary) 10%, transparent);
+  color: var(--primary);
+}
+.vigr-typeahead__empty {
+  padding: 0.4rem 0.55rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Responsive */
+
+/* Responsive */
+@media (max-width: 600px) {
+  .vigr-personal-field {
+    grid-template-columns: 1fr;
+  }
+  .vigr-personal-extra__row {
+    flex-direction: column;
+  }
+  .vigr-personal-extra__row .vigr-personal-field {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .vigr-personal-field--sm { flex: unset; }
+}
+
+/* ── Firmas precargadas ── */
+.vigr-firmas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+.vigr-firma-card {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 1rem;
+  background: var(--bg-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  align-items: center;
+  text-align: center;
+}
+.vigr-firma-card__name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-h);
+}
+.vigr-firma-card__preview {
+  position: relative;
+  width: 100%;
+  height: 100px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+.vigr-firma-card__preview:hover {
+  border-color: var(--primary);
+}
+.vigr-firma-card__preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.vigr-firma-card__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 0 0.5rem;
+}
+.vigr-firma-card__empty .ti { font-size: 1.3rem; }
+.vigr-firma-card__loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg-surface) 70%, transparent);
+  color: var(--primary);
+  font-size: 1.2rem;
+}
+
+/* ── Responsables / firmas del turno (footer tipo PDF) ── */
+.vigr-responsables-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 1px;
+  background: var(--border);
+}
+.vigr-responsable-card {
+  background: var(--bg-surface);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+.vigr-responsable-card__firma {
+  width: 100%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vigr-responsable-card__firma img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+.vigr-responsable-card__sinfirma {
+  color: var(--text-muted);
+  opacity: 0.35;
+  font-size: 1.8rem;
+}
+.vigr-responsable-card__nombre {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-h);
+  border-top: 1px solid var(--border);
+  padding-top: 0.5rem;
+  width: 100%;
+}
+.vigr-responsable-card__hint {
+  font-weight: 400;
+  font-style: italic;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+.vigr-responsable-card__label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+/* ── Confirmar cierre / reporte cerrado ── */
+.cierre-modal { max-width: 420px; padding: 1.75rem 1.5rem; text-align: center; gap: 0.75rem; align-items: center; }
+.cierre-modal__icono { width: 56px; height: 56px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, #ef4444 14%, transparent); color: #ef4444; font-size: 1.6rem; }
+.cierre-modal h2 { margin: 0; font-size: 1.1rem; color: var(--text-h); }
+.cierre-modal p { margin: 0; font-size: 0.9rem; color: var(--text-muted); }
+.cierre-modal__acciones { display: flex; gap: 0.6rem; margin-top: 0.5rem; }
+
+.cierre-ok { background: rgba(0, 0, 0, 0.35); animation: cierre-fade 0.25s ease; }
+.cierre-ok__card { background: var(--bg-surface); border-radius: 18px; padding: 2rem 2.5rem; text-align: center; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25); animation: cierre-pop 0.45s cubic-bezier(.2,1.3,.4,1); }
+.cierre-ok__check { width: 72px; height: 72px; margin: 0 auto 0.75rem; border-radius: 50%; display: grid; place-items: center; background: var(--primary); color: #fff; font-size: 2.2rem; animation: cierre-check 0.6s ease; }
+.cierre-ok h2 { margin: 0 0 0.25rem; color: var(--text-h); }
+.cierre-ok p { margin: 0; color: var(--text-muted); }
+@keyframes cierre-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes cierre-pop { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+@keyframes cierre-check { 0% { transform: scale(0); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }

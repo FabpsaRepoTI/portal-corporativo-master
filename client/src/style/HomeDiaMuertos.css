@@ -1,0 +1,11 @@
+/* Inicio · temporada de Día de Muertos (clase .hx--dm en HomePage).
+   El fondo y los colores generales de la temporada están en
+   TemporadaDiaMuertos.css (todo el portal). Aquí solo el detalle de Inicio:
+   las tarjetas siguen blancas con un borde lila suave. El encabezado
+   conserva su diseño normal. */
+.hx--dm .hx-surface {
+  border-color: rgba(180, 139, 230, 0.26);
+  box-shadow: 0 6px 18px rgba(67, 26, 92, 0.06);
+  overflow: hidden;
+}
+[data-theme="dark"] .hx--dm .hx-surface { border-color: rgba(180, 139, 230, 0.2); }

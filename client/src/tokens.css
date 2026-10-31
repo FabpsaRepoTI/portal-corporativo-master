@@ -1,0 +1,177 @@
+/*
+  Fuentes — cargar antes de este archivo:
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+*/
+
+:root {
+  /* Primario — azul CIDE
+     Acciones, menú activo, enlaces, foco.
+     No en fondos grandes ni para indicar estado. */
+  --cide-primary: #2c7be5;
+  --cide-primary-hover: #1a68d1;
+  --cide-primary-soft: rgba(
+    44,
+    123,
+    229,
+    0.15
+  ); /* fila activa, anillo de foco */
+
+  /* Navy */
+  --cide-navy-800: #1e4a8a; /* thead de tabla, no en botones */
+  --cide-navy-900: #0d1f3c; /* login, fondos de código */
+
+  /* Fondos y superficies */
+  --cide-bg: #0b1220; /* fondo general, no en cards */
+  --cide-surface: #151f32; /* cards, sidebar, topbar, modales */
+  --cide-surface-2: #1a2740; /* readonly, cabeceras suaves */
+  --cide-bg-head: #1a2740; /* filtros, campos disabled */
+
+  /* Texto */
+  --cide-text: #e2e8f4;
+  --cide-text-secondary: #9fb0c7; /* labels, descripciones */
+  --cide-text-muted: #748194; /* mínimo 12px, no operativo */
+
+  /* Bordes */
+  --cide-border: #2d3f5c; /* cards, inputs, separadores. No en texto */
+
+  /* Estados — cada uno tiene base, ink (texto) y soft (fondo suave)
+     Verde = éxito/activo, ámbar = advertencia, rojo = error.
+     Azul = info/proceso (= primary). Gris = inactivo. */
+  --cide-success: #198754;
+  --cide-success-ink: #4ade80;
+  --cide-success-soft: #7eb3a0;
+
+  --cide-warning: #f59e0b;
+  --cide-warning-ink: #fbbf24;
+  --cide-warning-soft: #4ade80;
+
+  --cide-danger: #dc3545;
+  --cide-danger-ink: #f5b5ab;
+  --cide-danger-soft: #fbbf24;
+
+  --cide-info: #2c7be5; /* = primary */
+  --cide-info-ink: #2c7be5;
+  --cide-info-soft: #0d6efd;
+
+  --cide-muted-ink: #748194;
+  --cide-muted-soft: #edf2f9;
+
+  /* Solo para el módulo de crédito */
+  --cide-credit: #6f42c1;
+
+  /* Tabla */
+  --cide-thead-bg: #1e4a8a; /* = navy-800 */
+  --cide-row-hover: rgba(44, 123, 229, 0.04);
+
+  /* Foco */
+  --cide-focus-ring: 0 0 0 3px var(--cide-primary-soft);
+
+  /* Sombras */
+  --cide-shadow: 0 4px 24px rgba(0, 0, 0, 0.35); /* superficies */
+  --cide-nav-shadow: 0 2px 8px rgba(0, 0, 0, 0.35); /* sidebar, topbar */
+
+  /* Tipografía */
+  --cide-font: "Outfit", sans-serif;
+  --cide-font-mono: "JetBrains Mono", "Consolas", monospace;
+
+  /* Escala — base 16px */
+  --cide-fs-xl: 1.5rem; /* 24px · 600 — KPI, cifras */
+  --cide-fs-lg: 1.125rem; /* 18px · 600 — títulos de sección */
+  --cide-fs-md: 0.9375rem; /* 15px · 600 — .page-title, card title */
+  --cide-fs-base: 0.875rem; /* 14px · 400 · lh 1.5 — body */
+  --cide-fs: 0.8125rem; /* 13px · 400 — tablas, controles */
+  --cide-fs-xs: 0.75rem; /* 12px · 500 — labels, btn-sm, ayudas */
+  --cide-fs-2xs: 0.6875rem; /* 11px · 600 · uppercase — thead, badges, títulos de form */
+
+  /* Pesos */
+  --cide-fw-normal: 400;
+  --cide-fw-medium: 500;
+  --cide-fw-semibold: 600;
+  --cide-fw-bold: 700;
+
+  /* Line-height */
+  --cide-lh-tight: 1.3;
+  --cide-lh-base: 1.5;
+  --cide-lh-badge: 1.4;
+
+  /* Iconos */
+  --cide-icon: 0.875rem; /* 14px — .page-title, menú */
+  --cide-icon-sm: 0.6875rem; /* 11px — dentro de .btn-action */
+
+  /* Espaciado — base 4px */
+  --cide-space-1: 0.25rem; /*  4px — icono + texto */
+  --cide-space-2: 0.5rem; /*  8px — gap entre botones */
+  --cide-space-3: 0.75rem; /* 12px — celda, card-header */
+  --cide-space-4: 1rem; /* 16px — padding de card */
+  --cide-space-5: 1.25rem; /* 20px — lateral .cide-main */
+  --cide-space-6: 1.5rem; /* 24px — secciones de form */
+  --cide-space-8: 2rem; /* 32px — estado vacío */
+
+  /* Radios — solo estos cinco, no inventar intermedios */
+  --cide-radius-sm: 0.35rem; /* botones, inputs */
+  --cide-radius: 0.5rem; /* cards, modales */
+  --cide-radius-lg: 0.75rem; /* paneles */
+  --cide-radius-nav: 1.25rem; /* sidebar, topbar */
+  --cide-radius-pill: 999px; /* chips, badges */
+
+  /* Transición */
+  --cide-ease: 0.2s ease;
+
+  /* Layout */
+  --cide-sidebar-w: 272px;
+}
+
+/* -------------------------------------------------------
+   Tema claro — solo lo que cambia
+------------------------------------------------------- */
+[data-theme="light"] {
+  --cide-primary-soft: rgba(44, 123, 229, 0.12);
+
+  --cide-bg: #edf2f9;
+  --cide-surface: #ffffff;
+  --cide-surface-2: #f8fafc;
+  --cide-bg-head: #edf2f9;
+
+  --cide-text: #344050;
+  --cide-text-secondary: #5e6e82;
+  --cide-text-muted: #9fb0c7;
+
+  --cide-border: #e3ebf3;
+
+  --cide-success-ink: #00865e;
+  --cide-warning-ink: #b45309;
+  --cide-danger-ink: #c0392b;
+
+  --cide-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+  --cide-nav-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+/* -------------------------------------------------------
+   Tema oscuro explícito — para que el toggle por clase
+   funcione sin depender del valor por defecto de :root
+------------------------------------------------------- */
+[data-theme="dark"] {
+  --cide-primary: #5b9cf0;
+  --cide-primary-hover: #7eb3f5;
+  --cide-primary-soft: rgba(91, 156, 240, 0.15);
+
+  --cide-bg: #0b1220;
+  --cide-surface: #151f32;
+  --cide-surface-2: #1a2740;
+  --cide-bg-head: #1a2740;
+
+  --cide-text: #e2e8f4;
+  --cide-text-secondary: #9fb0c7;
+  --cide-text-muted: #748194;
+
+  --cide-border: #2d3f5c;
+
+  --cide-success-ink: #4ade80;
+  --cide-warning-ink: #fbbf24;
+  --cide-danger-ink: #f5b5ab;
+
+  --cide-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  --cide-nav-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+
+  --cide-thead-bg: #152a4a;
+}
