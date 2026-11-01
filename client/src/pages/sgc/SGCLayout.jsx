@@ -17,6 +17,7 @@ import FabiChat from "../../components/sgc/FabiChat";
 import Notificaciones from "../../components/sgc/Notificaciones";
 import { avisarFase } from "../../components/sgc/sgiEntrada";
 import logoFabpsa from "../../assets/sgc/logo-fabpsa-sgi.png";
+import emblemaTrazo from "../../assets/sgc/logo-fabpsa-emblema-trazo.png";
 import "./sgc.css";
 
 const NAV = [
@@ -32,6 +33,7 @@ const NAV_GESTION = [
   { to: "/sgc/documentos", icon: "ti-files", label: "Gestión documental" },
   { to: "/sgc/procesos", icon: "ti-hierarchy-3", label: "Mapa de procesos" },
   { to: "/mesa-sgi", icon: "ti-certificate-2", label: "Mesa SGI" },
+  { to: "/sgc/presentacion", icon: "ti-world", label: "Presentación SGI" },
 ];
 const EQUIPO = { to: "/sgc/equipo", icon: "ti-users", label: "Equipo SGI" };
 const MANUAL = { to: "/sgc/manual", icon: "ti-book-2", label: "Ayuda" };
@@ -626,7 +628,7 @@ export default function SGCLayout() {
           </nav>
 
           <div className="sg-side__slogan">
-            <span className="sg-side__marca-agua" style={{ "--logo": `url(${logoFabpsa})` }} aria-hidden="true" />
+            <span className="sg-side__marca-agua" style={{ "--logo": `url(${emblemaTrazo})` }} aria-hidden="true" />
             <svg className="sg-side__olas" viewBox="0 0 220 90" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="none">
               <path d="M-10 60 Q 40 30 90 55 T 200 45 T 300 55" stroke="rgba(109,40,217,0.35)" strokeWidth="2" fill="none"/>
               <path d="M-10 72 Q 50 45 100 68 T 210 58 T 310 68" stroke="rgba(139,92,246,0.25)" strokeWidth="1.5" fill="none"/>

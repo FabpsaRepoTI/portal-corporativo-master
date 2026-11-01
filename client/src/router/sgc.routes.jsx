@@ -28,6 +28,7 @@ const GestionProcesos = lazy(() => import("../pages/sgc/GestionProcesos"));
 const GestionDocumental = lazy(() => import("../pages/sgc/GestionDocumental"));
 const EquipoSGI = lazy(() => import("../pages/sgc/EquipoSGI"));
 const ManualSGI = lazy(() => import("../pages/sgc/ManualSGI"));
+const LandingSGI = lazy(() => import("../pages/sgc/LandingSGI"));
 
 export default (
   <Route
@@ -60,6 +61,7 @@ export default (
     <Route path="documentos" element={<GestionDocumental />} />
     <Route path="equipo" element={<EquipoSGI />} />
     <Route path="manual" element={<ManualSGI />} />
+    <Route path="presentacion" element={<LandingSGI />} />
     <Route path="*" element={<Navigate to="dashboard" replace />} />
   </Route>
 );

@@ -23,7 +23,7 @@ import { fechaCorta, sgcApi, useSgc, NC_ESTATUS, PROCESO_TIPO, RELACION_TIPO } f
 const CODIGO_PREFIJO = { 1: "EST", 2: "OP", 3: "AP" };
 
 // Color de aristas por tipo de relación
-const ARISTA_COLOR = { 1: "#3a46c2", 2: "#6366f1", 3: "#94a3b8" };
+const ARISTA_COLOR = { 1: "#3978f6", 2: "#6366f1", 3: "#94a3b8" };
 const ARISTA_DASH  = { 1: undefined, 2: "6 4", 3: "3 5" };
 
 // ── Nodo de proceso rediseñado ──────────────────────────────────────────────
@@ -493,8 +493,8 @@ function Lienzo() {
         labelBgStyle: { fill: "var(--panel)", fillOpacity: 0.9 },
         labelBgPadding: [4, 6],
         labelBgBorderRadius: 4,
-        style: { stroke: ARISTA_COLOR[a.data.tipo] || "#3a46c2", strokeWidth: 1.5, strokeDasharray: ARISTA_DASH[a.data.tipo] },
-        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: ARISTA_COLOR[a.data.tipo] || "#3a46c2" },
+        style: { stroke: ARISTA_COLOR[a.data.tipo] || "#3978f6", strokeWidth: 1.5, strokeDasharray: ARISTA_DASH[a.data.tipo] },
+        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14, color: ARISTA_COLOR[a.data.tipo] || "#3978f6" },
       })),
     );
     // eslint-disable-next-line
